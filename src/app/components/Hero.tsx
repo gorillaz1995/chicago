@@ -14,6 +14,13 @@ import {
 import { useEffect, useState, useRef } from "react";
 import { Vector2 } from "three";
 
+// Add type definition for Navigator with deviceMemory
+declare global {
+  interface Navigator {
+    deviceMemory?: number;
+  }
+}
+
 // Define GLTF result type for proper typing
 interface GLTFResult extends GLTF {
   nodes: {
@@ -49,7 +56,7 @@ export default function Hero() {
     // Check device performance
     const checkPerformance = () => {
       // Check for low-end devices based on memory and hardware concurrency
-      const memory = navigator.deviceMemory as number | undefined;
+      const memory = navigator.deviceMemory;
       const cores = navigator.hardwareConcurrency;
 
       // Return true if device has 4GB or less RAM, or 4 or fewer CPU cores
