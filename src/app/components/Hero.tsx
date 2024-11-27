@@ -145,30 +145,43 @@ export default function Hero() {
         performance={{ min: 0.5 }}
       >
         <color attach="background" args={["#ffffff"]} />
-        <fog attach="fog" args={["#ffffff", 5, 25]} />
-
+        <fog attach="fog" args={["#ffffff", 8, 35]} />
         {/* Heavenly lighting setup */}
-        <ambientLight intensity={1.5} />
+        {/* Adjusted fog settings for better visibility of distant objects while maintaining atmosphere */}
+        <ambientLight intensity={1.2} color="#E8E8E8" />{" "}
+        {/* Base silver-white ambient */}
         {!isLowPerformance && (
           <>
-            <pointLight position={[0, 20, 10]} intensity={2} color="#ffffff" />
+            <pointLight
+              position={[0, 20, 10]}
+              intensity={2.5}
+              color="#FFFFFF"
+            />{" "}
+            {/* Pure white highlight */}
             <pointLight
               position={[-10, 10, -10]}
+              intensity={1.8}
+              color="#D3D3D3"
+            />{" "}
+            {/* Light gray accent */}
+            <pointLight
+              position={[10, 15, 5]}
               intensity={1.5}
-              color="#ffffff"
-            />
+              color="#C0C0C0"
+            />{" "}
+            {/* Silver accent */}
             <spotLight
               position={[0, 50, 0]}
               angle={0.3}
               penumbra={1}
-              intensity={2}
+              intensity={3}
               castShadow={!isLowPerformance}
               shadow-bias={-0.0001}
-              color="#ffffff"
-            />
+              color="#FFFFFF"
+            />{" "}
+            {/* Intense pure white spotlight for contrast */}
           </>
         )}
-
         {/* Main content group */}
         <group position={groupPosition}>
           <DynamicText
@@ -176,7 +189,7 @@ export default function Hero() {
             position={[0.4, 0.25, -1]}
             isLowPerformance={isLowPerformance}
           />
-          <Center top rotation={[0, -Math.PI / 1.5, 0]} position={[0, 0, 3]}>
+          <Center top rotation={[0, -Math.PI / 1.5, 0]} position={[0, -0.5, 3]}>
             <EnhancedBunnyModel
               props={{ scale: 0.8 }}
               isLowPerformance={isLowPerformance}
@@ -188,10 +201,8 @@ export default function Hero() {
             isLowPerformance={isLowPerformance}
           />
         </group>
-
         <Environment preset="dawn" />
         <Rig />
-
         {/* Post-processing effects only for high-performance devices */}
         {!isLowPerformance && (
           <EffectComposer>
@@ -213,27 +224,54 @@ export default function Hero() {
   );
 }
 
-// Enhanced camera rig with dynamic movement
+// Enhanced camera rig with dynamic movement and scene exploration
 function Rig() {
   const vec = new THREE.Vector3();
+  const targetLookAt = new THREE.Vector3();
+  let focusOnText = false;
+
   useFrame((state) => {
     const sensitivity = window.innerWidth <= 480 ? 0.3 : 0.8;
     const time = state.clock.getElapsedTime();
 
-    state.camera.position.lerp(
+    // Switch focus between bunny and background text every 5 seconds
+    focusOnText = Math.floor(time / 5) % 2 === 1;
+
+    if (focusOnText) {
+      // When focusing on text, move camera to better view the background
       vec.set(
-        1 + state.pointer.x * sensitivity + Math.sin(time * 0.5) * 0.5,
-        0.5 + state.pointer.y * 0.3 + Math.cos(time * 0.3) * 0.2,
-        3 + Math.sin(time * 0.2) * 0.3
-      ),
-      0.015
-    );
-    state.camera.lookAt(0, 0, 0);
+        2 + state.pointer.x * sensitivity + Math.sin(time * 0.4) * 1.2,
+        1.5 + state.pointer.y * 0.4 + Math.cos(time * 0.3) * 0.5,
+        5 + Math.sin(time * 0.2) * 0.8
+      );
+      targetLookAt.set(0, 1, -2); // Look towards the text
+    } else {
+      // When focusing on bunny and overall scene
+      vec.set(
+        1 + state.pointer.x * sensitivity + Math.sin(time * 0.5) * 0.8,
+        0.5 + state.pointer.y * 0.3 + Math.cos(time * 0.3) * 0.4,
+        3 + Math.sin(time * 0.2) * 0.5
+      );
+      targetLookAt.set(0, 0, 0); // Look at center
+    }
+
+    // Smooth camera movement
+    state.camera.position.lerp(vec, 0.015);
+
+    // Smooth look-at transition
+    const currentLookAt = new THREE.Vector3();
+    state.camera.getWorldDirection(currentLookAt);
+    const targetDirection = targetLookAt
+      .clone()
+      .sub(state.camera.position)
+      .normalize();
+    const lerpedDirection = currentLookAt.lerp(targetDirection, 0.02);
+    state.camera.lookAt(state.camera.position.clone().add(lerpedDirection));
   });
   return null;
 }
 
-// Enhanced bunny model with optimized effects
+// Enhanced bunny model with optimized effects and continuous rotation
 function EnhancedBunnyModel({
   props,
   isLowPerformance,
@@ -263,8 +301,9 @@ function EnhancedBunnyModel({
   useFrame(({ clock }) => {
     if (bunnyRef.current) {
       const time = clock.getElapsedTime();
-      bunnyRef.current.rotation.y = Math.sin(time * 0.5) * 0.2;
-      bunnyRef.current.position.y = -1.95 + Math.sin(time) * 0.1;
+      // Continuous 360-degree rotation
+      bunnyRef.current.rotation.y = time * 0.5; // Controls rotation speed
+      bunnyRef.current.position.y = -2.5 + Math.sin(time) * 0.1;
 
       if (textRef.current) {
         textRef.current.rotation.y = bunnyRef.current.rotation.y;
@@ -283,7 +322,7 @@ function EnhancedBunnyModel({
         castShadow
         receiveShadow={!isLowPerformance}
         geometry={nodes.bunny.geometry}
-        position={[0, -1.95, 0]}
+        position={[0, -2.8, 0]}
         onClick={handleInteraction}
         onPointerDown={handleInteraction}
         {...props}
@@ -291,44 +330,42 @@ function EnhancedBunnyModel({
         <meshPhysicalMaterial
           color="#4B0082"
           emissive="#4B0082"
-          emissiveIntensity={0.5}
+          emissiveIntensity={0.8}
           metalness={0.8}
-          roughness={0.2}
+          roughness={0.4}
           clearcoat={1}
           transmission={0.1}
           transparent
-          opacity={1}
+          opacity={0.98}
         />
       </mesh>
 
-      <group
-        ref={textRef}
-        position={[0.92, -2.04, 0]}
-        rotation={[0, Math.PI / 2, 0]}
+      {/* Back facing text with enhanced darkness and shadow */}
+      <Text
+        position={[0, -3, 0]}
+        fontSize={0.2}
+        color="#000000"
+        anchorX="center"
+        anchorY="middle"
+        rotation={[0, Math.PI, 0]} // Rotated 180 degrees around Y axis
       >
-        <Text
-          fontSize={0.17}
-          color="#000000"
-          anchorX="center"
-          anchorY="middle"
-          outlineWidth={0.01}
-          outlineColor="#ffffff"
-          maxWidth={1}
-          position={[0, 0, 0.6]}
-          rotation={[0, Math.PI, 0]}
-        >
-          APASA IEPURASUL
+        Apasa iepurasul
+        {isLowPerformance ? (
+          <meshBasicMaterial color="#000000" opacity={0.9} transparent />
+        ) : (
           <meshPhysicalMaterial
             color="#000000"
             emissive="#000000"
-            emissiveIntensity={0.2}
-            metalness={0.5}
-            roughness={0.5}
-            transparent
-            opacity={1}
-          />
-        </Text>
-      </group>
+            emissiveIntensity={0.2} // Reduced from 0.5
+            metalness={0.98} // Increased from 0.5
+            roughness={0.88} // Increased from 0.5
+            clearcoat={0.35} // Reduced from 1
+            opacity={0.95}
+          >
+            <fogExp2 attach="fog" color="#000000" density={0.5} />
+          </meshPhysicalMaterial>
+        )}
+      </Text>
     </group>
   );
 }
@@ -350,7 +387,7 @@ function DynamicText({
     const glitchStart = setTimeout(() => {
       const glitchInterval = setInterval(() => {
         setIsVisible((prev) => !prev);
-      }, Math.random() * 3500 + 4000);
+      }, Math.random() * 1750 + 2000); // Reduced both random range and base time by 50%
 
       return () => clearInterval(glitchInterval);
     }, 10000);
@@ -380,13 +417,13 @@ function DynamicText({
   return (
     <group scale={scale} position={position}>
       <Text
-        position={[-0.952, 0.27, 0.001]}
+        position={[-0.952, 0.47, 0.001]}
         anchorX="center"
         fontSize={0.452}
         letterSpacing={0.01}
         visible={isVisible}
       >
-        DIGITAL WIZARD
+        FullStack Marketing
         {isLowPerformance ? (
           <meshBasicMaterial color="#ffffff" />
         ) : (
@@ -397,7 +434,25 @@ function DynamicText({
           />
         )}
       </Text>
-      <mesh ref={flagRef} position={[-0.495, 0.27, 0]} scale={[5.4, 0.648, 1]}>
+      <Text
+        position={[-0.952, 0.17, 0.001]}
+        anchorX="center"
+        fontSize={0.452}
+        letterSpacing={0.01}
+        visible={isVisible}
+      >
+        Engineer
+        {isLowPerformance ? (
+          <meshBasicMaterial color="#ffffff" />
+        ) : (
+          <meshStandardMaterial
+            color="#ffffff"
+            emissive="#ffffff"
+            emissiveIntensity={0.2}
+          />
+        )}
+      </Text>
+      <mesh ref={flagRef} position={[-0.495, 0.27, 0]} scale={[7.2, 1.2, 1]}>
         <planeGeometry
           args={[1, 1, isLowPerformance ? 16 : 32, isLowPerformance ? 16 : 32]}
         />
