@@ -178,7 +178,7 @@ export default function Hero() {
           <Center top rotation={[0, -Math.PI / 1.5, 0]} position={[0, 0, 3]}>
             <EnhancedBunnyModel
               props={{ scale: 0.8 }}
-              isLowPerformance={false}
+              isLowPerformance={isLowPerformance}
             />
           </Center>
           <AnimatedTitle
@@ -280,7 +280,7 @@ function EnhancedBunnyModel({
       <mesh
         ref={bunnyRef}
         castShadow
-        receiveShadow
+        receiveShadow={!isLowPerformance}
         geometry={nodes.bunny.geometry}
         position={[0, -1.95, 0]}
         onClick={handleInteraction}
