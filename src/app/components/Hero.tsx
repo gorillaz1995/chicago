@@ -276,7 +276,7 @@ function EnhancedBunnyModel({
   };
 
   const material = isLowPerformance ? (
-    <meshBasicMaterial color="#00ffff" transparent opacity={0.9} />
+    <meshBasicMaterial color="#ff0066" transparent opacity={0.95} />
   ) : (
     <meshPhysicalMaterial
       color="#00ffff"
