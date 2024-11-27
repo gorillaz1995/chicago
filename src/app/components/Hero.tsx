@@ -48,15 +48,12 @@ export default function Hero() {
   useEffect(() => {
     // Check device performance
     const checkPerformance = () => {
-      // Check for low-end devices based on hardware concurrency and user agent
+      // Check for low-end devices based on memory and hardware concurrency
+      const memory = navigator.deviceMemory as number | undefined;
       const cores = navigator.hardwareConcurrency;
-      const isMobile =
-        /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-          navigator.userAgent
-        );
 
-      // Return true if device has 4 or fewer CPU cores or is a mobile device
-      return (cores && cores <= 4) || isMobile;
+      // Return true if device has 4GB or less RAM, or 4 or fewer CPU cores
+      return (memory !== undefined && memory <= 4) || (cores && cores <= 4);
     };
     const performanceResult = checkPerformance();
     setIsLowPerformance(!!performanceResult); // Convert to boolean explicitly
