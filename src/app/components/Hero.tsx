@@ -178,7 +178,7 @@ export default function Hero() {
           <Center top rotation={[0, -Math.PI / 1.5, 0]} position={[0, 0, 3]}>
             <EnhancedBunnyModel
               props={{ scale: 0.8 }}
-              isLowPerformance={isLowPerformance}
+              isLowPerformance={false}
             />
           </Center>
           <AnimatedTitle
@@ -249,7 +249,7 @@ function EnhancedBunnyModel({
   const textRef = useRef<THREE.Group>(null);
 
   useEffect(() => {
-    if (bunnyRef.current && !isLowPerformance) {
+    if (bunnyRef.current) {
       const bvhOptions: MeshBVHOptions = {
         strategy: 0,
         maxLeafTris: 10,
@@ -257,7 +257,7 @@ function EnhancedBunnyModel({
       const bvh = new MeshBVH(bunnyRef.current.geometry, bvhOptions);
       bunnyRef.current.geometry.boundsTree = bvh;
     }
-  }, [isLowPerformance]);
+  }, []);
 
   useFrame(({ clock }) => {
     if (bunnyRef.current) {
@@ -275,35 +275,29 @@ function EnhancedBunnyModel({
     window.location.href = "/services";
   };
 
-  const material = isLowPerformance ? (
-    <meshBasicMaterial color="#ff0066" transparent opacity={0.95} />
-  ) : (
-    <meshPhysicalMaterial
-      color="#00ffff"
-      emissive="#ff0066"
-      emissiveIntensity={2}
-      metalness={1}
-      roughness={0}
-      clearcoat={1}
-      transmission={0.2}
-      transparent
-      opacity={0.9}
-    />
-  );
-
   return (
     <group>
       <mesh
         ref={bunnyRef}
-        castShadow={!isLowPerformance}
-        receiveShadow={!isLowPerformance}
+        castShadow
+        receiveShadow
         geometry={nodes.bunny.geometry}
         position={[0, -1.95, 0]}
         onClick={handleInteraction}
         onPointerDown={handleInteraction}
         {...props}
       >
-        {material}
+        <meshPhysicalMaterial
+          color="#00ffff"
+          emissive="#ff0066"
+          emissiveIntensity={2}
+          metalness={1}
+          roughness={0}
+          clearcoat={1}
+          transmission={0.2}
+          transparent
+          opacity={0.9}
+        />
       </mesh>
 
       <group
@@ -316,26 +310,22 @@ function EnhancedBunnyModel({
           color="#ff0066"
           anchorX="center"
           anchorY="middle"
-          outlineWidth={isLowPerformance ? 0 : 0.01}
+          outlineWidth={0.01}
           outlineColor="#00ffff"
           maxWidth={1}
           position={[0, 0, 0.6]}
           rotation={[0, Math.PI, 0]}
         >
           APASA IEPURASUL
-          {isLowPerformance ? (
-            <meshBasicMaterial color="#00ff00" />
-          ) : (
-            <meshPhysicalMaterial
-              color="#00ff00"
-              emissive="#00ff00"
-              emissiveIntensity={1.2}
-              metalness={0.8}
-              roughness={0.8}
-              transparent
-              opacity={0.9}
-            />
-          )}
+          <meshPhysicalMaterial
+            color="#00ff00"
+            emissive="#00ff00"
+            emissiveIntensity={1.2}
+            metalness={0.8}
+            roughness={0.8}
+            transparent
+            opacity={0.9}
+          />
         </Text>
       </group>
     </group>
