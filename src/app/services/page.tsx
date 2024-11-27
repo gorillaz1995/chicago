@@ -1,7 +1,9 @@
 import React from "react";
 
 function page() {
-  return <div>page</div>;
+  return (
+    <div>NU ai sa vezi niciodata banii micnea, cu m mic de la mormant.</div>
+  );
 }
 
 export default page;
