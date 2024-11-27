@@ -33,7 +33,7 @@ interface ModelProps {
   scale: number;
 }
 
-// Main Hero component for cyberpunk-themed 3D scene
+// Main Hero component for heavenly-themed 3D scene
 export default function Hero() {
   // State to handle responsive camera positioning with proper typing
   const [cameraPosition, setCameraPosition] = useState<
@@ -55,12 +55,11 @@ export default function Hero() {
   useEffect(() => {
     // Check device performance
     const checkPerformance = () => {
-      // Check for low-end devices based on memory and hardware concurrency
+      // Check for low-end devices based on memory
       const memory = navigator.deviceMemory;
-      const cores = navigator.hardwareConcurrency;
 
-      // Return true if device has 4GB or less RAM, or 4 or fewer CPU cores
-      return (memory !== undefined && memory <= 4) || (cores && cores <= 4);
+      // Return true if device has 4GB or less RAM
+      return memory !== undefined && memory <= 4;
     };
     const performanceResult = checkPerformance();
     setIsLowPerformance(!!performanceResult); // Convert to boolean explicitly
@@ -145,25 +144,27 @@ export default function Hero() {
         dpr={isLowPerformance ? 1 : [1, 2]}
         performance={{ min: 0.5 }}
       >
-        <color attach="background" args={["#000000"]} />
+        <color attach="background" args={["#ffffff"]} />
+        <fog attach="fog" args={["#ffffff", 5, 25]} />
 
-        {/* Optimized lighting setup */}
-        <ambientLight intensity={0.4} />
+        {/* Heavenly lighting setup */}
+        <ambientLight intensity={1.5} />
         {!isLowPerformance && (
           <>
-            <pointLight position={[0, 20, 10]} intensity={1} color="#ff0066" />
+            <pointLight position={[0, 20, 10]} intensity={2} color="#ffffff" />
             <pointLight
               position={[-10, 10, -10]}
-              intensity={0.8}
-              color="#00ffff"
+              intensity={1.5}
+              color="#ffffff"
             />
             <spotLight
               position={[0, 50, 0]}
-              angle={0.15}
+              angle={0.3}
               penumbra={1}
-              intensity={1}
+              intensity={2}
               castShadow={!isLowPerformance}
               shadow-bias={-0.0001}
+              color="#ffffff"
             />
           </>
         )}
@@ -188,7 +189,7 @@ export default function Hero() {
           />
         </group>
 
-        <Environment preset="night" />
+        <Environment preset="dawn" />
         <Rig />
 
         {/* Post-processing effects only for high-performance devices */}
@@ -198,10 +199,10 @@ export default function Hero() {
               luminanceThreshold={0.2}
               luminanceSmoothing={0.9}
               height={200}
-              intensity={1}
+              intensity={0.5}
             />
             <ChromaticAberration
-              offset={new Vector2(0.001, 0.001)}
+              offset={new Vector2(0.0005, 0.0005)}
               modulationOffset={0.1}
               radialModulation={false}
             />
@@ -288,15 +289,15 @@ function EnhancedBunnyModel({
         {...props}
       >
         <meshPhysicalMaterial
-          color="#00ffff"
-          emissive="#ff0066"
-          emissiveIntensity={2}
-          metalness={1}
-          roughness={0}
+          color="#4B0082"
+          emissive="#4B0082"
+          emissiveIntensity={0.5}
+          metalness={0.8}
+          roughness={0.2}
           clearcoat={1}
-          transmission={0.2}
+          transmission={0.1}
           transparent
-          opacity={0.9}
+          opacity={1}
         />
       </mesh>
 
@@ -307,24 +308,24 @@ function EnhancedBunnyModel({
       >
         <Text
           fontSize={0.17}
-          color="#ff0066"
+          color="#000000"
           anchorX="center"
           anchorY="middle"
           outlineWidth={0.01}
-          outlineColor="#00ffff"
+          outlineColor="#ffffff"
           maxWidth={1}
           position={[0, 0, 0.6]}
           rotation={[0, Math.PI, 0]}
         >
           APASA IEPURASUL
           <meshPhysicalMaterial
-            color="#00ff00"
-            emissive="#00ff00"
-            emissiveIntensity={1.2}
-            metalness={0.8}
-            roughness={0.8}
+            color="#000000"
+            emissive="#000000"
+            emissiveIntensity={0.2}
+            metalness={0.5}
+            roughness={0.5}
             transparent
-            opacity={0.9}
+            opacity={1}
           />
         </Text>
       </group>
@@ -344,24 +345,6 @@ function DynamicText({
 }) {
   const [isVisible, setIsVisible] = useState(true);
   const flagRef = useRef<THREE.Mesh>(null);
-
-  const flagMaterial = isLowPerformance
-    ? new THREE.MeshBasicMaterial({
-        color: "#000000",
-        transparent: true,
-        opacity: 0.95,
-        side: THREE.DoubleSide,
-      })
-    : new THREE.MeshPhysicalMaterial({
-        color: "#000000",
-        transparent: true,
-        transmission: 0.95,
-        thickness: 0.5,
-        roughness: 0.1,
-        metalness: 0.2,
-        clearcoat: 1.0,
-        side: THREE.DoubleSide,
-      });
 
   useEffect(() => {
     const glitchStart = setTimeout(() => {
@@ -410,7 +393,7 @@ function DynamicText({
           <meshStandardMaterial
             color="#ffffff"
             emissive="#ffffff"
-            emissiveIntensity={2}
+            emissiveIntensity={0.2}
           />
         )}
       </Text>
@@ -418,7 +401,17 @@ function DynamicText({
         <planeGeometry
           args={[1, 1, isLowPerformance ? 16 : 32, isLowPerformance ? 16 : 32]}
         />
-        <primitive object={flagMaterial} attach="material" />
+        <primitive
+          object={
+            new THREE.MeshStandardMaterial({
+              color: "#000000",
+              transparent: true,
+              opacity: 0.95,
+              side: THREE.DoubleSide,
+            })
+          }
+          attach="material"
+        />
       </mesh>
     </group>
   );
@@ -434,6 +427,7 @@ function AnimatedTitle({
   fontSize: number;
   isLowPerformance: boolean;
 }) {
+  // Changed text to include both ION and TEDY
   const [letters] = useState("ION TEDY".split(""));
   const letterRefs = useRef<THREE.Group[]>([]);
 
@@ -475,25 +469,32 @@ function AnimatedTitle({
         >
           <Text
             fontSize={fontSize}
-            color="#ffffff"
+            color="#000000"
             anchorX="center"
             anchorY="middle"
+            visible={true} // Added visible prop to ensure text is always shown
           >
             {letter}
             {isLowPerformance ? (
-              <meshBasicMaterial color="#00ffff" transparent opacity={0.9} />
+              <meshBasicMaterial
+                color="#000000"
+                transparent
+                opacity={1}
+                visible={true} // Added visible prop to material
+              />
             ) : (
               <meshPhysicalMaterial
-                color="#00ffff"
-                emissive="#ff0066"
-                emissiveIntensity={2}
-                metalness={1}
-                roughness={0}
+                color="#000000"
+                emissive="#000000"
+                emissiveIntensity={0.9}
+                metalness={0.5}
+                roughness={0.5}
                 clearcoat={1}
-                transmission={0.2}
+                transmission={0}
                 transparent
-                opacity={0.9}
+                opacity={1}
                 side={THREE.DoubleSide}
+                visible={true} // Added visible prop to material
               />
             )}
           </Text>
