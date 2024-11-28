@@ -25,10 +25,12 @@ body {
   overflow: hidden;
   overscroll-behavior-y: none;
   color: #e0e0ff;
+  /* Adjusted background gradient to better highlight the statue */
   background: radial-gradient(
     circle at bottom center,
-    rgba(20, 20, 35, 1) 0%,
-    rgba(5, 5, 15, 1) 75%
+    rgba(40, 40, 60, 1) 0%,
+    /* Lighter starting color */ rgba(15, 15, 25, 1) 75%
+      /* Slightly lighter dark color */
   );
   cursor: pointer;
   font-family: "Inter", sans-serif;
@@ -46,6 +48,8 @@ body {
 canvas {
   opacity: 0;
   touch-action: none;
+  /* Increased contrast for better model visibility */
+  filter: contrast(1.2) brightness(1.3);
   animation: fade-in 2.5s cubic-bezier(0.4, 0, 0.2, 1) 0s forwards;
 }
 
