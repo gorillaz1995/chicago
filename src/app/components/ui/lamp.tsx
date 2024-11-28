@@ -30,11 +30,34 @@ export const LampContainer = ({
   children: React.ReactNode;
   className?: string;
 }) => {
+  // Smooth scroll animation with easing for better transition visibility
   const scrollToContent = () => {
-    window.scrollTo({
-      top: window.innerHeight,
-      behavior: "smooth",
-    });
+    const viewportHeight = window.innerHeight;
+    const startPosition = window.scrollY;
+    const targetPosition = viewportHeight * 1.5;
+    const duration = 1500; // 1.5 seconds for smooth animation
+    const startTime = performance.now();
+
+    const easeInOutCubic = (t: number) => {
+      return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+    };
+
+    const animateScroll = (currentTime: number) => {
+      const elapsed = currentTime - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+
+      const easedProgress = easeInOutCubic(progress);
+      const currentPosition =
+        startPosition + (targetPosition - startPosition) * easedProgress;
+
+      window.scrollTo(0, currentPosition);
+
+      if (progress < 1) {
+        requestAnimationFrame(animateScroll);
+      }
+    };
+
+    requestAnimationFrame(animateScroll);
   };
 
   return (
