@@ -1,7 +1,12 @@
 import React from "react";
+import { LampDemo } from "../components/ui/lamp";
 
 function page() {
-  return <div>servicii</div>;
+  return (
+    <div>
+      <LampDemo />
+    </div>
+  );
 }
 
 export default page;
