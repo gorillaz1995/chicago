@@ -1,0 +1,153 @@
+/* graces.css - Enhanced styling for ancient Greek meets futuristic AI aesthetic */
+@import url("https://rsms.me/inter/inter.css");
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  user-select: none;
+  overflow: hidden;
+}
+
+#root {
+  overflow: auto;
+}
+
+body {
+  position: fixed;
+  overflow: hidden;
+  overscroll-behavior-y: none;
+  color: #e0e0ff;
+  background: radial-gradient(
+    circle at bottom center,
+    rgba(20, 20, 35, 1) 0%,
+    rgba(5, 5, 15, 1) 75%
+  );
+  cursor: pointer;
+  font-family: "Inter", sans-serif;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+canvas {
+  opacity: 0;
+  touch-action: none;
+  animation: fade-in 2.5s cubic-bezier(0.4, 0, 0.2, 1) 0s forwards;
+}
+
+.annotation-wrapper {
+  display: inline-block;
+}
+
+.annotation {
+  transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  outline: none;
+  border: none;
+  font-size: 10px;
+  font-weight: 400;
+  background: rgba(20, 20, 35, 0.8);
+  color: #b4c6ff;
+  padding: 4px 16px;
+  letter-spacing: 2px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  backdrop-filter: blur(4px);
+}
+
+.annotation:hover {
+  background: rgba(128, 175, 255, 0.15);
+  transform: scale(1.05);
+  color: #ffffff;
+}
+
+.loader {
+  font-family: "Josefin Sans", sans-serif;
+  font-weight: 300;
+  color: #b4c6ff;
+}
+
+.header {
+  pointer-events: none;
+  position: absolute;
+  top: 6em;
+  left: 0;
+  color: #b4c6ff;
+  font-family: "Josefin Sans", sans-serif;
+  font-weight: 300;
+  font-size: 0.9em;
+  width: 100%;
+  text-align: center;
+  text-shadow: 0 0 10px rgba(128, 175, 255, 0.5);
+}
+
+.header > span {
+  padding: 0 3.25em;
+  letter-spacing: 0.4em;
+  position: relative;
+}
+
+.header > span.active::after {
+  content: "";
+  position: absolute;
+  bottom: -10px;
+  left: calc(50% - 4px);
+  transform: translate3d(-50%, 0, 0);
+  width: 25px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #b4c6ff, transparent);
+}
+
+.middle {
+  pointer-events: none;
+  position: absolute;
+  bottom: 2.5em;
+  left: 50%;
+  transform: translate3d(-50%, 0, 0);
+  font-size: 2em;
+  letter-spacing: 0.5em;
+  text-align: center;
+  width: 100%;
+  text-shadow: 0 0 15px rgba(128, 175, 255, 0.4);
+}
+
+.middle > h1 {
+  line-height: 0.9em;
+  font-weight: 200;
+  color: #e0e0ff;
+}
+
+.middle > h1::after {
+  content: "";
+  position: absolute;
+  bottom: 10px;
+  left: calc(50% - 35px);
+  width: 70px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #b4c6ff, transparent);
+}
+
+.middle > h2 {
+  font-size: 1em;
+  line-height: 0px;
+  font-weight: 200;
+  letter-spacing: 0.3em;
+  font-style: italic;
+  color: #b4c6ff;
+}

@@ -1,8 +1,11 @@
 import React from "react";
+import GracesThree from "../components/graces/GracesThree";
 
 function page() {
   return (
-    <div>NU ai sa vezi niciodata banii micnea, cu m mic de la mormant.</div>
+    <div>
+      <GracesThree />
+    </div>
   );
 }
 
