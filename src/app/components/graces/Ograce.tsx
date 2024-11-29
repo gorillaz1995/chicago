@@ -248,6 +248,17 @@ function Model({ position, rotation, isLowPerformance = false }: ModelProps) {
         <button
           onClick={handlePortofoliuClick}
           className="inline-flex h-12 animate-shimmer items-center justify-center rounded-md border border-slate-800 bg-[linear-gradient(110deg,#000103,45%,#1e2631,55%,#000103)] bg-[length:200%_100%] px-6 font-medium text-slate-400 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 focus:ring-offset-slate-50"
+          style={{
+            width: "100%",
+            height: "100%",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            margin: 0,
+            padding: "0.5rem 1rem",
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+          }}
         >
           PORTOFOLIU
         </button>
@@ -260,6 +271,17 @@ function Model({ position, rotation, isLowPerformance = false }: ModelProps) {
         <button
           onClick={handleContactClick}
           className="inline-flex h-12 animate-shimmer items-center justify-center rounded-md border border-slate-800 bg-[linear-gradient(110deg,#000103,45%,#1e2631,55%,#000103)] bg-[length:200%_100%] px-6 font-medium text-slate-400 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 focus:ring-offset-slate-50"
+          style={{
+            width: "100%",
+            height: "100%",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            margin: 0,
+            padding: "0.5rem 1rem",
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+          }}
         >
           CONTACT
         </button>
@@ -272,6 +294,17 @@ function Model({ position, rotation, isLowPerformance = false }: ModelProps) {
         <button
           onClick={handleServiciiClick}
           className="inline-flex h-12 animate-shimmer items-center justify-center rounded-md border border-slate-800 bg-[linear-gradient(110deg,#000103,45%,#1e2631,55%,#000103)] bg-[length:200%_100%] px-6 font-medium text-slate-400 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 focus:ring-offset-slate-50"
+          style={{
+            width: "100%",
+            height: "100%",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            margin: 0,
+            padding: "0.5rem 1rem",
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+          }}
         >
           SERVICII
         </button>
@@ -319,10 +352,29 @@ function Annotation({
         opacity: 1,
         transform: "scale(1)",
         cursor: onClick ? "pointer" : "default",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        width: "auto",
+        minWidth: "120px",
+        height: "auto",
       }}
       onClick={onClick}
     >
-      <div className="annotation">{children}</div>
+      <div
+        className="annotation"
+        style={{
+          width: "100%",
+          height: "100%",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: 0,
+          margin: 0,
+        }}
+      >
+        {children}
+      </div>
     </Html>
   );
 }
