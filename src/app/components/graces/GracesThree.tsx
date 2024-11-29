@@ -36,6 +36,7 @@ const LoadingScreen = () => {
         justifyContent: "center",
         alignItems: "center",
         gap: "1rem",
+        backgroundColor: "white",
       }}
     >
       <motion.div
@@ -44,7 +45,7 @@ const LoadingScreen = () => {
           height: "60px",
           borderRadius: "50%",
           border: "3px solid rgba(0,0,0,0.1)",
-          borderTop: "3px solid rgb(79 70 229)",
+          borderTop: "3px solid black",
           position: "relative",
         }}
         animate={{
@@ -60,7 +61,7 @@ const LoadingScreen = () => {
       <div
         style={{
           fontSize: "1.1rem",
-          color: "rgb(79 70 229)",
+          color: "black",
           minWidth: "120px",
           textAlign: "center",
         }}

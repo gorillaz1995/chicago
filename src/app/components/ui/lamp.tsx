@@ -30,27 +30,36 @@ export const LampContainer = ({
   children: React.ReactNode;
   className?: string;
 }) => {
-  // Smooth scroll animation with easing for better transition visibility
+  // Enhanced smooth scroll animation that accounts for full viewport height
   const scrollToContent = () => {
     const viewportHeight = window.innerHeight;
     const startPosition = window.scrollY;
-    const targetPosition = viewportHeight * 1.5;
-    const duration = 1500; // 1.5 seconds for smooth animation
+    // Adjust scroll distance based on viewport width
+    const targetPosition =
+      window.innerWidth > 1000
+        ? viewportHeight * 1.4 // For larger screens
+        : viewportHeight * 2.6; // For mobile/tablet screens
+    const duration = 1500;
     const startTime = performance.now();
 
-    const easeInOutCubic = (t: number) => {
-      return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+    // Enhanced easing function for smoother animation with longer scroll
+    const easeOutExpo = (t: number) => {
+      return t === 1 ? 1 : 1 - Math.pow(2, -10 * t);
     };
 
     const animateScroll = (currentTime: number) => {
       const elapsed = currentTime - startTime;
       const progress = Math.min(elapsed / duration, 1);
 
-      const easedProgress = easeInOutCubic(progress);
+      const easedProgress = easeOutExpo(progress);
       const currentPosition =
         startPosition + (targetPosition - startPosition) * easedProgress;
 
-      window.scrollTo(0, currentPosition);
+      // Force full height scroll
+      window.scrollTo({
+        top: Math.max(currentPosition, viewportHeight),
+        behavior: "auto",
+      });
 
       if (progress < 1) {
         requestAnimationFrame(animateScroll);
@@ -62,6 +71,7 @@ export const LampContainer = ({
 
   return (
     <div
+      suppressHydrationWarning // Add this prop to suppress hydration warning
       className={cn(
         "relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-[rgba(15,15,25,1)] w-full rounded-md z-0",
         className

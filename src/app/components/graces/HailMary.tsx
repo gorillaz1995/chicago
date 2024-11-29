@@ -1,8 +1,9 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useEffect, useState } from "react";
 import { motion, useScroll, useTransform, MotionValue } from "framer-motion";
 import { LampDemo } from "../ui/lamp";
+import { TextRevealCard, TextRevealCardTitle } from "../ui/text-reveal-card";
 
 // Component for Section 2 with inverted colors initially
 const Section2 = ({ progress }: { progress: MotionValue<number> }) => (
@@ -122,29 +123,67 @@ const Section4 = ({ progress }: { progress: MotionValue<number> }) => (
             ]
           ),
         }}
+      ></motion.h2>
+      <TextRevealCard
+        text="Ai o idee?"
+        revealText="Eu am tehnologia!"
+        className="w-full max-w-[320rem]"
       >
-        Section Four
-      </motion.h2>
-      <motion.p
-        className="text-lg md:text-xl leading-relaxed"
-        style={{
-          color: useTransform(progress, [0, 0.3], ["#f9fafb", "#1f2937"]),
-        }}
-      >
-        Sed ut perspiciatis unde omnis iste natus error sit voluptatem
-        accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab
-        illo inventore veritatis.
-      </motion.p>
+        <TextRevealCardTitle>
+          Custom nu inseamna complicat. Inseamna al tau.
+        </TextRevealCardTitle>
+      </TextRevealCard>
     </div>
   </motion.div>
 );
 
 export default function HailMary() {
   const containerRef = useRef<HTMLDivElement>(null);
+  const [isTouchDevice, setIsTouchDevice] = useState(false);
   const { scrollYProgress } = useScroll({
     target: containerRef,
     offset: ["start start", "end end"],
   });
+
+  // Check if device is touch device based on screen width
+  useEffect(() => {
+    const checkDevice = () => {
+      setIsTouchDevice(window.innerWidth < 1000);
+    };
+
+    // Initial check
+    checkDevice();
+
+    // Add resize listener
+    window.addEventListener("resize", checkDevice);
+
+    return () => window.removeEventListener("resize", checkDevice);
+  }, []);
+
+  // Add smooth scroll behavior only for touch devices
+  useEffect(() => {
+    if (!isTouchDevice) return;
+
+    const smoothScroll = (e: WheelEvent) => {
+      e.preventDefault();
+
+      const delta = e.deltaY;
+      const smoothingFactor = 0.03; // Adjust this value to control smoothness
+      const currentScroll = window.scrollY;
+      const targetScroll = currentScroll + delta * smoothingFactor;
+
+      window.scrollTo({
+        top: targetScroll,
+        behavior: "smooth",
+      });
+    };
+
+    window.addEventListener("wheel", smoothScroll, { passive: false });
+
+    return () => {
+      window.removeEventListener("wheel", smoothScroll);
+    };
+  }, [isTouchDevice]);
 
   // Transform values for sections with smoother transitions
   const section2Y = useTransform(
@@ -174,7 +213,7 @@ export default function HailMary() {
   return (
     <div
       ref={containerRef}
-      className="relative h-[400vh]" // 4x viewport height for full scroll
+      className="relative h-[700vh] md:h-[400vh]" // Responsive height based on viewport width
     >
       {/* Main container with sticky positioning */}
       <div className="sticky top-0 h-screen overflow-hidden">
