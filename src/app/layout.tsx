@@ -1,6 +1,18 @@
 import type { Metadata } from "next";
-
+import localFont from "next/font/local";
 import "./globals.css";
+
+// Load Muller ExtraBold font
+const mullerExtraBold = localFont({
+  src: "./fonts/Muller-ExtraBold-DEMO.ttf",
+  variable: "--font-muller", // Creates CSS variable for use in Tailwind
+});
+
+// Load Averta Demo font
+const avertaDemo = localFont({
+  src: "./fonts/AvertaDemoPECuttedDemo-Regular.otf",
+  variable: "--font-averta", // Creates CSS variable for use in Tailwind
+});
 
 export const metadata: Metadata = {
   title: "Create Next App",
@@ -14,7 +26,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body className={`${mullerExtraBold.variable} ${avertaDemo.variable}`}>
+        {children}
+      </body>
     </html>
   );
 }

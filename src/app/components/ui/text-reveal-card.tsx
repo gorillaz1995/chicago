@@ -70,7 +70,7 @@ export const TextRevealCard = ({
               textShadow: "6px 6px 20px rgba(255,255,255,0.5)",
               whiteSpace: "nowrap", // Prevent text wrapping
             }}
-            className="text-2xl sm:text-[2rem] lg:text-[3rem] py-16 font-bold text-black bg-clip-text text-transparent bg-gradient-to-b from-black to-neutral-700 w-auto px-8"
+            className="text-2xl sm:text-[2rem] lg:text-[3rem] py-16  text-black bg-clip-text text-transparent bg-gradient-to-b from-black to-neutral-700 w-auto px-8 font-muller font-extrabold"
           >
             {revealText}
           </p>
@@ -90,7 +90,7 @@ export const TextRevealCard = ({
             style={{
               whiteSpace: "nowrap", // Prevent text wrapping
             }}
-            className="text-4xl sm:text-[8rem] lg:text-[5rem] py-16 font-bold bg-clip-text text-transparent bg-[#CDCDCD] w-auto px-8"
+            className="text-4xl sm:text-[8rem] lg:text-[5rem] py-16 font-bold bg-clip-text text-transparent bg-[#CDCDCD] w-auto px-8 font-averta"
           >
             {text}
           </p>
@@ -109,7 +109,12 @@ export const TextRevealCardTitle = ({
   className?: string;
 }) => {
   return (
-    <h2 className={twMerge("text-black text-3xl mb-4", className)}>
+    <h2
+      className={twMerge(
+        "text-black text-3xl mb-4 font-muller font-extrabold",
+        className
+      )}
+    >
       {children}
     </h2>
   );
@@ -123,7 +128,9 @@ export const TextRevealCardDescription = ({
   className?: string;
 }) => {
   return (
-    <p className={twMerge("text-[#565656] text-xl", className)}>{children}</p>
+    <p className={twMerge("text-[#565656] text-xl font-averta", className)}>
+      {children}
+    </p>
   );
 };
 

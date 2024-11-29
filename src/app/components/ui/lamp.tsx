@@ -7,7 +7,7 @@ export function LampDemo() {
   // Remove unused scrollToContent from LampDemo since it's only used in LampContainer
   return (
     <LampContainer>
-      <motion.h1
+      <motion.div
         initial={{ opacity: 0.5, y: 100 }}
         whileInView={{ opacity: 1, y: 0 }}
         transition={{
@@ -15,10 +15,16 @@ export function LampDemo() {
           duration: 0.8,
           ease: "easeInOut",
         }}
-        className="mt-8 bg-gradient-to-br from-[#e0e0ff] to-[#b4c6ff] py-4 bg-clip-text text-center text-4xl font-medium tracking-tight text-transparent md:text-7xl"
+        className="mt-8 bg-gradient-to-br from-[#e0e0ff] to-[#b4c6ff] py-4 bg-clip-text text-center  font-medium tracking-tight text-transparent "
       >
-        Fii fizibil online! <br /> Autentic si relevant.
-      </motion.h1>
+        <span className="font-muller font-extrabold text-4xl md:text-8xl ">
+          Fii fizibil in mediul digital!
+        </span>
+        <br />
+        <span className="font-averta text-4xl md:text-7xl">
+          Autentic si relevant.
+        </span>
+      </motion.div>
     </LampContainer>
   );
 }

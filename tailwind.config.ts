@@ -26,6 +26,10 @@ const config: Config = {
           },
         },
       },
+      fontFamily: {
+        muller: ["Muller-ExtraBold", "sans-serif"], // Adding the Muller font family
+        averta: ["AvertaDemoPECuttedDemo-Regular", "sans-serif"], // Adding the Averta Demo font family
+      },
     },
   },
   plugins: [],

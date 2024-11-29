@@ -22,7 +22,7 @@ const Section2 = ({ progress }: { progress: MotionValue<number> }) => (
   >
     <div className="max-w-4xl">
       <motion.h2
-        className="text-4xl md:text-6xl font-light mb-8 bg-clip-text text-transparent"
+        className="text-4xl md:text-6xl font-light mb-8 bg-clip-text text-transparent font-muller"
         style={{
           backgroundImage: useTransform(
             progress,
@@ -34,17 +34,21 @@ const Section2 = ({ progress }: { progress: MotionValue<number> }) => (
           ),
         }}
       >
-        Section Two
+        De la <i>A</i> la <i>Z</i>
       </motion.h2>
       <motion.p
-        className="text-lg md:text-xl leading-relaxed"
+        className="text-base md:text-lg leading-relaxed font-averta"
         style={{
           color: useTransform(progress, [0, 0.3], ["#f9fafb", "#1f2937"]),
         }}
       >
-        Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod
-        tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim
-        veniam, quis nostrud exercitation ullamco laboris.
+        Fie ca ai nevoie de imagini atractive pentru social media, texte care
+        ies in evidenta, identitate vizuala pentru brandul tau sau un website
+        modern, sunt aici sa te ajut.
+        <br />
+        Lucrez fie sub micro-management (adica, tu decizi tot), fie cu minim de
+        supervizare, depinde cum iti place. Adaptabilitatea este cheia mea,
+        astfel incat tu sa ai controlul pe care il doresti.
       </motion.p>
     </div>
   </motion.div>
@@ -67,7 +71,7 @@ const Section3 = ({ progress }: { progress: MotionValue<number> }) => (
   >
     <div className="max-w-4xl">
       <motion.h2
-        className="text-4xl md:text-6xl font-light mb-8 bg-clip-text text-transparent"
+        className="text-4xl md:text-6xl font-light mb-8 bg-clip-text text-transparent font-averta"
         style={{
           backgroundImage: useTransform(
             progress,
@@ -79,17 +83,19 @@ const Section3 = ({ progress }: { progress: MotionValue<number> }) => (
           ),
         }}
       >
-        Section Three
+        Tehnologie de Ultima Generatie
       </motion.h2>
       <motion.p
-        className="text-lg md:text-xl leading-relaxed"
+        className="text-lg md:text-xl leading-relaxed font-muller"
         style={{
           color: useTransform(progress, [0, 0.3], ["#000000", "#ffffff"]),
         }}
       >
-        Duis aute irure dolor in reprehenderit in voluptate velit esse cillum
-        dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non
-        proident.
+        Fara limitari de la teme WordPress sau sabloane plictisitoare. Asta
+        inseamna ca nu facem lucrurile &ldquo;ca la scoala veche&rdquo; &ndash;
+        fiecare proiect este unic, creat special pentru tine si adaptat in
+        functie de cum evoluezi. Scalabilitatea si flexibilitatea sunt parte din
+        abordarea mea, pentru a asigura succesul pe termen lung.
       </motion.p>
     </div>
   </motion.div>
