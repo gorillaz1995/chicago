@@ -24,7 +24,7 @@ declare global {
 // Define GLTF result type for proper typing
 interface GLTFResult extends GLTF {
   nodes: {
-    bunny: THREE.Mesh;
+    dragon: THREE.Mesh;
   };
   materials: Record<string, THREE.Material>;
 }
@@ -190,7 +190,7 @@ export default function Hero() {
             isLowPerformance={isLowPerformance}
           />
           <Center top rotation={[0, -Math.PI / 1.5, 0]} position={[0, -0.5, 3]}>
-            <EnhancedBunnyModel
+            <EnhancedDragonModel
               props={{ scale: 0.8 }}
               isLowPerformance={isLowPerformance}
             />
@@ -271,8 +271,8 @@ function Rig() {
   return null;
 }
 
-// Enhanced bunny model with optimized effects and continuous rotation
-function EnhancedBunnyModel({
+// Enhanced dragon model with optimized effects and continuous rotation
+function EnhancedDragonModel({
   props,
   isLowPerformance,
 }: {
@@ -280,33 +280,33 @@ function EnhancedBunnyModel({
   isLowPerformance: boolean;
 }) {
   const { nodes } = useGLTF(
-    "https://vazxmixjsiawhamofees.supabase.co/storage/v1/object/public/models/bunny/model.gltf",
+    "https://vazxmixjsiawhamofees.supabase.co/storage/v1/object/public/models/dragon/model.gltf",
     true // Enable draco compression
   ) as GLTFResult;
 
-  const bunnyRef = useRef<THREE.Mesh>(null);
+  const dragonRef = useRef<THREE.Mesh>(null);
   const textRef = useRef<THREE.Group>(null);
 
   useEffect(() => {
-    if (bunnyRef.current) {
+    if (dragonRef.current) {
       const bvhOptions: MeshBVHOptions = {
         strategy: 0,
         maxLeafTris: 10,
       };
-      const bvh = new MeshBVH(bunnyRef.current.geometry, bvhOptions);
-      bunnyRef.current.geometry.boundsTree = bvh;
+      const bvh = new MeshBVH(dragonRef.current.geometry, bvhOptions);
+      dragonRef.current.geometry.boundsTree = bvh;
     }
   }, []);
 
   useFrame(({ clock }) => {
-    if (bunnyRef.current) {
+    if (dragonRef.current) {
       const time = clock.getElapsedTime();
       // Continuous 360-degree rotation
-      bunnyRef.current.rotation.y = time * 0.5; // Controls rotation speed
-      bunnyRef.current.position.y = -2.5 + Math.sin(time) * 0.1;
+      dragonRef.current.rotation.y = time * 0.5; // Controls rotation speed
+      dragonRef.current.position.y = -2.5 + Math.sin(time) * 0.1;
 
       if (textRef.current) {
-        textRef.current.rotation.y = bunnyRef.current.rotation.y;
+        textRef.current.rotation.y = dragonRef.current.rotation.y;
       }
     }
   });
@@ -318,10 +318,10 @@ function EnhancedBunnyModel({
   return (
     <group>
       <mesh
-        ref={bunnyRef}
+        ref={dragonRef}
         castShadow
         receiveShadow={!isLowPerformance}
-        geometry={nodes.bunny.geometry}
+        geometry={nodes.dragon.geometry}
         position={[0, -2.8, 0]}
         onClick={handleInteraction}
         onPointerDown={handleInteraction}
