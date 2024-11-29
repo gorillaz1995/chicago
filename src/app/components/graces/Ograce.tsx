@@ -11,6 +11,7 @@ import {
 import * as THREE from "three";
 import { GLTF } from "three-stdlib";
 import "./graces.css";
+import { useRouter } from "next/navigation"; // Added router import
 
 // Define types for GLTF model
 interface GLTFResult extends GLTF {
@@ -44,7 +45,9 @@ export default function Ograce() {
   // Check device performance and screen width on mount
   useEffect(() => {
     const checkPerformance = () => {
-      const memory = navigator.deviceMemory;
+      // Use proper type for navigator.deviceMemory
+      const memory = (navigator as Navigator & { deviceMemory?: number })
+        .deviceMemory;
       return memory !== undefined && memory <= 4;
     };
 
@@ -64,100 +67,133 @@ export default function Ograce() {
     // Handle interaction start
   };
 
-  const handleInteractionEnd = () => {
-    // Reset camera to center view
-    if (cameraRef.current) {
-      cameraRef.current.setLookAt(0, 2, 25, 0, 0, 0, true); // Increased z position for better mobile view
-    }
-  };
-
   return (
-    <Canvas
-      shadows={!isLowPerformance}
-      camera={{ position: [0, 4, 17.5], fov: isMobileView ? 60 : 45 }} // Reduced z-position by 30% for mobile and 60% for desktop based on screen width
-      dpr={isLowPerformance ? 1 : [1, 2]}
-      performance={{ min: 0.5 }}
-      gl={{
-        antialias: !isLowPerformance,
-        powerPreference: "high-performance",
-        precision: isLowPerformance ? "lowp" : "highp",
-      }}
-    >
-      <Environment preset="sunset" />{" "}
-      {/* Environment light for scene illumination */}
-      <ambientLight intensity={isLowPerformance ? 1.2 : 0.8} />{" "}
-      {/* Ambient light with performance-based intensity */}
-      {/* Ivory colored fog for ethereal effect */}
-      <fog attach="fog" args={["#fff5eb", 0, 35]} />
-      {!isLowPerformance && (
-        <>
-          <directionalLight
-            position={[5, 5, 5]}
-            intensity={3} // Increased intensity
-            castShadow
-            shadow-mapSize={[1024, 1024]}
-            color="#ffeedd" // Warm ivory tint
-          />
-          <spotLight
-            position={[0, 15, 3]}
-            intensity={4} // Increased intensity
-            angle={1.2}
-            penumbra={0.8}
-            decay={1.2}
-            distance={35}
-            castShadow
-            color="#ffd6a5"
-          />
-          {/* Additional rim light for better model definition */}
-          <spotLight
-            position={[-5, 5, -5]}
-            intensity={2}
-            angle={0.8}
-            penumbra={1}
-            color="#fff1e6"
-          />
-        </>
-      )}
-      <Model
-        position={[0, -4.5, 0]} // Adjusted z position to be more centered
-        rotation={[0, -0.2, 0]}
-        isLowPerformance={isLowPerformance}
+    <>
+      <Canvas
+        shadows={!isLowPerformance}
+        camera={{ position: [0, 4, 17.5], fov: isMobileView ? 60 : 45 }}
+        dpr={isLowPerformance ? 1 : [1, 2]}
+        performance={{ min: 0.5 }}
+        gl={{
+          antialias: !isLowPerformance,
+          powerPreference: "high-performance",
+          precision: isLowPerformance ? "lowp" : "highp",
+        }}
+      >
+        <Environment preset="sunset" />
+        <ambientLight intensity={isLowPerformance ? 1.2 : 0.8} />
+        <fog attach="fog" args={["#fff5eb", 0, 35]} />
+
+        <directionalLight
+          position={[5, 5, 5]}
+          intensity={3}
+          castShadow
+          color="#ffeedd"
+        />
+
+        <spotLight
+          position={[0, 15, 3]}
+          intensity={4}
+          angle={1.2}
+          decay={1.2}
+          distance={35}
+          castShadow
+          color="#ffd6a5"
+        />
+
+        <spotLight
+          position={[-5, 5, -5]}
+          intensity={2}
+          angle={0.8}
+          penumbra={1}
+          color="#fff1e6"
+        />
+
+        <Model position={[0, -4.5, 0]} rotation={[0, -0.2, 0]} />
+
+        <CameraControls
+          ref={cameraRef}
+          minPolarAngle={Math.PI / 4}
+          maxPolarAngle={Math.PI / 2.2}
+          minAzimuthAngle={-Math.PI / 2.5}
+          maxAzimuthAngle={Math.PI / 2.5}
+          minDistance={isMobileView ? 40 : 35}
+          maxDistance={isMobileView ? 55 : 45}
+          boundaryFriction={0.9}
+          smoothTime={1.2}
+          enabled={false}
+          onStart={handleInteractionStart}
+          restThreshold={0.01}
+          dampingFactor={0.05}
+          draggingDampingFactor={0.25}
+        />
+        <Preload all />
+      </Canvas>
+      {/* Enhanced volumetric fog effect with inverted pyramid and fluid flame-like animation */}
+      <div
+        style={{
+          position: "absolute",
+          bottom: 0,
+          left: "50%",
+          transform: "translateX(-50%)",
+          width: "100%",
+          height: "35vh",
+          background: `
+            conic-gradient(
+              from 90deg at 50% 0%,
+              rgba(255, 245, 235, 0) 0deg,
+              rgba(255, 245, 235, 1) 90deg,
+              rgba(255, 245, 235, 1) 270deg,
+              rgba(255, 245, 235, 0) 360deg
+            )
+          `,
+          filter: "blur(25px)",
+          pointerEvents: "none",
+          zIndex: 2,
+          mixBlendMode: "overlay",
+          animation:
+            "fluidFog 1.65s ease-out forwards, flameDance 1.65s ease-in-out infinite",
+          transformOrigin: "top center",
+        }}
       />
-      <CameraControls
-        ref={cameraRef}
-        minPolarAngle={Math.PI / 4}
-        maxPolarAngle={Math.PI / 2.2}
-        // Reduced rotation range by 20%
-        minAzimuthAngle={-Math.PI / 2.5}
-        maxAzimuthAngle={Math.PI / 2.5}
-        minDistance={isMobileView ? 40 : 35} // Adjust distances based on screen width
-        maxDistance={isMobileView ? 55 : 45}
-        smoothTime={1.2} // Increased for smoother transitions
-        boundaryFriction={0.9} // Increased friction
-        verticalDragToForward={false}
-        dollySpeed={0.15}
-        enabled={false} // Disable camera controls to make model non-interactive
-        onStart={handleInteractionStart}
-        onEnd={handleInteractionEnd}
-        // Keep model centered
-        restThreshold={0.01}
-        dampingFactor={0.05}
-        draggingDampingFactor={0.25}
-      />
-      {/* Preload all assets */}
-      <Preload all />
-    </Canvas>
+
+      <style jsx>{`
+        @keyframes fluidFog {
+          0% {
+            clip-path: polygon(50% 0%, 50% 0%, 50% 0%);
+            opacity: 0;
+          }
+          100% {
+            clip-path: polygon(0% 0%, 50% 100%, 100% 0%);
+            opacity: 1;
+          }
+        }
+
+        @keyframes flameDance {
+          0% {
+            transform: translateX(-50%) scaleX(1);
+          }
+          50% {
+            transform: translateX(-50%) scaleX(1.1);
+          }
+          100% {
+            transform: translateX(-50%) scaleX(1);
+          }
+        }
+      `}</style>
+    </>
   );
 }
 
 function Model({ position, rotation, isLowPerformance = false }: ModelProps) {
+  const router = useRouter(); // Added router hook
   const group = useRef<THREE.Group>(null);
   const { nodes, scene } = useGLTF(
     "/graces-draco.glb"
   ) as unknown as GLTFResult;
   const [direction, setDirection] = useState(1);
-  const rotationLimit = Math.PI / 2.5; // Reduced rotation limit by 20%
   const [isPaused, setIsPaused] = useState(false);
+  const rotationLimit = Math.PI / 8; // Reduced rotation limit to ~105 degrees
 
   useFrame(() => {
     if (!isLowPerformance) {
@@ -183,17 +219,15 @@ function Model({ position, rotation, isLowPerformance = false }: ModelProps) {
       } else if (currentRotation <= -rotationLimit) {
         setDirection(1);
       }
-      // Slower rotation speed
       group.current.rotation.y +=
-        direction * delta * (isLowPerformance ? 0.08 : 0.15);
+        direction * delta * (isLowPerformance ? 0.04 : 0.075);
     }
   });
 
-  // Navigation handler functions with smooth transitions
   const handleNavigation = (path: string) => {
-    setIsPaused(true); // Pause rotation
+    setIsPaused(true);
     setTimeout(() => {
-      window.location.href = path;
+      router.push(path);
     }, 300);
   };
 
@@ -210,29 +244,26 @@ function Model({ position, rotation, isLowPerformance = false }: ModelProps) {
         rotation={[-Math.PI / 2, 0, 0]}
         scale={0.2}
         onClick={(e) => {
-          // Prevent event propagation and any interaction
           e.stopPropagation();
         }}
       >
         {isLowPerformance ? (
-          // Marble/ivory material optimized for low performance
           <meshPhongMaterial
-            color="#f5f5f0" // Warm ivory base color
-            shininess={30} // Lower shininess for softer look
-            specular="#e0e0d0" // Warmer specular highlights
+            color="#f5f5f0"
+            shininess={30}
+            specular="#e0e0d0"
             emissive="#1a1a1a"
             emissiveIntensity={0.05}
             flatShading={false}
           />
         ) : (
-          // High quality material for better performance
           <meshStandardMaterial
             color="#505058"
             roughness={0.5}
             metalness={0.7}
-            envMapIntensity={2.5} // Increased environment map intensity
+            envMapIntensity={2.5}
             emissive="#202024"
-            emissiveIntensity={0.3} // Increased emissive intensity
+            emissiveIntensity={0.3}
           />
         )}
       </mesh>
@@ -244,77 +275,74 @@ function Model({ position, rotation, isLowPerformance = false }: ModelProps) {
         <button
           onClick={handlePortofoliuClick}
           style={{
-            background: "rgba(20, 20, 35, 0.6)",
-            border: "1px solid rgba(180, 198, 255, 0.3)",
+            background: "rgba(0, 0, 0, 1)", // Changed to solid black
+            border: "1px solid rgba(0, 0, 0, 1)",
             borderRadius: "4px",
             cursor: "pointer",
             padding: "8px 16px",
-            color: "#b4c6ff",
+            color: "#e6e6e6", // Changed to ivory/silver color
             transition: "all 0.3s ease",
             textTransform: "uppercase",
             letterSpacing: "2px",
             fontSize: "14px",
             fontWeight: "500",
-            backdropFilter: "blur(4px)",
-            boxShadow: "0 2px 10px rgba(0,0,0,0.2)",
+            backdropFilter: "blur(2px)",
+            boxShadow: "0 2px 10px rgba(0, 0, 0, 1)",
           }}
         >
           PORTOFOLIU{" "}
-          <span style={{ fontSize: "1.2em", marginLeft: "8px" }}>⚡</span>
         </button>
       </Annotation>
       <Annotation
         position={[-4.5, 3.6, -3]}
         phase={0.33}
-        onClick={handleServiciiClick}
-      >
-        <button
-          onClick={handleServiciiClick}
-          style={{
-            background: "rgba(20, 20, 35, 0.6)",
-            border: "1px solid rgba(180, 198, 255, 0.3)",
-            borderRadius: "4px",
-            cursor: "pointer",
-            padding: "8px 16px",
-            color: "#b4c6ff",
-            transition: "all 0.3s ease",
-            textTransform: "uppercase",
-            letterSpacing: "2px",
-            fontSize: "14px",
-            fontWeight: "500",
-            backdropFilter: "blur(4px)",
-            boxShadow: "0 2px 10px rgba(0,0,0,0.2)",
-          }}
-        >
-          SERVICII{" "}
-          <span style={{ fontSize: "1.2em", marginLeft: "8px" }}>⚔️</span>
-        </button>
-      </Annotation>
-      <Annotation
-        position={[1.5, 8, -3]}
-        phase={0.66}
         onClick={handleContactClick}
       >
         <button
           onClick={handleContactClick}
           style={{
-            background: "rgba(20, 20, 35, 0.6)",
-            border: "1px solid rgba(180, 198, 255, 0.3)",
+            background: "rgba(0, 0, 0, 1)", // Changed to solid black
+            border: "1px solid rgba(0, 0, 0, 1)",
             borderRadius: "4px",
             cursor: "pointer",
             padding: "8px 16px",
-            color: "#b4c6ff",
+            color: "#e6e6e6", // Changed to ivory/silver color
             transition: "all 0.3s ease",
             textTransform: "uppercase",
             letterSpacing: "2px",
             fontSize: "14px",
             fontWeight: "500",
-            backdropFilter: "blur(4px)",
-            boxShadow: "0 2px 10px rgba(0,0,0,0.2)",
+            backdropFilter: "blur(2px)",
+            boxShadow: "0 2px 10px rgba(0, 0, 0, 1)",
           }}
         >
-          <span style={{ fontSize: "1.2em", marginRight: "8px" }}>✉️</span>{" "}
-          CONTACT
+          CONTACT{" "}
+        </button>
+      </Annotation>
+      <Annotation
+        position={[2.7, 8, -3]} // Moved 15% to the right by increasing x position from 1.5 to 3.5
+        phase={0.66}
+        onClick={handleServiciiClick}
+      >
+        <button
+          onClick={handleServiciiClick}
+          style={{
+            background: "rgba(0, 0, 0, 1)", // Changed to solid black
+            border: "1px solid rgba(0, 0, 0, 1)",
+            borderRadius: "4px",
+            cursor: "pointer",
+            padding: "8px 16px",
+            color: "#e6e6e6", // Changed to ivory/silver color
+            transition: "all 0.3s ease",
+            textTransform: "uppercase",
+            letterSpacing: "2px",
+            fontSize: "14px",
+            fontWeight: "500",
+            backdropFilter: "blur(2px)",
+            boxShadow: "0 2px 10px rgba(0, 0, 0, 1)",
+          }}
+        >
+          SERVICII{" "}
         </button>
       </Annotation>
     </group>
