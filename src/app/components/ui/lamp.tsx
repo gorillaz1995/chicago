@@ -44,8 +44,8 @@ export const LampContainer = ({
     const targetPosition =
       window.innerWidth > 1000
         ? viewportHeight * 1.4 // For larger screens
-        : viewportHeight * 2.97; // For mobile/tablet screens
-    const duration = 1500;
+        : viewportHeight * 1.87; // For mobile/tablet screens
+    const duration = 750;
     const startTime = performance.now();
 
     // Enhanced easing function for smoother animation with longer scroll

@@ -408,7 +408,7 @@ export default function HailMary() {
   return (
     <div
       ref={containerRef}
-      className="relative h-[700vh] md:h-[400vh]" // Responsive height based on viewport width
+      className="relative h-[550vh] md:h-[400vh]" // Responsive height based on viewport width
     >
       {/* Main container with sticky positioning */}
       <div className="sticky top-0 h-screen overflow-hidden">
