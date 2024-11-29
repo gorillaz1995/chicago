@@ -4,7 +4,6 @@ import { useRef, useEffect, useState } from "react";
 import { motion, useScroll, useTransform, MotionValue } from "framer-motion";
 import { LampDemo } from "../ui/lamp";
 import { TextRevealCard, TextRevealCardTitle } from "../ui/text-reveal-card";
-import { Spotlight } from "../ui/Spotlight";
 
 // Define animation variants for headline and text with staggered timing
 const wildTextVariants = {
@@ -182,7 +181,6 @@ const Section3 = ({ progress }: { progress: MotionValue<number> }) => (
       ),
     }}
   >
-    <Spotlight className="hidden md:block" />
     <div className="max-w-4xl relative z-10">
       <motion.h2
         className="text-4xl md:text-6xl font-light mb-8 bg-clip-text text-transparent font-averta"
@@ -408,7 +406,7 @@ export default function HailMary() {
   return (
     <div
       ref={containerRef}
-      className="relative h-[550vh] md:h-[400vh]" // Responsive height based on viewport width
+      className="relative h-[410vh] md:h-[400vh]" // Responsive height based on viewport width
     >
       {/* Main container with sticky positioning */}
       <div className="sticky top-0 h-screen overflow-hidden">

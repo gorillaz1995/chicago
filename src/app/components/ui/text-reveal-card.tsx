@@ -70,7 +70,7 @@ export const TextRevealCard = ({
               textShadow: "6px 6px 20px rgba(255,255,255,0.5)",
               whiteSpace: "nowrap", // Prevent text wrapping
             }}
-            className="text-2xl sm:text-[2rem] lg:text-[3rem] py-16  text-black bg-clip-text text-transparent bg-gradient-to-b from-black to-neutral-700 w-auto px-8 font-muller font-extrabold"
+            className="text-3xl sm:text-[2rem] lg:text-[3rem] py-16  text-black bg-clip-text text-transparent bg-gradient-to-b from-black to-neutral-700 w-auto px-8 font-muller "
           >
             {revealText}
           </p>
@@ -109,12 +109,7 @@ export const TextRevealCardTitle = ({
   className?: string;
 }) => {
   return (
-    <h2
-      className={twMerge(
-        "text-black text-3xl mb-4 font-muller font-extrabold",
-        className
-      )}
-    >
+    <h2 className={twMerge("text-black text-3xl mb-4 font-muller", className)}>
       {children}
     </h2>
   );

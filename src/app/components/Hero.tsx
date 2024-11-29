@@ -13,6 +13,7 @@ import {
 } from "@react-three/postprocessing";
 import { useEffect, useState, useRef } from "react";
 import { Vector2 } from "three";
+import Popx from "./Popx"; // Import the Popx component
 
 // Add type definition for Navigator with deviceMemory
 declare global {
@@ -49,6 +50,7 @@ export default function Hero() {
   const [titleScale, setTitleScale] = useState(7);
   const [isScrolling, setIsScrolling] = useState(true);
   const [isLowPerformance, setIsLowPerformance] = useState(false);
+  const [showPopup, setShowPopup] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Performance detection
@@ -193,6 +195,7 @@ export default function Hero() {
             <EnhancedDragonModel
               props={{ scale: 0.8 }}
               isLowPerformance={isLowPerformance}
+              onInteraction={() => setShowPopup(true)}
             />
           </Center>
           <AnimatedTitle
@@ -220,6 +223,43 @@ export default function Hero() {
           </EffectComposer>
         )}
       </Canvas>
+      {showPopup && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: "100%",
+            backgroundColor: "rgba(0, 0, 0, 0.5)",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            zIndex: 1000,
+          }}
+          onClick={() => setShowPopup(false)}
+        >
+          <div onClick={(e) => e.stopPropagation()}>
+            <button
+              style={{
+                position: "absolute",
+                right: "20px",
+                top: "20px",
+                background: "none",
+                border: "none",
+                fontSize: "24px",
+                cursor: "pointer",
+                color: "#000",
+                zIndex: 1001,
+              }}
+              onClick={() => setShowPopup(false)}
+            >
+              ✕
+            </button>
+            <Popx />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -275,9 +315,11 @@ function Rig() {
 function EnhancedDragonModel({
   props,
   isLowPerformance,
+  onInteraction,
 }: {
   props?: ModelProps;
   isLowPerformance: boolean;
+  onInteraction: () => void;
 }) {
   const { nodes } = useGLTF(
     "https://vazxmixjsiawhamofees.supabase.co/storage/v1/object/public/models/dragon/model.gltf",
@@ -311,10 +353,6 @@ function EnhancedDragonModel({
     }
   });
 
-  const handleInteraction = () => {
-    window.location.href = "/services";
-  };
-
   return (
     <group>
       <mesh
@@ -323,30 +361,36 @@ function EnhancedDragonModel({
         receiveShadow={!isLowPerformance}
         geometry={nodes.dragon.geometry}
         position={[0, -2.8, 0]}
-        onClick={handleInteraction}
-        onPointerDown={handleInteraction}
+        onClick={onInteraction}
+        onPointerDown={onInteraction}
         {...props}
       >
         {isLowPerformance ? (
-          // Optimized material for low performance devices
+          // Optimized crystalline material for low performance devices
           <meshPhongMaterial
-            color="#CD7F32" // Rich bronze base color
-            shininess={60}
-            specular="#FFD700" // Gold specular highlights
-            emissive="#3D1C02" // Deep bronze emissive
-            emissiveIntensity={0.2}
+            color="#FF3232" // Base red color
+            shininess={100} // High shininess for crystal look
+            specular="#FFE5E5" // Light red specular highlights
+            emissive="#8B0000" // Dark red emissive
+            opacity={0.85} // Slight transparency
+            transparent={true}
           />
         ) : (
-          // High quality material for better devices
+          // High quality crystalline material for better devices
           <meshPhysicalMaterial
-            color="#B87333" // Polished bronze color
-            roughness={0.3} // Smoother surface for better reflections
-            metalness={0.9} // High metalness for metallic look
-            envMapIntensity={2.0} // Strong environment reflections
-            clearcoat={0.5} // Subtle clearcoat for extra shine
-            clearcoatRoughness={0.3}
-            emissive="#8B4513" // Saddle brown emissive
-            emissiveIntensity={0.4} // Moderate glow effect
+            color="#FF0000" // Vibrant red base
+            roughness={0.1} // Very smooth for crystal appearance
+            metalness={0.2} // Low metalness for translucent look
+            transmission={0.3} // Partial light transmission
+            thickness={2} // Material thickness for refraction
+            envMapIntensity={1.5} // Moderate environment reflections
+            clearcoat={1} // Maximum clearcoat for glassy surface
+            clearcoatRoughness={0.1} // Smooth clearcoat
+            opacity={0.75} // Crystal transparency
+            transparent={true}
+            emissive="#8B0000" // Deep red glow
+            emissiveIntensity={0.3} // Subtle inner glow
+            ior={2.4} // High index of refraction for crystal
           />
         )}
       </mesh>
@@ -360,17 +404,17 @@ function EnhancedDragonModel({
         anchorY="middle"
         rotation={[0, Math.PI, 0]} // Rotated 180 degrees around Y axis
       >
-        Apasa iepurasul
+        Apasa pe dragon
         {isLowPerformance ? (
           <meshBasicMaterial color="#000000" opacity={0.9} transparent />
         ) : (
           <meshPhysicalMaterial
             color="#000000"
             emissive="#000000"
-            emissiveIntensity={0.2} // Reduced from 0.5
-            metalness={0.98} // Increased from 0.5
-            roughness={0.88} // Increased from 0.5
-            clearcoat={0.35} // Reduced from 1
+            emissiveIntensity={0.2}
+            metalness={0.98}
+            roughness={0.88}
+            clearcoat={0.35}
             opacity={0.95}
           >
             <fogExp2 attach="fog" color="#000000" density={0.5} />
