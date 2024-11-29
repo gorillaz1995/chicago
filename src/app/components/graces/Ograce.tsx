@@ -247,23 +247,9 @@ function Model({ position, rotation, isLowPerformance = false }: ModelProps) {
       >
         <button
           onClick={handlePortofoliuClick}
-          style={{
-            background: "rgba(0, 0, 0, 1)", // Pitch black background
-            border: "1px solid rgba(0, 0, 0, 1)", // Pitch black border
-            borderRadius: "4px",
-            cursor: "pointer",
-            padding: "8px 16px",
-            color: "#C0C0C0", // Silver text color
-            transition: "all 0.3s ease",
-            textTransform: "uppercase",
-            letterSpacing: "2px",
-            fontSize: "14px",
-            fontWeight: "500",
-            backdropFilter: "blur(4px)",
-            boxShadow: "0 2px 10px rgba(0, 0, 0, 1)", // Pitch black shadow
-          }}
+          className="inline-flex h-12 animate-shimmer items-center justify-center rounded-md border border-slate-800 bg-[linear-gradient(110deg,#000103,45%,#1e2631,55%,#000103)] bg-[length:200%_100%] px-6 font-medium text-slate-400 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 focus:ring-offset-slate-50"
         >
-          PORTOFOLIU{" "}
+          PORTOFOLIU
         </button>
       </Annotation>
       <Annotation
@@ -273,21 +259,7 @@ function Model({ position, rotation, isLowPerformance = false }: ModelProps) {
       >
         <button
           onClick={handleContactClick}
-          style={{
-            background: "rgba(0, 0, 0, 1)", // Pitch black background
-            border: "1px solid rgba(0, 0, 0, 1)", // Pitch black border
-            borderRadius: "4px",
-            cursor: "pointer",
-            padding: "8px 16px",
-            color: "#C0C0C0", // Silver text color
-            transition: "all 0.3s ease",
-            textTransform: "uppercase",
-            letterSpacing: "2px",
-            fontSize: "14px",
-            fontWeight: "500",
-            backdropFilter: "blur(4px)",
-            boxShadow: "0 2px 10px rgba(0, 0, 0, 1)", // Pitch black shadow
-          }}
+          className="inline-flex h-12 animate-shimmer items-center justify-center rounded-md border border-slate-800 bg-[linear-gradient(110deg,#000103,45%,#1e2631,55%,#000103)] bg-[length:200%_100%] px-6 font-medium text-slate-400 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 focus:ring-offset-slate-50"
         >
           CONTACT
         </button>
@@ -299,21 +271,7 @@ function Model({ position, rotation, isLowPerformance = false }: ModelProps) {
       >
         <button
           onClick={handleServiciiClick}
-          style={{
-            background: "rgba(0, 0, 0, 1)", // Pitch black background
-            border: "1px solid rgba(0, 0, 0, 1)", // Pitch black border
-            borderRadius: "4px",
-            cursor: "pointer",
-            padding: "8px 16px",
-            color: "#C0C0C0", // Silver text color
-            transition: "all 0.3s ease",
-            textTransform: "uppercase",
-            letterSpacing: "2px",
-            fontSize: "14px",
-            fontWeight: "500",
-            backdropFilter: "blur(4px)",
-            boxShadow: "0 2px 10px rgba(0, 0, 0, 1)", // Pitch black shadow
-          }}
+          className="inline-flex h-12 animate-shimmer items-center justify-center rounded-md border border-slate-800 bg-[linear-gradient(110deg,#000103,45%,#1e2631,55%,#000103)] bg-[length:200%_100%] px-6 font-medium text-slate-400 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 focus:ring-offset-slate-50"
         >
           SERVICII
         </button>

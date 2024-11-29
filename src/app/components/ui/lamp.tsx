@@ -44,7 +44,7 @@ export const LampContainer = ({
     const targetPosition =
       window.innerWidth > 1000
         ? viewportHeight * 1.4 // For larger screens
-        : viewportHeight * 2.6; // For mobile/tablet screens
+        : viewportHeight * 2.97; // For mobile/tablet screens
     const duration = 1500;
     const startTime = performance.now();
 
