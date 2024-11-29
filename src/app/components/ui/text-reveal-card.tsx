@@ -18,21 +18,37 @@ export const TextRevealCard = ({
   // State to track if text is revealed
   const [isRevealed, setIsRevealed] = useState(false);
 
-  // Automatically toggle reveal state every 3 seconds
+  // Automatically toggle reveal state every 4 seconds
   useEffect(() => {
     const interval = setInterval(() => {
       setIsRevealed((prev) => !prev);
-    }, 3000);
+    }, 2500);
 
     return () => clearInterval(interval);
   }, []);
 
   return (
-    <div
+    <motion.div
       className={cn(
-        "bg-white border border-black/[0.08] w-full max-w-[200rem] rounded-xl p-4 relative overflow-hidden",
+        "bg-white border border-black/[0.08] w-full max-w-[200rem] rounded-xl p-4 relative overflow-hidden transform-gpu",
         className
       )}
+      animate={{
+        transform: [
+          "perspective(1000px) rotateX(0deg) rotateY(0deg)",
+          "perspective(1000px) rotateX(2.4deg) rotateY(-1.2deg)",
+          "perspective(1000px) rotateX(0deg) rotateY(0deg)",
+        ],
+      }}
+      transition={{
+        duration: 4,
+        ease: "easeInOut",
+        repeat: Infinity,
+      }}
+      style={{
+        boxShadow:
+          "8px 8px 24px rgba(0,0,0,0.2), 12px 12px 16px rgba(0,0,0,0.1)",
+      }}
     >
       {children}
 
@@ -81,7 +97,7 @@ export const TextRevealCard = ({
           <MemoizedStars />
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 };
 

@@ -130,7 +130,49 @@ const Section4 = ({ progress }: { progress: MotionValue<number> }) => (
         className="w-full max-w-[320rem]"
       >
         <TextRevealCardTitle>
-          Custom nu inseamna complicat. Inseamna al tau.
+          <div className="text-center">
+            Custom nu mai inseamna complicat sau scump.
+          </div>
+          {/* Animated text that only plays when section is in view */}
+          <motion.div
+            className="text-center mt-4"
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true, amount: 0.8 }}
+          >
+            {/* Split text into array for letter-by-letter animation */}
+            {[
+              "I",
+              "n",
+              "s",
+              "e",
+              "a",
+              "m",
+              "n",
+              "a",
+              " ",
+              "a",
+              "l",
+              " ",
+              "t",
+              "a",
+              "u",
+              ".",
+            ].map((letter, index) => (
+              <motion.span
+                key={index}
+                initial={{ opacity: 0 }}
+                whileInView={{ opacity: 1 }}
+                viewport={{ once: true }}
+                transition={{
+                  duration: 0.1,
+                  delay: 0.3 + index * 0.1, // Stagger the animations
+                }}
+              >
+                {letter}
+              </motion.span>
+            ))}
+          </motion.div>
         </TextRevealCardTitle>
       </TextRevealCard>
     </div>
