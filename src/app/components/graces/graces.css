@@ -18,6 +18,7 @@ body,
 
 #root {
   overflow: auto;
+  min-height: 100vh; /* Ensure minimum full viewport height */
 }
 
 body {
@@ -34,6 +35,7 @@ body {
   );
   cursor: pointer;
   font-family: "Inter", sans-serif;
+  min-height: 100vh; /* Ensure minimum full viewport height */
 }
 
 @keyframes fade-in {
@@ -51,10 +53,13 @@ canvas {
   /* Increased contrast for better model visibility */
   filter: contrast(1.2) brightness(1.3);
   animation: fade-in 2.5s cubic-bezier(0.4, 0, 0.2, 1) 0s forwards;
+  min-height: 100vh; /* Ensure canvas covers full viewport */
 }
 
 .annotation-wrapper {
   display: inline-block;
+  position: relative; /* Enable proper positioning */
+  z-index: 10; /* Ensure annotations appear above background */
 }
 
 .annotation {
@@ -73,6 +78,7 @@ canvas {
   align-items: center;
   gap: 8px;
   backdrop-filter: blur(4px);
+  white-space: nowrap; /* Prevent button text wrapping */
 }
 
 .annotation:hover {

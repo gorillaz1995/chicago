@@ -247,7 +247,7 @@ function Model({ position, rotation, isLowPerformance = false }: ModelProps) {
       >
         <button
           onClick={handlePortofoliuClick}
-          className="inline-flex h-12 animate-shimmer items-center justify-center rounded-md border border-slate-800 bg-[linear-gradient(110deg,#000103,45%,#1e2631,55%,#000103)] bg-[length:200%_100%] px-6 font-medium text-slate-400 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 focus:ring-offset-slate-50"
+          className="inline-flex h-12 animate-shimmer items-center justify-center rounded-md border border-slate-800 bg-[linear-gradient(110deg,#000103,45%,#1e2631,55%,#000103)] bg-[length:200%_100%] px-6 font-medium text-slate-400 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 focus:ring-offset-slate-50 font-muller"
           style={{
             width: "100%",
             height: "100%",
@@ -258,6 +258,7 @@ function Model({ position, rotation, isLowPerformance = false }: ModelProps) {
             padding: "0.5rem 1rem",
             whiteSpace: "nowrap",
             overflow: "hidden",
+            minHeight: "48px", // Ensure minimum height for button content
           }}
         >
           PORTOFOLIU
@@ -270,7 +271,7 @@ function Model({ position, rotation, isLowPerformance = false }: ModelProps) {
       >
         <button
           onClick={handleContactClick}
-          className="inline-flex h-12 animate-shimmer items-center justify-center rounded-md border border-slate-800 bg-[linear-gradient(110deg,#000103,45%,#1e2631,55%,#000103)] bg-[length:200%_100%] px-6 font-medium text-slate-400 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 focus:ring-offset-slate-50"
+          className="inline-flex h-12 animate-shimmer items-center justify-center rounded-md border border-slate-800 bg-[linear-gradient(110deg,#000103,45%,#1e2631,55%,#000103)] bg-[length:200%_100%] px-6 font-medium text-slate-400 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 focus:ring-offset-slate-50 font-muller"
           style={{
             width: "100%",
             height: "100%",
@@ -281,6 +282,7 @@ function Model({ position, rotation, isLowPerformance = false }: ModelProps) {
             padding: "0.5rem 1rem",
             whiteSpace: "nowrap",
             overflow: "hidden",
+            minHeight: "48px", // Ensure minimum height for button content
           }}
         >
           CONTACT
@@ -293,7 +295,7 @@ function Model({ position, rotation, isLowPerformance = false }: ModelProps) {
       >
         <button
           onClick={handleServiciiClick}
-          className="inline-flex h-12 animate-shimmer items-center justify-center rounded-md border border-slate-800 bg-[linear-gradient(110deg,#000103,45%,#1e2631,55%,#000103)] bg-[length:200%_100%] px-6 font-medium text-slate-400 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 focus:ring-offset-slate-50"
+          className="inline-flex h-12 animate-shimmer items-center justify-center rounded-md border border-slate-800 bg-[linear-gradient(110deg,#000103,45%,#1e2631,55%,#000103)] bg-[length:200%_100%] px-6 font-medium text-slate-400 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 focus:ring-offset-slate-50 font-muller"
           style={{
             width: "100%",
             height: "100%",
@@ -304,6 +306,7 @@ function Model({ position, rotation, isLowPerformance = false }: ModelProps) {
             padding: "0.5rem 1rem",
             whiteSpace: "nowrap",
             overflow: "hidden",
+            minHeight: "48px", // Ensure minimum height for button content
           }}
         >
           SERVICII
@@ -358,6 +361,7 @@ function Annotation({
         width: "auto",
         minWidth: "120px",
         height: "auto",
+        minHeight: "48px", // Ensure minimum height for annotation container
       }}
       onClick={onClick}
     >
@@ -371,6 +375,7 @@ function Annotation({
           justifyContent: "center",
           padding: 0,
           margin: 0,
+          minHeight: "48px", // Ensure minimum height for inner container
         }}
       >
         {children}
