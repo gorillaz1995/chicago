@@ -11,7 +11,6 @@ import {
 import * as THREE from "three";
 import { GLTF } from "three-stdlib";
 import "./graces.css";
-import { useRouter } from "next/navigation"; // Added router import
 
 // Define types for GLTF model
 interface GLTFResult extends GLTF {
@@ -45,7 +44,6 @@ export default function Ograce() {
   // Check device performance and screen width on mount
   useEffect(() => {
     const checkPerformance = () => {
-      // Use proper type for navigator.deviceMemory
       const memory = (navigator as Navigator & { deviceMemory?: number })
         .deviceMemory;
       return memory !== undefined && memory <= 4;
@@ -67,133 +65,103 @@ export default function Ograce() {
     // Handle interaction start
   };
 
+  const handleInteractionEnd = () => {
+    // Reset camera to center view
+    if (cameraRef.current) {
+      cameraRef.current.setLookAt(0, 2, 25, 0, 0, 0, true);
+    }
+  };
+
   return (
-    <>
-      <Canvas
-        shadows={!isLowPerformance}
-        camera={{ position: [0, 4, 17.5], fov: isMobileView ? 60 : 45 }}
-        dpr={isLowPerformance ? 1 : [1, 2]}
-        performance={{ min: 0.5 }}
-        gl={{
-          antialias: !isLowPerformance,
-          powerPreference: "high-performance",
-          precision: isLowPerformance ? "lowp" : "highp",
-        }}
-      >
-        <Environment preset="sunset" />
-        <ambientLight intensity={isLowPerformance ? 1.2 : 0.8} />
-        <fog attach="fog" args={["#fff5eb", 0, 35]} />
-
-        <directionalLight
-          position={[5, 5, 5]}
-          intensity={3}
-          castShadow
-          color="#ffeedd"
-        />
-
-        <spotLight
-          position={[0, 15, 3]}
-          intensity={4}
-          angle={1.2}
-          decay={1.2}
-          distance={35}
-          castShadow
-          color="#ffd6a5"
-        />
-
-        <spotLight
-          position={[-5, 5, -5]}
-          intensity={2}
-          angle={0.8}
-          penumbra={1}
-          color="#fff1e6"
-        />
-
-        <Model position={[0, -4.5, 0]} rotation={[0, -0.2, 0]} />
-
-        <CameraControls
-          ref={cameraRef}
-          minPolarAngle={Math.PI / 4}
-          maxPolarAngle={Math.PI / 2.2}
-          minAzimuthAngle={-Math.PI / 2.5}
-          maxAzimuthAngle={Math.PI / 2.5}
-          minDistance={isMobileView ? 40 : 35}
-          maxDistance={isMobileView ? 55 : 45}
-          boundaryFriction={0.9}
-          smoothTime={1.2}
-          enabled={false}
-          onStart={handleInteractionStart}
-          restThreshold={0.01}
-          dampingFactor={0.05}
-          draggingDampingFactor={0.25}
-        />
-        <Preload all />
-      </Canvas>
-      {/* Enhanced volumetric fog effect with inverted pyramid and fluid flame-like animation */}
-      <div
-        style={{
-          position: "absolute",
-          bottom: 0,
-          left: "50%",
-          transform: "translateX(-50%)",
-          width: "100%",
-          height: "35vh",
-          background: `
-            conic-gradient(
-              from 90deg at 50% 0%,
-              rgba(255, 245, 235, 0) 0deg,
-              rgba(255, 245, 235, 1) 90deg,
-              rgba(255, 245, 235, 1) 270deg,
-              rgba(255, 245, 235, 0) 360deg
-            )
-          `,
-          filter: "blur(25px)",
-          pointerEvents: "none",
-          zIndex: 2,
-          mixBlendMode: "overlay",
-          animation:
-            "fluidFog 1.65s ease-out forwards, flameDance 1.65s ease-in-out infinite",
-          transformOrigin: "top center",
-        }}
+    <Canvas
+      shadows={!isLowPerformance}
+      camera={{ position: [0, 4, 17.5], fov: isMobileView ? 60 : 45 }}
+      dpr={isLowPerformance ? 1 : [1, 2]}
+      performance={{ min: 0.5 }}
+      gl={{
+        antialias: !isLowPerformance,
+        powerPreference: "high-performance",
+        precision: isLowPerformance ? "lowp" : "highp",
+      }}
+    >
+      {/* Creating depth with subtle variations of white */}
+      <color attach="background" args={["#f5f5f7"]} />{" "}
+      {/* Slightly cooler white base */}
+      <fog attach="fog" args={["#faf9f6", 12, 26]} />{" "}
+      {/* Warmer white fog for contrast */}
+      <Environment preset="dawn" />{" "}
+      {/* Changed to dawn for softer, more nuanced lighting */}
+      <hemisphereLight
+        intensity={0.5}
+        groundColor="#e6e6ea" /* Cooler undertones */
+        color="#fff5e6" /* Warmer overtones */
       />
-
-      <style jsx>{`
-        @keyframes fluidFog {
-          0% {
-            clip-path: polygon(50% 0%, 50% 0%, 50% 0%);
-            opacity: 0;
-          }
-          100% {
-            clip-path: polygon(0% 0%, 50% 100%, 100% 0%);
-            opacity: 1;
-          }
-        }
-
-        @keyframes flameDance {
-          0% {
-            transform: translateX(-50%) scaleX(1);
-          }
-          50% {
-            transform: translateX(-50%) scaleX(1.1);
-          }
-          100% {
-            transform: translateX(-50%) scaleX(1);
-          }
-        }
-      `}</style>
-    </>
+      <ambientLight intensity={isLowPerformance ? 1.2 : 0.8} />
+      {!isLowPerformance && (
+        <>
+          <directionalLight
+            position={[5, 5, 5]}
+            intensity={2}
+            castShadow
+            shadow-mapSize={[1024, 1024]}
+            color="#333333"
+          />
+          <spotLight
+            position={[0, 15, 3]}
+            intensity={3}
+            angle={1.2}
+            penumbra={0.8}
+            decay={1.2}
+            distance={35}
+            castShadow
+            color="#444444"
+          />
+          <spotLight
+            position={[-5, 5, -5]}
+            intensity={1.5}
+            angle={0.8}
+            penumbra={1}
+            color="#222222"
+          />
+        </>
+      )}
+      <Model
+        position={[0, -4.5, 0]}
+        rotation={[0, -0.2, 0]}
+        isLowPerformance={isLowPerformance}
+      />
+      <CameraControls
+        ref={cameraRef}
+        minPolarAngle={Math.PI / 4}
+        maxPolarAngle={Math.PI / 2.2}
+        minAzimuthAngle={-Math.PI / 2.5}
+        maxAzimuthAngle={Math.PI / 2.5}
+        minDistance={isMobileView ? 40 : 35}
+        maxDistance={isMobileView ? 55 : 45}
+        smoothTime={0.5} // Adjusted value for smoother transitions
+        draggingSmoothTime={0.25} // Adjusted value
+        boundaryFriction={0.9}
+        verticalDragToForward={false}
+        dollySpeed={0.15}
+        enabled={false}
+        onStart={handleInteractionStart}
+        onEnd={handleInteractionEnd}
+        restThreshold={0.01}
+        // Removed deprecated properties dampingFactor and draggingDampingFactor
+      />
+      <Preload all />
+    </Canvas>
   );
 }
 
 function Model({ position, rotation, isLowPerformance = false }: ModelProps) {
-  const router = useRouter(); // Added router hook
   const group = useRef<THREE.Group>(null);
   const { nodes, scene } = useGLTF(
     "/graces-draco.glb"
-  ) as unknown as GLTFResult;
+  ) as unknown as GLTFResult; // Fixed type assertion
   const [direction, setDirection] = useState(1);
+  const rotationLimit = Math.PI / 4.5; // Reduced rotation limit by 20%
   const [isPaused, setIsPaused] = useState(false);
-  const rotationLimit = Math.PI / 8; // Reduced rotation limit to ~105 degrees
 
   useFrame(() => {
     if (!isLowPerformance) {
@@ -202,7 +170,7 @@ function Model({ position, rotation, isLowPerformance = false }: ModelProps) {
           child.castShadow = true;
           child.receiveShadow = true;
           child.material = new THREE.MeshStandardMaterial({
-            color: "#404044",
+            color: "#FFD700", // 24k gold color
             roughness: 0.7,
             metalness: 0.3,
           });
@@ -219,15 +187,17 @@ function Model({ position, rotation, isLowPerformance = false }: ModelProps) {
       } else if (currentRotation <= -rotationLimit) {
         setDirection(1);
       }
+      // Slower rotation speed
       group.current.rotation.y +=
-        direction * delta * (isLowPerformance ? 0.04 : 0.075);
+        direction * delta * (isLowPerformance ? 0.08 : 0.095);
     }
   });
 
+  // Navigation handler functions with smooth transitions
   const handleNavigation = (path: string) => {
-    setIsPaused(true);
+    setIsPaused(true); // Pause rotation
     setTimeout(() => {
-      router.push(path);
+      window.location.href = path;
     }, 300);
   };
 
@@ -244,26 +214,29 @@ function Model({ position, rotation, isLowPerformance = false }: ModelProps) {
         rotation={[-Math.PI / 2, 0, 0]}
         scale={0.2}
         onClick={(e) => {
+          // Prevent event propagation and any interaction
           e.stopPropagation();
         }}
       >
         {isLowPerformance ? (
+          // Optimized material for low performance - deep bronze with golden undertones
           <meshPhongMaterial
-            color="#f5f5f0"
-            shininess={30}
-            specular="#e0e0d0"
-            emissive="#1a1a1a"
-            emissiveIntensity={0.05}
+            color="#CD7F32" // Rich bronze base color
+            shininess={40} // Moderate shininess for metallic look
+            specular="#FFD700" // Golden specular highlights
+            emissive="#3D1C02" // Deep bronze emissive
+            emissiveIntensity={0.08}
             flatShading={false}
           />
         ) : (
+          // High quality bronze material with golden reflections
           <meshStandardMaterial
-            color="#505058"
-            roughness={0.5}
-            metalness={0.7}
-            envMapIntensity={2.5}
-            emissive="#202024"
-            emissiveIntensity={0.3}
+            color="#B87333" // Polished bronze color
+            roughness={0.3} // Smoother surface for better reflections
+            metalness={0.9} // High metalness for metallic look
+            envMapIntensity={3.0} // Strong environment reflections
+            emissive="#8B4513" // Saddle brown emissive
+            emissiveIntensity={0.4} // Increased glow effect
           />
         )}
       </mesh>
@@ -275,19 +248,19 @@ function Model({ position, rotation, isLowPerformance = false }: ModelProps) {
         <button
           onClick={handlePortofoliuClick}
           style={{
-            background: "rgba(0, 0, 0, 1)", // Changed to solid black
-            border: "1px solid rgba(0, 0, 0, 1)",
+            background: "rgba(0, 0, 0, 1)", // Pitch black background
+            border: "1px solid rgba(0, 0, 0, 1)", // Pitch black border
             borderRadius: "4px",
             cursor: "pointer",
             padding: "8px 16px",
-            color: "#e6e6e6", // Changed to ivory/silver color
+            color: "#C0C0C0", // Silver text color
             transition: "all 0.3s ease",
             textTransform: "uppercase",
             letterSpacing: "2px",
             fontSize: "14px",
             fontWeight: "500",
-            backdropFilter: "blur(2px)",
-            boxShadow: "0 2px 10px rgba(0, 0, 0, 1)",
+            backdropFilter: "blur(4px)",
+            boxShadow: "0 2px 10px rgba(0, 0, 0, 1)", // Pitch black shadow
           }}
         >
           PORTOFOLIU{" "}
@@ -301,48 +274,48 @@ function Model({ position, rotation, isLowPerformance = false }: ModelProps) {
         <button
           onClick={handleContactClick}
           style={{
-            background: "rgba(0, 0, 0, 1)", // Changed to solid black
-            border: "1px solid rgba(0, 0, 0, 1)",
+            background: "rgba(0, 0, 0, 1)", // Pitch black background
+            border: "1px solid rgba(0, 0, 0, 1)", // Pitch black border
             borderRadius: "4px",
             cursor: "pointer",
             padding: "8px 16px",
-            color: "#e6e6e6", // Changed to ivory/silver color
+            color: "#C0C0C0", // Silver text color
             transition: "all 0.3s ease",
             textTransform: "uppercase",
             letterSpacing: "2px",
             fontSize: "14px",
             fontWeight: "500",
-            backdropFilter: "blur(2px)",
-            boxShadow: "0 2px 10px rgba(0, 0, 0, 1)",
+            backdropFilter: "blur(4px)",
+            boxShadow: "0 2px 10px rgba(0, 0, 0, 1)", // Pitch black shadow
           }}
         >
-          CONTACT{" "}
+          CONTACT
         </button>
       </Annotation>
       <Annotation
-        position={[2.7, 8, -3]} // Moved 15% to the right by increasing x position from 1.5 to 3.5
+        position={[1.75, 8, -3]}
         phase={0.66}
         onClick={handleServiciiClick}
       >
         <button
           onClick={handleServiciiClick}
           style={{
-            background: "rgba(0, 0, 0, 1)", // Changed to solid black
-            border: "1px solid rgba(0, 0, 0, 1)",
+            background: "rgba(0, 0, 0, 1)", // Pitch black background
+            border: "1px solid rgba(0, 0, 0, 1)", // Pitch black border
             borderRadius: "4px",
             cursor: "pointer",
             padding: "8px 16px",
-            color: "#e6e6e6", // Changed to ivory/silver color
+            color: "#C0C0C0", // Silver text color
             transition: "all 0.3s ease",
             textTransform: "uppercase",
             letterSpacing: "2px",
             fontSize: "14px",
             fontWeight: "500",
-            backdropFilter: "blur(2px)",
-            boxShadow: "0 2px 10px rgba(0, 0, 0, 1)",
+            backdropFilter: "blur(4px)",
+            boxShadow: "0 2px 10px rgba(0, 0, 0, 1)", // Pitch black shadow
           }}
         >
-          SERVICII{" "}
+          SERVICII
         </button>
       </Annotation>
     </group>
@@ -358,18 +331,18 @@ function Annotation({
   const [yOffset, setYOffset] = useState(0);
 
   useEffect(() => {
+    let animationFrameId: number;
+
     const floatAnimation = () => {
       const time = performance.now() * 0.001;
       const offset = Math.sin(time * 0.8 + phase * Math.PI * 2) * 0.2;
       setYOffset(offset);
+      animationFrameId = requestAnimationFrame(floatAnimation);
     };
 
-    const animationFrame = requestAnimationFrame(function animate() {
-      floatAnimation();
-      requestAnimationFrame(animate);
-    });
+    animationFrameId = requestAnimationFrame(floatAnimation);
 
-    return () => cancelAnimationFrame(animationFrame);
+    return () => cancelAnimationFrame(animationFrameId);
   }, [phase]);
 
   const adjustedPosition: [number, number, number] = [

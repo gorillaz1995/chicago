@@ -66,7 +66,7 @@ const LoadingScreen = () => {
           textAlign: "center",
         }}
       >
-        {progress}% Merita asteptarea, doar putin...
+        {progress}% <br></br>Merita asteptarea, doar putin...
       </div>
     </div>
   );

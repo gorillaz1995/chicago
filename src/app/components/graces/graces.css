@@ -25,12 +25,12 @@ body {
   overflow: hidden;
   overscroll-behavior-y: none;
   color: #e0e0ff;
-  /* Adjusted background gradient to better highlight the statue */
+  /* Darker ashen to pitch black gradient background */
   background: radial-gradient(
     circle at bottom center,
-    rgba(40, 40, 60, 1) 0%,
-    /* Lighter starting color */ rgba(15, 15, 25, 1) 75%
-      /* Slightly lighter dark color */
+    rgba(28, 28, 28, 1) 0%,
+    rgba(10, 10, 10, 1) 50%,
+    rgba(0, 0, 0, 1) 100%
   );
   cursor: pointer;
   font-family: "Inter", sans-serif;

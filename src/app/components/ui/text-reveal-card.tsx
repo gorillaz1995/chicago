@@ -22,7 +22,7 @@ export const TextRevealCard = ({
   useEffect(() => {
     const interval = setInterval(() => {
       setIsRevealed((prev) => !prev);
-    }, 2500);
+    }, 2000);
 
     return () => clearInterval(interval);
   }, []);
