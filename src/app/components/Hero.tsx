@@ -327,17 +327,28 @@ function EnhancedBunnyModel({
         onPointerDown={handleInteraction}
         {...props}
       >
-        <meshPhysicalMaterial
-          color="#4B0082"
-          emissive="#4B0082"
-          emissiveIntensity={0.8}
-          metalness={0.8}
-          roughness={0.4}
-          clearcoat={1}
-          transmission={0.1}
-          transparent
-          opacity={0.98}
-        />
+        {isLowPerformance ? (
+          // Optimized material for low performance devices
+          <meshPhongMaterial
+            color="#CD7F32" // Rich bronze base color
+            shininess={60}
+            specular="#FFD700" // Gold specular highlights
+            emissive="#3D1C02" // Deep bronze emissive
+            emissiveIntensity={0.2}
+          />
+        ) : (
+          // High quality material for better devices
+          <meshPhysicalMaterial
+            color="#B87333" // Polished bronze color
+            roughness={0.3} // Smoother surface for better reflections
+            metalness={0.9} // High metalness for metallic look
+            envMapIntensity={2.0} // Strong environment reflections
+            clearcoat={0.5} // Subtle clearcoat for extra shine
+            clearcoatRoughness={0.3}
+            emissive="#8B4513" // Saddle brown emissive
+            emissiveIntensity={0.4} // Moderate glow effect
+          />
+        )}
       </mesh>
 
       {/* Back facing text with enhanced darkness and shadow */}
