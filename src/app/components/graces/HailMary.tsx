@@ -5,7 +5,6 @@ import { motion, useScroll, useTransform, MotionValue } from "framer-motion";
 import { LampDemo } from "../ui/lamp";
 import { TextRevealCard, TextRevealCardTitle } from "../ui/text-reveal-card";
 import { Spotlight } from "../ui/Spotlight";
-import { RoughNotation } from "react-rough-notation";
 
 // Define animation variants for headline and text with staggered timing
 const wildTextVariants = {
@@ -48,145 +47,122 @@ const letterVariants = {
   }),
 };
 
-// Component for Section 2 with animated text and fixed RoughNotation
-const Section2 = ({ progress }: { progress: MotionValue<number> }) => {
-  const [showAnnotation, setShowAnnotation] = useState(false);
-  const [showParagraphAnnotation, setShowParagraphAnnotation] = useState(false);
-  const [showCircleAnnotation, setShowCircleAnnotation] = useState(false);
-  const textRef = useRef<HTMLDivElement>(null);
-  const paragraphRef = useRef<HTMLDivElement>(null);
-
-  // Show annotation after letter animations complete
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting) {
-          // Delay annotation until after letter animations
-          const timer = setTimeout(() => {
-            setShowAnnotation(true);
-          }, 1500); // Matches total animation duration (letter delays + duration)
-
-          // Additional delay for paragraph annotation after framer motion
-          const paragraphTimer = setTimeout(() => {
-            setShowParagraphAnnotation(true);
-            setShowCircleAnnotation(true);
-          }, 2300); // 1500 + 800 (previous animations)
-
-          return () => {
-            clearTimeout(timer);
-            clearTimeout(paragraphTimer);
-          };
-        } else {
-          setShowAnnotation(false);
-          setShowParagraphAnnotation(false);
-          setShowCircleAnnotation(false);
-        }
-      },
-      { threshold: 0.5 }
-    );
-
-    if (textRef.current) {
-      observer.observe(textRef.current);
-    }
-
-    return () => observer.disconnect();
-  }, []);
-
-  return (
-    <motion.div
-      className="flex items-center justify-center h-screen p-8"
-      initial="initial"
-      whileInView="animate"
-      viewport={{ once: true, amount: 0.8 }}
-      style={{
-        background: useTransform(
-          progress,
-          [0, 0.3],
-          [
-            "linear-gradient(to bottom, #0f0f0f, #000000)",
-            "linear-gradient(to bottom, #f9fafb, #ffffff)",
-          ]
-        ),
-      }}
-    >
-      <div className="max-w-4xl">
-        <motion.h2
-          className="relative text-4xl md:text-6xl font-light mb-8 bg-clip-text text-transparent font-muller"
-          style={{
-            backgroundImage: useTransform(
-              progress,
-              [0, 0.3],
-              [
-                "linear-gradient(to bottom right, #f9fafb, #ffffff)",
-                "linear-gradient(to bottom right, #1f2937, #111827)",
-              ]
-            ),
-          }}
-          variants={wildTextVariants}
-        >
-          {/* Static overlay for RoughNotation */}
-          <div
-            className="absolute inset-0 pointer-events-none text-white"
-            ref={textRef}
-          >
-            <RoughNotation
-              type="highlight"
-              show={showAnnotation}
-              color="#000000"
-              strokeWidth={1}
-              animate={true}
-              animationDuration={800}
-            >
-              De la A la Z
-            </RoughNotation>
-          </div>
-
-          {/* Animated text */}
-          <span className="relative text-white">
-            <motion.span key={0} custom={0} variants={letterVariants}>
-              De la A la Z
-            </motion.span>
-          </span>
-        </motion.h2>
+// Component for Section 2 with animated text
+const Section2 = ({ progress }: { progress: MotionValue<number> }) => (
+  <motion.div
+    className="flex items-center justify-center h-screen p-8"
+    initial="initial"
+    whileInView="animate"
+    viewport={{ once: true, amount: 0.8 }}
+    style={{
+      background: useTransform(
+        progress,
+        [0, 0.3],
+        [
+          "linear-gradient(to bottom, #0f0f0f, #000000)",
+          "linear-gradient(to bottom, #f9fafb, #ffffff)",
+        ]
+      ),
+    }}
+  >
+    <div className="max-w-4xl">
+      <motion.h2
+        className="text-4xl md:text-6xl font-light mb-8 bg-clip-text text-transparent font-muller"
+        style={{
+          backgroundImage: useTransform(
+            progress,
+            [0, 0.3],
+            [
+              "linear-gradient(to bottom right, #f9fafb, #ffffff)",
+              "linear-gradient(to bottom right, #1f2937, #111827)",
+            ]
+          ),
+        }}
+      >
+        {/* Split text into letters for individual animation */}
+        {"De la A la Z".split("").map((letter, index) => (
+          <motion.span key={index} custom={index} variants={letterVariants}>
+            {letter}
+          </motion.span>
+        ))}
+      </motion.h2>
+      <motion.div
+        className="text-lg md:text-xl leading-relaxed font-muller overflow-hidden"
+        style={{
+          color: useTransform(progress, [0, 0.3], ["#f9fafb", "#1f2937"]),
+        }}
+        initial="initial"
+        whileInView="animate"
+        viewport={{ once: true, amount: 0.2 }}
+      >
         <motion.p
-          className="text-base md:text-lg leading-relaxed font-averta"
-          style={{
-            color: useTransform(progress, [0, 0.3], ["#f9fafb", "#1f2937"]),
+          variants={{
+            initial: { x: -100, opacity: 0 },
+            animate: {
+              x: 0,
+              opacity: 1,
+              transition: { duration: 0.8, ease: "easeOut" },
+            },
           }}
-          variants={wildTextVariants}
-          ref={paragraphRef}
         >
-          Fie ca ai nevoie de imagini atractive pentru social media, texte care{" "}
-          <RoughNotation
-            type="circle"
-            show={showCircleAnnotation}
-            color="#000000"
-            strokeWidth={1}
-            animate={true}
-            animationDuration={800}
-          >
-            <span className="font-bold">ies în evidență</span>
-          </RoughNotation>
-          , identitate vizuală pentru brandul tău sau un website modern, sunt
-          aici să te ajut.
-          <br />
-          <RoughNotation
-            type="box"
-            show={showParagraphAnnotation}
-            color="#000000"
-            strokeWidth={1}
-            animate={true}
-            animationDuration={800}
-          >
-            Lucrez fie sub micro-management (adică, tu decizi tot), fie cu minim
-            de supervizare, depinde cum îți place. Adaptabilitatea este cheia
-            mea, astfel încât tu să ai controlul pe care îl dorești.
-          </RoughNotation>
+          Fie ca ai nevoie de imagini atractive pentru social media, texte care
+          ies în evidență
         </motion.p>
-      </div>
-    </motion.div>
-  );
-};
+
+        <motion.p
+          variants={{
+            initial: { x: 100, opacity: 0 },
+            animate: {
+              x: 0,
+              opacity: 1,
+              transition: { duration: 0.8, ease: "easeOut", delay: 0.2 },
+            },
+          }}
+        >
+          identitate vizuală pentru brandul tău sau un website modern, sunt aici
+          să te ajut.
+        </motion.p>
+
+        <motion.p
+          variants={{
+            initial: { y: 50, opacity: 0, rotateX: 45 },
+            animate: {
+              y: 0,
+              opacity: 1,
+              rotateX: 0,
+              transition: {
+                duration: 1,
+                ease: [0.34, 1.56, 0.64, 1],
+                delay: 0.4,
+              },
+            },
+          }}
+        >
+          Lucrez fie sub micro-management (adică, tu decizi tot), fie cu minim
+          de supervizare, depinde cum îți place.
+        </motion.p>
+
+        <motion.p
+          variants={{
+            initial: { scale: 0.8, opacity: 0 },
+            animate: {
+              scale: 1,
+              opacity: 1,
+              transition: {
+                duration: 1.2,
+                ease: [0.25, 0.1, 0, 1.1],
+                delay: 0.6,
+              },
+            },
+          }}
+        >
+          Adaptabilitatea este cheia mea, astfel încât tu să ai controlul pe
+          care îl dorești.
+        </motion.p>
+      </motion.div>
+    </div>
+  </motion.div>
+);
 
 // Component for Section 3 with animated text
 const Section3 = ({ progress }: { progress: MotionValue<number> }) => (
