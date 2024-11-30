@@ -10,6 +10,7 @@ import {
 } from "@react-three/drei";
 import * as THREE from "three";
 import { GLTF } from "three-stdlib";
+import { motion, AnimatePresence } from "framer-motion";
 import "./graces.css";
 
 // Define types for GLTF model
@@ -40,6 +41,8 @@ export default function Ograce() {
   const cameraRef = useRef<CameraControls>(null);
   const [isLowPerformance, setIsLowPerformance] = useState(false);
   const [isMobileView, setIsMobileView] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
+  const [showSpecialWords, setShowSpecialWords] = useState(false);
 
   // Check device performance and screen width on mount
   useEffect(() => {
@@ -55,6 +58,11 @@ export default function Ograce() {
 
     setIsLowPerformance(checkPerformance());
     handleResize(); // Initial check
+
+    // Trigger animation after a short delay
+    setTimeout(() => setIsVisible(true), 500);
+    // Show special words after main text animation completes
+    setTimeout(() => setShowSpecialWords(true), 2000);
 
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
@@ -72,6 +80,78 @@ export default function Ograce() {
     }
   };
 
+  // Text animation variants
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.08,
+        delayChildren: 0.3,
+      },
+    },
+  };
+
+  const wordVariants = {
+    hidden: {
+      y: 20,
+      opacity: 0,
+      scale: 0.8,
+    },
+    visible: {
+      y: 0,
+      opacity: 1,
+      scale: 1,
+      transition: {
+        type: "spring",
+        damping: 12,
+        stiffness: 200,
+      },
+    },
+  };
+
+  // Special variants for "realitate digitala"
+  const specialWordVariants = {
+    hidden: {
+      y: 20,
+      opacity: 0,
+      scale: 0.8,
+      color: "#000000",
+    },
+    visible: {
+      y: 0,
+      opacity: 1,
+      scale: 1,
+      transition: {
+        type: "spring",
+        damping: 12,
+        stiffness: 200,
+        delay: 0.1875, // Reduced delay by 75% from 0.75
+      },
+    },
+    colorChange: {
+      color: "#DC143C",
+      transition: {
+        duration: 0.0625, // Reduced duration by 75% from 0.25
+        delay: 0.25, // Reduced delay by 75% from 1
+        ease: "easeInOut",
+      },
+    },
+  };
+
+  const glowVariants = {
+    initial: { opacity: 0.5, scale: 1 },
+    animate: {
+      opacity: [0.5, 1, 0.5],
+      scale: [1, 1.05, 1],
+      transition: {
+        duration: 1.55, // Reduced duration to fit within 1.75s limit
+        repeat: Infinity,
+        ease: "easeInOut",
+      },
+    },
+  };
+
   return (
     <Canvas
       shadows={!isLowPerformance}
@@ -84,6 +164,122 @@ export default function Ograce() {
         precision: isLowPerformance ? "lowp" : "highp",
       }}
     >
+      {/* Animated text overlay with responsive layout */}
+      <Html
+        position={[-0.2, isMobileView ? 9 : 7, 0]}
+        center
+        style={{
+          position: "absolute",
+          top: 0,
+          left: "50%",
+          transform: "translateX(-50%)",
+          perspective: "1000px",
+          zIndex: 1000,
+          width: "100%",
+          height: "30vh",
+          display: "flex",
+          alignItems: "flex-start",
+          justifyContent: "center",
+          padding: isMobileView ? "2rem 1.5rem" : "2rem",
+        }}
+      >
+        <AnimatePresence>
+          {isVisible && (
+            <motion.div
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                position: "relative",
+                width: "100%",
+                maxWidth: isMobileView ? "calc(100% - 2rem)" : "90%",
+              }}
+            >
+              <motion.div
+                variants={glowVariants}
+                initial="initial"
+                animate="animate"
+                style={{
+                  position: "absolute",
+                  width: "120%",
+                  height: "150%",
+                  background:
+                    "radial-gradient(circle, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0) 70%)",
+                  filter: "blur(20px)",
+                  zIndex: -1,
+                }}
+              />
+              <motion.div
+                style={{
+                  display: "flex",
+                  flexDirection: isMobileView ? "column" : "row",
+                  gap: isMobileView ? "0.4rem" : "0.6rem",
+                  flexWrap: isMobileView ? "nowrap" : "wrap",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  maxWidth: "100%",
+                  padding: isMobileView ? "0" : "0 1rem",
+                }}
+              >
+                <div
+                  style={{ display: "flex", gap: "0.4rem", flexWrap: "nowrap" }}
+                >
+                  {["Idei", "curajoase,", "transformate", "in"].map(
+                    (word, i) => (
+                      <motion.span
+                        key={i}
+                        variants={wordVariants}
+                        style={{
+                          fontSize: isMobileView ? "1.5rem" : "2.5rem",
+                          fontWeight: "bold",
+                          color: "#000000",
+                          textShadow: "2px 2px 4px rgba(255,255,255,0.5)",
+                          fontFamily: "var(--font-averta)",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {word}
+                      </motion.span>
+                    )
+                  )}
+                </div>
+                <AnimatePresence>
+                  {showSpecialWords && (
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: "0.4rem",
+                        flexWrap: "nowrap",
+                      }}
+                    >
+                      {["realitate", "digitala"].map((word) => (
+                        <motion.span
+                          key={word}
+                          variants={specialWordVariants}
+                          initial="hidden"
+                          animate={["visible", "colorChange"]}
+                          style={{
+                            fontSize: isMobileView ? "1.5rem" : "2.5rem",
+                            fontWeight: "bold",
+                            textShadow: "2px 2px 4px rgba(255,255,255,0.5)",
+                            fontFamily: "var(--font-averta)",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {word}
+                        </motion.span>
+                      ))}
+                    </div>
+                  )}
+                </AnimatePresence>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </Html>
       {/* Creating depth with subtle variations of white */}
       <color attach="background" args={["#f5f5f7"]} />{" "}
       {/* Slightly cooler white base */}
