@@ -392,7 +392,7 @@ export default function HailMary() {
     [0.5, 0.65, 0.75],
     ["100vh", "0vh", "0vh"]
   );
-  const section3Opacity = useTransform(scrollYProgress, [0.5, 0.65], [0, 1]);
+  const section3Opacity = useTransform(scrollYProgress, [0.5, 0.65], [1, 1]);
   const section3Progress = useTransform(scrollYProgress, [0.5, 0.65], [0, 1]);
 
   const section4Y = useTransform(
@@ -400,7 +400,7 @@ export default function HailMary() {
     [0.75, 0.9, 1],
     ["100vh", "0vh", "0vh"]
   );
-  const section4Opacity = useTransform(scrollYProgress, [0.75, 0.9], [0, 1]);
+  const section4Opacity = useTransform(scrollYProgress, [0.75, 0.9], [1, 1]);
   const section4Progress = useTransform(scrollYProgress, [0.75, 0.9], [0, 1]);
 
   return (
