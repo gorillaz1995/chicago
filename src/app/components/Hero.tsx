@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import * as THREE from "three";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { useGLTF, Text, Environment, Center } from "@react-three/drei";
@@ -13,7 +14,9 @@ import {
 } from "@react-three/postprocessing";
 import { useEffect, useState, useRef } from "react";
 import { Vector2 } from "three";
-import Popx from "./Popx"; // Import the Popx component
+
+// Dynamically import Popx with SSR disabled
+const Popx = dynamic(() => import("./Popx"), { ssr: false });
 
 // Add type definition for Navigator with deviceMemory
 declare global {
@@ -35,7 +38,7 @@ interface ModelProps {
 }
 
 // Main Hero component for heavenly-themed 3D scene
-export default function Hero() {
+const Hero = () => {
   // State to handle responsive camera positioning with proper typing
   const [cameraPosition, setCameraPosition] = useState<
     [number, number, number]
@@ -51,6 +54,7 @@ export default function Hero() {
   const [isScrolling, setIsScrolling] = useState(true);
   const [isLowPerformance, setIsLowPerformance] = useState(false);
   const [showPopup, setShowPopup] = useState(false);
+  const [canvasError, setCanvasError] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Performance detection
@@ -121,6 +125,23 @@ export default function Hero() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
+  // Handle WebGL context error
+  const handleContextCreationError = () => {
+    setCanvasError(true);
+    console.error("WebGL context creation failed");
+  };
+
+  if (canvasError) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <p>
+          Unable to load 3D content. Please check your browser settings or try a
+          different browser.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div
       ref={containerRef}
@@ -142,9 +163,17 @@ export default function Hero() {
           antialias: !isLowPerformance,
           powerPreference: "high-performance",
           precision: isLowPerformance ? "lowp" : "highp",
+          alpha: true,
+          stencil: false,
+          depth: true,
+          failIfMajorPerformanceCaveat: true,
         }}
         dpr={isLowPerformance ? 1 : [1, 2]}
         performance={{ min: 0.5 }}
+        onCreated={({ gl }) => {
+          gl.setClearColor(0xffffff, 0);
+        }}
+        onError={handleContextCreationError}
       >
         <color attach="background" args={["#ffffff"]} />
         <fog attach="fog" args={["#ffffff", 8, 35]} />
@@ -262,7 +291,11 @@ export default function Hero() {
       )}
     </div>
   );
-}
+};
+
+export default dynamic(() => Promise.resolve(Hero), {
+  ssr: false,
+});
 
 // Enhanced camera rig with dynamic movement and scene exploration
 function Rig() {
@@ -406,19 +439,26 @@ function EnhancedDragonModel({
       >
         Apasa pe dragon
         {isLowPerformance ? (
-          <meshBasicMaterial color="#000000" opacity={0.9} transparent />
+          <meshBasicMaterial
+            color="#000000"
+            transparent
+            opacity={1}
+            visible={true} // Added visible prop to material
+          />
         ) : (
           <meshPhysicalMaterial
             color="#000000"
             emissive="#000000"
-            emissiveIntensity={0.2}
-            metalness={0.98}
-            roughness={0.88}
-            clearcoat={0.35}
-            opacity={0.95}
-          >
-            <fogExp2 attach="fog" color="#000000" density={0.5} />
-          </meshPhysicalMaterial>
+            emissiveIntensity={0.9}
+            metalness={0.5}
+            roughness={0.5}
+            clearcoat={1}
+            transmission={0}
+            transparent
+            opacity={1}
+            side={THREE.DoubleSide}
+            visible={true} // Added visible prop to material
+          />
         )}
       </Text>
     </group>
