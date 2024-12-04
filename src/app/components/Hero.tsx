@@ -18,14 +18,12 @@ import { Vector2 } from "three";
 // Dynamically import Popx with SSR disabled
 const Popx = dynamic(() => import("./Popx"), { ssr: false });
 
-// Add type definition for Navigator with deviceMemory
 declare global {
   interface Navigator {
     deviceMemory?: number;
   }
 }
 
-// Define GLTF result type for proper typing
 interface GLTFResult extends GLTF {
   nodes: {
     dragon: THREE.Mesh;
@@ -37,9 +35,7 @@ interface ModelProps {
   scale: number;
 }
 
-// Main Hero component for heavenly-themed 3D scene
 const Hero = () => {
-  // State to handle responsive camera positioning with proper typing
   const [cameraPosition, setCameraPosition] = useState<
     [number, number, number]
   >([10, 20, 2]);
@@ -55,23 +51,27 @@ const Hero = () => {
   const [isLowPerformance, setIsLowPerformance] = useState(false);
   const [showPopup, setShowPopup] = useState(false);
   const [canvasError, setCanvasError] = useState(false);
+  const [isClient, setIsClient] = useState(false); // Check if client-side
   const containerRef = useRef<HTMLDivElement>(null);
+  const glRef = useRef<THREE.WebGLRenderer | null>(null);
+  const [canvasKey, setCanvasKey] = useState(0); // unique key for Canvas re-creation
 
-  // Performance detection
   useEffect(() => {
-    // Check device performance
-    const checkPerformance = () => {
-      // Check for low-end devices based on memory
-      const memory = navigator.deviceMemory;
+    // Run only on client
+    if (typeof window !== "undefined") {
+      setIsClient(true);
+    }
+  }, []);
 
-      // Return true if device has 4GB or less RAM
+  useEffect(() => {
+    const checkPerformance = () => {
+      const memory = navigator.deviceMemory;
       return memory !== undefined && memory <= 4;
     };
     const performanceResult = checkPerformance();
-    setIsLowPerformance(!!performanceResult); // Convert to boolean explicitly
+    setIsLowPerformance(!!performanceResult);
   }, []);
 
-  // Auto-scroll effect
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
@@ -95,7 +95,6 @@ const Hero = () => {
     return () => clearInterval(scrollInterval);
   }, [isScrolling]);
 
-  // Handle responsive adjustments
   useEffect(() => {
     const handleResize = () => {
       const width = window.innerWidth;
@@ -120,16 +119,31 @@ const Hero = () => {
       }
     };
 
-    handleResize();
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
+    if (isClient) {
+      handleResize();
+      window.addEventListener("resize", handleResize);
+      return () => window.removeEventListener("resize", handleResize);
+    }
+  }, [isClient]);
+
+  useEffect(() => {
+    return () => {
+      // Dispose of the WebGL renderer on unmount
+      if (glRef.current) {
+        glRef.current.dispose();
+      }
+    };
   }, []);
 
-  // Handle WebGL context error
   const handleContextCreationError = () => {
     setCanvasError(true);
     console.error("WebGL context creation failed");
   };
+
+  // If error, or not client, or WebGL not supported, show fallback
+  if (!isClient) {
+    return <div>Loading...</div>;
+  }
 
   if (canvasError) {
     return (
@@ -154,104 +168,109 @@ const Hero = () => {
       onMouseEnter={() => setIsScrolling(false)}
       onMouseLeave={() => setIsScrolling(true)}
     >
-      <Canvas
-        shadows={
-          isLowPerformance ? false : { enabled: true, type: THREE.PCFShadowMap }
-        }
-        camera={{ position: cameraPosition }}
-        gl={{
-          antialias: !isLowPerformance,
-          powerPreference: "high-performance",
-          precision: isLowPerformance ? "lowp" : "highp",
-          alpha: true,
-          stencil: false,
-          depth: true,
-          failIfMajorPerformanceCaveat: true,
-        }}
-        dpr={isLowPerformance ? 1 : [1, 2]}
-        performance={{ min: 0.5 }}
-        onCreated={({ gl }) => {
-          gl.setClearColor(0xffffff, 0);
-        }}
-        onError={handleContextCreationError}
-      >
-        <color attach="background" args={["#ffffff"]} />
-        <fog attach="fog" args={["#ffffff", 8, 35]} />
-        {/* Heavenly lighting setup */}
-        {/* Adjusted fog settings for better visibility of distant objects while maintaining atmosphere */}
-        <ambientLight intensity={1.2} color="#E8E8E8" />{" "}
-        {/* Base silver-white ambient */}
-        {!isLowPerformance && (
-          <>
-            <pointLight
-              position={[0, 20, 10]}
-              intensity={2.5}
-              color="#FFFFFF"
-            />{" "}
-            {/* Pure white highlight */}
-            <pointLight
-              position={[-10, 10, -10]}
-              intensity={1.8}
-              color="#D3D3D3"
-            />{" "}
-            {/* Light gray accent */}
-            <pointLight
-              position={[10, 15, 5]}
-              intensity={1.5}
-              color="#C0C0C0"
-            />{" "}
-            {/* Silver accent */}
-            <spotLight
-              position={[0, 50, 0]}
-              angle={0.3}
-              penumbra={1}
-              intensity={3}
-              castShadow={!isLowPerformance}
-              shadow-bias={-0.0001}
-              color="#FFFFFF"
-            />{" "}
-            {/* Intense pure white spotlight for contrast */}
-          </>
-        )}
-        {/* Main content group */}
-        <group position={groupPosition}>
-          <DynamicText
-            scale={textScale}
-            position={[0.4, 0.25, -1]}
-            isLowPerformance={isLowPerformance}
-          />
-          <Center top rotation={[0, -Math.PI / 1.5, 0]} position={[0, -0.5, 3]}>
-            <EnhancedDragonModel
-              props={{ scale: 0.8 }}
+      {isClient && (
+        <Canvas
+          key={canvasKey}
+          shadows={
+            isLowPerformance
+              ? false
+              : { enabled: true, type: THREE.PCFShadowMap }
+          }
+          camera={{ position: cameraPosition }}
+          gl={{
+            antialias: !isLowPerformance,
+            powerPreference: "high-performance",
+            precision: isLowPerformance ? "lowp" : "highp",
+            alpha: true,
+            stencil: false,
+            depth: true,
+            failIfMajorPerformanceCaveat: false,
+          }}
+          dpr={isLowPerformance ? 1 : [1, 2]}
+          performance={{ min: 0.5 }}
+          onCreated={({ gl }) => {
+            gl.setClearColor(0xffffff, 0);
+            glRef.current = gl;
+          }}
+          onError={() => {
+            handleContextCreationError();
+            // Force remount if needed
+            setCanvasKey((prevKey) => prevKey + 1);
+          }}
+        >
+          <color attach="background" args={["#ffffff"]} />
+          <fog attach="fog" args={["#ffffff", 8, 35]} />
+          <ambientLight intensity={1.2} color="#E8E8E8" />
+          {!isLowPerformance && (
+            <>
+              <pointLight
+                position={[0, 20, 10]}
+                intensity={2.5}
+                color="#FFFFFF"
+              />
+              <pointLight
+                position={[-10, 10, -10]}
+                intensity={1.8}
+                color="#D3D3D3"
+              />
+              <pointLight
+                position={[10, 15, 5]}
+                intensity={1.5}
+                color="#C0C0C0"
+              />
+              <spotLight
+                position={[0, 50, 0]}
+                angle={0.3}
+                penumbra={1}
+                intensity={3}
+                castShadow={!isLowPerformance}
+                shadow-bias={-0.0001}
+                color="#FFFFFF"
+              />
+            </>
+          )}
+          <group position={groupPosition}>
+            <DynamicText
+              scale={textScale}
+              position={[0.4, 0.25, -1]}
               isLowPerformance={isLowPerformance}
-              onInteraction={() => setShowPopup(true)}
             />
-          </Center>
-          <AnimatedTitle
-            position={titlePosition}
-            fontSize={titleScale}
-            isLowPerformance={isLowPerformance}
-          />
-        </group>
-        <Environment preset="dawn" />
-        <Rig />
-        {/* Post-processing effects only for high-performance devices */}
-        {!isLowPerformance && (
-          <EffectComposer>
-            <Bloom
-              luminanceThreshold={0.2}
-              luminanceSmoothing={0.9}
-              height={200}
-              intensity={0.5}
+            <Center
+              top
+              rotation={[0, -Math.PI / 1.5, 0]}
+              position={[0, -0.5, 3]}
+            >
+              <EnhancedDragonModel
+                props={{ scale: 0.8 }}
+                isLowPerformance={isLowPerformance}
+                onInteraction={() => setShowPopup(true)}
+              />
+            </Center>
+            <AnimatedTitle
+              position={titlePosition}
+              fontSize={titleScale}
+              isLowPerformance={isLowPerformance}
             />
-            <ChromaticAberration
-              offset={new Vector2(0.0005, 0.0005)}
-              modulationOffset={0.1}
-              radialModulation={false}
-            />
-          </EffectComposer>
-        )}
-      </Canvas>
+          </group>
+          <Environment preset="dawn" />
+          <Rig />
+          {!isLowPerformance && (
+            <EffectComposer>
+              <Bloom
+                luminanceThreshold={0.2}
+                luminanceSmoothing={0.9}
+                height={200}
+                intensity={0.5}
+              />
+              <ChromaticAberration
+                offset={new Vector2(0.0005, 0.0005)}
+                modulationOffset={0.1}
+                radialModulation={false}
+              />
+            </EffectComposer>
+          )}
+        </Canvas>
+      )}
       {showPopup && (
         <div
           style={{
@@ -297,7 +316,6 @@ export default dynamic(() => Promise.resolve(Hero), {
   ssr: false,
 });
 
-// Enhanced camera rig with dynamic movement and scene exploration
 function Rig() {
   const vec = new THREE.Vector3();
   const targetLookAt = new THREE.Vector3();
@@ -306,32 +324,25 @@ function Rig() {
   useFrame((state) => {
     const sensitivity = window.innerWidth <= 480 ? 0.3 : 0.8;
     const time = state.clock.getElapsedTime();
-
-    // Switch focus between bunny and background text every 5 seconds
     focusOnText = Math.floor(time / 5) % 2 === 1;
 
     if (focusOnText) {
-      // When focusing on text, move camera to better view the background
       vec.set(
         2 + state.pointer.x * sensitivity + Math.sin(time * 0.4) * 1.2,
         1.5 + state.pointer.y * 0.4 + Math.cos(time * 0.3) * 0.5,
         5 + Math.sin(time * 0.2) * 0.8
       );
-      targetLookAt.set(0, 1, -2); // Look towards the text
+      targetLookAt.set(0, 1, -2);
     } else {
-      // When focusing on bunny and overall scene
       vec.set(
         1 + state.pointer.x * sensitivity + Math.sin(time * 0.5) * 0.8,
         0.5 + state.pointer.y * 0.3 + Math.cos(time * 0.3) * 0.4,
         3 + Math.sin(time * 0.2) * 0.5
       );
-      targetLookAt.set(0, 0, 0); // Look at center
+      targetLookAt.set(0, 0, 0);
     }
 
-    // Smooth camera movement
     state.camera.position.lerp(vec, 0.015);
-
-    // Smooth look-at transition
     const currentLookAt = new THREE.Vector3();
     state.camera.getWorldDirection(currentLookAt);
     const targetDirection = targetLookAt
@@ -344,7 +355,6 @@ function Rig() {
   return null;
 }
 
-// Enhanced dragon model with optimized effects and continuous rotation
 function EnhancedDragonModel({
   props,
   isLowPerformance,
@@ -356,7 +366,7 @@ function EnhancedDragonModel({
 }) {
   const { nodes } = useGLTF(
     "https://vazxmixjsiawhamofees.supabase.co/storage/v1/object/public/models/dragon/model.gltf",
-    true // Enable draco compression
+    true
   ) as GLTFResult;
 
   const dragonRef = useRef<THREE.Mesh>(null);
@@ -376,8 +386,7 @@ function EnhancedDragonModel({
   useFrame(({ clock }) => {
     if (dragonRef.current) {
       const time = clock.getElapsedTime();
-      // Continuous 360-degree rotation
-      dragonRef.current.rotation.y = time * 0.5; // Controls rotation speed
+      dragonRef.current.rotation.y = time * 0.5;
       dragonRef.current.position.y = -2.5 + Math.sin(time) * 0.1;
 
       if (textRef.current) {
@@ -399,43 +408,40 @@ function EnhancedDragonModel({
         {...props}
       >
         {isLowPerformance ? (
-          // Optimized crystalline material for low performance devices
           <meshPhongMaterial
-            color="#FF3232" // Base red color
-            shininess={100} // High shininess for crystal look
-            specular="#FFE5E5" // Light red specular highlights
-            emissive="#8B0000" // Dark red emissive
-            opacity={0.85} // Slight transparency
+            color="#FF3232"
+            shininess={100}
+            specular="#FFE5E5"
+            emissive="#8B0000"
+            opacity={0.85}
             transparent={true}
           />
         ) : (
-          // High quality crystalline material for better devices
           <meshPhysicalMaterial
-            color="#FF0000" // Vibrant red base
-            roughness={0.1} // Very smooth for crystal appearance
-            metalness={0.2} // Low metalness for translucent look
-            transmission={0.3} // Partial light transmission
-            thickness={2} // Material thickness for refraction
-            envMapIntensity={1.5} // Moderate environment reflections
-            clearcoat={1} // Maximum clearcoat for glassy surface
-            clearcoatRoughness={0.1} // Smooth clearcoat
-            opacity={0.75} // Crystal transparency
+            color="#FF0000"
+            roughness={0.1}
+            metalness={0.2}
+            transmission={0.3}
+            thickness={2}
+            envMapIntensity={1.5}
+            clearcoat={1}
+            clearcoatRoughness={0.1}
+            opacity={0.75}
             transparent={true}
-            emissive="#8B0000" // Deep red glow
-            emissiveIntensity={0.3} // Subtle inner glow
-            ior={2.4} // High index of refraction for crystal
+            emissive="#8B0000"
+            emissiveIntensity={0.3}
+            ior={2.4}
           />
         )}
       </mesh>
 
-      {/* Back facing text with enhanced darkness and shadow */}
       <Text
         position={[0, -3, 0]}
         fontSize={0.2}
         color="#000000"
         anchorX="center"
         anchorY="middle"
-        rotation={[0, Math.PI, 0]} // Rotated 180 degrees around Y axis
+        rotation={[0, Math.PI, 0]}
       >
         Apasa pe dragon
         {isLowPerformance ? (
@@ -443,7 +449,7 @@ function EnhancedDragonModel({
             color="#000000"
             transparent
             opacity={1}
-            visible={true} // Added visible prop to material
+            visible={true}
           />
         ) : (
           <meshPhysicalMaterial
@@ -457,7 +463,7 @@ function EnhancedDragonModel({
             transparent
             opacity={1}
             side={THREE.DoubleSide}
-            visible={true} // Added visible prop to material
+            visible={true}
           />
         )}
       </Text>
@@ -465,7 +471,6 @@ function EnhancedDragonModel({
   );
 }
 
-// Dynamic text component with optimized effects
 function DynamicText({
   scale,
   position,
@@ -482,7 +487,7 @@ function DynamicText({
     const glitchStart = setTimeout(() => {
       const glitchInterval = setInterval(() => {
         setIsVisible((prev) => !prev);
-      }, Math.random() * 1750 + 2000); // Reduced both random range and base time by 50%
+      }, Math.random() * 1750 + 2000);
 
       return () => clearInterval(glitchInterval);
     }, 10000);
@@ -551,23 +556,17 @@ function DynamicText({
         <planeGeometry
           args={[1, 1, isLowPerformance ? 16 : 32, isLowPerformance ? 16 : 32]}
         />
-        <primitive
-          object={
-            new THREE.MeshStandardMaterial({
-              color: "#000000",
-              transparent: true,
-              opacity: 0.95,
-              side: THREE.DoubleSide,
-            })
-          }
-          attach="material"
+        <meshStandardMaterial
+          color="#000000"
+          transparent={true}
+          opacity={0.95}
+          side={THREE.DoubleSide}
         />
       </mesh>
     </group>
   );
 }
 
-// Animated title component with optimized effects
 function AnimatedTitle({
   position,
   fontSize,
@@ -577,7 +576,6 @@ function AnimatedTitle({
   fontSize: number;
   isLowPerformance: boolean;
 }) {
-  // Changed text to include both ION and TEDY
   const [letters] = useState("ION TEDY".split(""));
   const letterRefs = useRef<THREE.Group[]>([]);
 
@@ -622,7 +620,7 @@ function AnimatedTitle({
             color="#000000"
             anchorX="center"
             anchorY="middle"
-            visible={true} // Added visible prop to ensure text is always shown
+            visible={true}
           >
             {letter}
             {isLowPerformance ? (
@@ -630,7 +628,7 @@ function AnimatedTitle({
                 color="#000000"
                 transparent
                 opacity={1}
-                visible={true} // Added visible prop to material
+                visible={true}
               />
             ) : (
               <meshPhysicalMaterial
@@ -644,7 +642,7 @@ function AnimatedTitle({
                 transparent
                 opacity={1}
                 side={THREE.DoubleSide}
-                visible={true} // Added visible prop to material
+                visible={true}
               />
             )}
           </Text>
