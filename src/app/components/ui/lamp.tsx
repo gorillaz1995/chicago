@@ -43,8 +43,8 @@ export const LampContainer = ({
     // Adjust scroll distance based on viewport width
     const targetPosition =
       window.innerWidth > 1000
-        ? viewportHeight * 1 // For larger screens
-        : viewportHeight * 1; // For mobile/tablet screens
+        ? viewportHeight * 0.8 // For larger screens
+        : viewportHeight * 0.12; // For mobile/tablet screens
     const duration = 250;
     const startTime = performance.now();
 

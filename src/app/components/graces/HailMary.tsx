@@ -343,24 +343,21 @@ export default function HailMary() {
   }, [isTouchDevice]);
 
   // Transform values for section 2 with smoother transitions
-  const section2Y = useTransform(
-    scrollYProgress,
-    [0, 0.4, 0.5],
-    ["100vh", "10vh", "0vh"]
-  );
-  const section2Opacity = useTransform(scrollYProgress, [0, 0.3], [0, 1]);
-  const section2Progress = useTransform(scrollYProgress, [0.3, 0.5], [0, 1]);
+  // Simplified transforms with overlapping ranges for smoother transitions
+  const section2Y = useTransform(scrollYProgress, [0.1, 0.4], ["100vh", "0vh"]);
+  const section2Opacity = useTransform(scrollYProgress, [0.1, 0.25], [0, 1]);
+  const section2Progress = useTransform(scrollYProgress, [0.25, 0.4], [0, 1]);
 
   return (
     <div>
       {/* Sticky container for first two sections */}
-      <div ref={containerRef} className="h-[200vh]">
+      <div ref={containerRef} className="h-[195vh]">
         <div className="sticky top-0 h-screen overflow-hidden">
           {/* Lamp Section - Initially pinned */}
           <motion.div
             className="absolute inset-0 z-10 bg-[rgba(15,15,25,1)]"
             style={{
-              opacity: useTransform(scrollYProgress, [0, 0.3], [1, 0]),
+              opacity: useTransform(scrollYProgress, [0.16, 0.19], [1, 0]), // Optimized transition with 35% tighter scroll range for faster fade
             }}
           >
             <LampDemo />
