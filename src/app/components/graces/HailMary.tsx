@@ -164,36 +164,16 @@ const Section2 = ({ progress }: { progress: MotionValue<number> }) => (
 );
 
 // Component for Section 3 with animated text
-const Section3 = ({ progress }: { progress: MotionValue<number> }) => (
+const Section3 = () => (
   <motion.div
-    className="flex items-center justify-center h-screen p-8 relative"
+    className="flex items-center justify-center min-h-screen p-8 relative"
     initial="initial"
     whileInView="animate"
     viewport={{ once: true, amount: 0.8 }}
-    style={{
-      background: useTransform(
-        progress,
-        [0, 0.3],
-        [
-          "linear-gradient(to bottom, #ffffff, #ffffff)",
-          "linear-gradient(to bottom, #000000, #000000)",
-        ]
-      ),
-    }}
   >
     <div className="max-w-4xl relative z-10">
       <motion.h2
-        className="text-4xl md:text-6xl font-light mb-8 bg-clip-text text-transparent font-averta"
-        style={{
-          backgroundImage: useTransform(
-            progress,
-            [0, 0.3],
-            [
-              "linear-gradient(to bottom right, #000000, #000000)",
-              "linear-gradient(to bottom right, #ffffff, #ffffff)",
-            ]
-          ),
-        }}
+        className="text-4xl md:text-6xl font-light mb-8 text-black font-averta"
         variants={wildTextVariants}
       >
         {/* Split text into letters for individual animation */}
@@ -204,15 +184,11 @@ const Section3 = ({ progress }: { progress: MotionValue<number> }) => (
         ))}
       </motion.h2>
       <motion.div
-        className="text-lg md:text-xl leading-relaxed font-muller overflow-hidden"
-        style={{
-          color: useTransform(progress, [0, 0.3], ["#000000", "#ffffff"]),
-        }}
+        className="text-lg md:text-xl leading-relaxed font-muller overflow-hidden text-black"
         initial="initial"
         whileInView="animate"
-        viewport={{ once: true, amount: 0.2 }} // Reduced threshold to trigger animation earlier
+        viewport={{ once: true, amount: 0.2 }}
       >
-        {/* Split paragraph into rows for fluid animations */}
         <motion.p
           variants={{
             initial: { x: -100, opacity: 0 },
@@ -281,22 +257,12 @@ const Section3 = ({ progress }: { progress: MotionValue<number> }) => (
 );
 
 // Component for Section 4 with animated text
-const Section4 = ({ progress }: { progress: MotionValue<number> }) => (
+const Section4 = () => (
   <motion.div
-    className="flex items-center justify-center h-screen p-8"
+    className="flex items-center justify-center min-h-screen p-8"
     initial="initial"
     whileInView="animate"
     viewport={{ once: true, amount: 0.8 }}
-    style={{
-      background: useTransform(
-        progress,
-        [0, 0.3],
-        [
-          "linear-gradient(to bottom, #0f0f0f, #000000)",
-          "linear-gradient(to bottom, #f9fafb, #ffffff)",
-        ]
-      ),
-    }}
   >
     <div className="max-w-4xl">
       <TextRevealCard
@@ -308,14 +274,12 @@ const Section4 = ({ progress }: { progress: MotionValue<number> }) => (
           <div className="text-center">
             Custom nu mai înseamnă complicat sau scump.
           </div>
-          {/* Animated text that only plays when section is in view */}
           <motion.div
             className="text-center mt-4"
             initial="initial"
             whileInView="animate"
             viewport={{ once: true, amount: 0.8 }}
           >
-            {/* Split text into array for letter-by-letter animation */}
             {"Înseamnă al tău.".split("").map((letter, index) => (
               <motion.span key={index} custom={index} variants={letterVariants}>
                 {letter}
@@ -333,7 +297,7 @@ export default function HailMary() {
   const [isTouchDevice, setIsTouchDevice] = useState(false);
   const { scrollYProgress } = useScroll({
     target: containerRef,
-    offset: ["start start", "end end"],
+    offset: ["start start", "end start"],
   });
 
   // Check if device is touch device based on screen width
@@ -378,7 +342,7 @@ export default function HailMary() {
     };
   }, [isTouchDevice]);
 
-  // Transform values for sections with smoother transitions
+  // Transform values for section 2 with smoother transitions
   const section2Y = useTransform(
     scrollYProgress,
     [0, 0.4, 0.5],
@@ -387,68 +351,37 @@ export default function HailMary() {
   const section2Opacity = useTransform(scrollYProgress, [0, 0.3], [0, 1]);
   const section2Progress = useTransform(scrollYProgress, [0.3, 0.5], [0, 1]);
 
-  const section3Y = useTransform(
-    scrollYProgress,
-    [0.5, 0.65, 0.75],
-    ["100vh", "0vh", "0vh"]
-  );
-  const section3Opacity = useTransform(scrollYProgress, [0.5, 0.65], [1, 1]);
-  const section3Progress = useTransform(scrollYProgress, [0.5, 0.65], [0, 1]);
-
-  const section4Y = useTransform(scrollYProgress, [0.75, 1], ["100vh", "0vh"]);
-  const section4Opacity = useTransform(scrollYProgress, [0.75, 0.9], [1, 1]);
-  const section4Progress = useTransform(scrollYProgress, [0.75, 0.9], [0, 1]);
-
   return (
-    <div
-      ref={containerRef}
-      className="relative h-[400vh] md:h-[400vh]" // Responsive height based on viewport width
-    >
-      {/* Main container with sticky positioning */}
-      <div className="sticky top-0 h-screen overflow-hidden">
-        {/* Lamp Section - Initially pinned */}
-        <motion.div
-          className="absolute inset-0 z-10 bg-[rgba(15,15,25,1)]"
-          style={{
-            opacity: useTransform(scrollYProgress, [0, 0.3], [1, 0]),
-          }}
-        >
-          <LampDemo />
-        </motion.div>
+    <div>
+      {/* Sticky container for first two sections */}
+      <div ref={containerRef} className="h-[200vh]">
+        <div className="sticky top-0 h-screen overflow-hidden">
+          {/* Lamp Section - Initially pinned */}
+          <motion.div
+            className="absolute inset-0 z-10 bg-[rgba(15,15,25,1)]"
+            style={{
+              opacity: useTransform(scrollYProgress, [0, 0.3], [1, 0]),
+            }}
+          >
+            <LampDemo />
+          </motion.div>
 
-        {/* Section 2 - With color transition */}
-        <motion.div
-          className="absolute inset-0 z-20"
-          style={{
-            y: section2Y,
-            opacity: section2Opacity,
-          }}
-        >
-          <Section2 progress={section2Progress} />
-        </motion.div>
-
-        {/* Section 3 - With color transition */}
-        <motion.div
-          className="absolute inset-0 z-30"
-          style={{
-            y: section3Y,
-            opacity: section3Opacity,
-          }}
-        >
-          <Section3 progress={section3Progress} />
-        </motion.div>
-
-        {/* Section 4 - With color transition */}
-        <motion.div
-          className="absolute inset-0 z-40"
-          style={{
-            y: section4Y,
-            opacity: section4Opacity,
-          }}
-        >
-          <Section4 progress={section4Progress} />
-        </motion.div>
+          {/* Section 2 - With color transition */}
+          <motion.div
+            className="absolute inset-0 z-20"
+            style={{
+              y: section2Y,
+              opacity: section2Opacity,
+            }}
+          >
+            <Section2 progress={section2Progress} />
+          </motion.div>
+        </div>
       </div>
+
+      {/* Regular scrolling sections */}
+      <Section3 />
+      <Section4 />
     </div>
   );
 }

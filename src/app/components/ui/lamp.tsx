@@ -43,9 +43,9 @@ export const LampContainer = ({
     // Adjust scroll distance based on viewport width
     const targetPosition =
       window.innerWidth > 1000
-        ? viewportHeight * 1.4 // For larger screens
-        : viewportHeight * 1.47; // For mobile/tablet screens
-    const duration = 750;
+        ? viewportHeight * 1 // For larger screens
+        : viewportHeight * 1; // For mobile/tablet screens
+    const duration = 250;
     const startTime = performance.now();
 
     // Enhanced easing function for smoother animation with longer scroll
@@ -147,6 +147,7 @@ export const LampContainer = ({
         {children}
       </div>
 
+      {/* Animated button with gradient border and hover effect */}
       <button
         onClick={scrollToContent}
         className="absolute top-[85%] left-1/2 transform -translate-x-1/2 -translate-y-1/2 inline-flex h-12 overflow-hidden rounded-full p-[1px] focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 focus:ring-offset-slate-50"
