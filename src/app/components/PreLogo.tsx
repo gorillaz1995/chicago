@@ -155,9 +155,9 @@ const PreLogo = () => {
           animate="visible"
         />
 
-        {/* E path base */}
+        {/* E path base - moved to right side */}
         <motion.path
-          d="M 90 100 L 90 250"
+          d="M 210 100 L 210 250"
           stroke="#DC143C"
           strokeWidth="20"
           strokeLinecap="round"
@@ -167,9 +167,9 @@ const PreLogo = () => {
           animate="visible"
         />
 
-        {/* E tips with perpetual animation */}
+        {/* E tips with perpetual animation - flipped horizontally */}
         <motion.path
-          d="M 90 100 L 210 100"
+          d="M 210 100 L 90 100"
           stroke="#DC143C"
           strokeWidth="20"
           strokeLinecap="round"
@@ -178,7 +178,7 @@ const PreLogo = () => {
           animate="animate"
         />
         <motion.path
-          d="M 90 175 L 190 175"
+          d="M 210 175 L 110 175"
           stroke="#DC143C"
           strokeWidth="20"
           strokeLinecap="round"
@@ -187,7 +187,7 @@ const PreLogo = () => {
           animate="animate"
         />
         <motion.path
-          d="M 90 250 L 210 250"
+          d="M 210 250 L 90 250"
           stroke="#DC143C"
           strokeWidth="20"
           strokeLinecap="round"
@@ -251,9 +251,9 @@ const PreLogo = () => {
               animate="visible"
             />
 
-            {/* E path base */}
+            {/* E path base - moved to right side */}
             <motion.path
-              d="M 80 30 L 80 80"
+              d="M 120 30 L 120 80"
               stroke="#DC143C"
               strokeWidth="8"
               strokeLinecap="round"
@@ -263,9 +263,9 @@ const PreLogo = () => {
               animate="visible"
             />
 
-            {/* E tips */}
+            {/* E tips - flipped horizontally */}
             <motion.path
-              d="M 80 30 L 120 30"
+              d="M 120 30 L 80 30"
               stroke="#DC143C"
               strokeWidth="8"
               strokeLinecap="round"
@@ -274,7 +274,7 @@ const PreLogo = () => {
               animate="animate"
             />
             <motion.path
-              d="M 80 55 L 110 55"
+              d="M 120 55 L 90 55"
               stroke="#DC143C"
               strokeWidth="8"
               strokeLinecap="round"
@@ -283,7 +283,7 @@ const PreLogo = () => {
               animate="animate"
             />
             <motion.path
-              d="M 80 80 L 120 80"
+              d="M 120 80 L 80 80"
               stroke="#DC143C"
               strokeWidth="8"
               strokeLinecap="round"

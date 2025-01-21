@@ -21,7 +21,7 @@ const wildTextVariants = {
     transition: {
       duration: 0.75,
       ease: [0.25, 0.1, 0, 1], // Custom cubic bezier for fluid motion
-      delay: 0.55,
+      delay: 0.25,
     },
   },
 };
@@ -132,7 +132,7 @@ const Section2 = ({ progress }: { progress: MotionValue<number> }) => (
               transition: {
                 duration: 1,
                 ease: [0.34, 1.56, 0.64, 1],
-                delay: 0.4,
+                delay: 0.15,
               },
             },
           }}
@@ -150,7 +150,7 @@ const Section2 = ({ progress }: { progress: MotionValue<number> }) => (
               transition: {
                 duration: 1.2,
                 ease: [0.25, 0.1, 0, 1.1],
-                delay: 0.6,
+                delay: 0.15,
               },
             },
           }}
@@ -249,7 +249,7 @@ const Section3 = ({ progress }: { progress: MotionValue<number> }) => (
               transition: {
                 duration: 1,
                 ease: [0.34, 1.56, 0.64, 1],
-                delay: 0.4,
+                delay: 0.15,
               },
             },
           }}
@@ -267,7 +267,7 @@ const Section3 = ({ progress }: { progress: MotionValue<number> }) => (
               transition: {
                 duration: 1.2,
                 ease: [0.25, 0.1, 0, 1.1],
-                delay: 0.6,
+                delay: 0.15,
               },
             },
           }}
@@ -381,8 +381,8 @@ export default function HailMary() {
   // Transform values for sections with smoother transitions
   const section2Y = useTransform(
     scrollYProgress,
-    [0, 0.15, 0.25, 0.35, 0.4, 0.5],
-    ["100vh", "75vh", "50vh", "25vh", "10vh", "0vh"]
+    [0, 0.4, 0.5],
+    ["100vh", "10vh", "0vh"]
   );
   const section2Opacity = useTransform(scrollYProgress, [0, 0.3], [0, 1]);
   const section2Progress = useTransform(scrollYProgress, [0.3, 0.5], [0, 1]);
@@ -395,18 +395,14 @@ export default function HailMary() {
   const section3Opacity = useTransform(scrollYProgress, [0.5, 0.65], [1, 1]);
   const section3Progress = useTransform(scrollYProgress, [0.5, 0.65], [0, 1]);
 
-  const section4Y = useTransform(
-    scrollYProgress,
-    [0.75, 0.9, 1],
-    ["100vh", "0vh", "0vh"]
-  );
+  const section4Y = useTransform(scrollYProgress, [0.75, 1], ["100vh", "0vh"]);
   const section4Opacity = useTransform(scrollYProgress, [0.75, 0.9], [1, 1]);
   const section4Progress = useTransform(scrollYProgress, [0.75, 0.9], [0, 1]);
 
   return (
     <div
       ref={containerRef}
-      className="relative h-[410vh] md:h-[400vh]" // Responsive height based on viewport width
+      className="relative h-[400vh] md:h-[400vh]" // Responsive height based on viewport width
     >
       {/* Main container with sticky positioning */}
       <div className="sticky top-0 h-screen overflow-hidden">
