@@ -397,9 +397,11 @@ function Model({ position, rotation, isLowPerformance = false }: ModelProps) {
     }, 300);
   };
 
-  const handlePortofoliuClick = () => handleNavigation("/portofoliu");
-  const handleServiciiClick = () => handleNavigation("/servicii");
-  const handleContactClick = () => handleNavigation("/contact");
+  const handlePortofoliuClick = () =>
+    handleNavigation("/portofoliu/web-design");
+  const handleServiciiClick = () =>
+    handleNavigation("/portofoliu/social-media");
+  const handleContactClick = () => handleNavigation("/portofoliu/ugc-video");
 
   return (
     <group ref={group} position={position} rotation={rotation}>
@@ -457,7 +459,7 @@ function Model({ position, rotation, isLowPerformance = false }: ModelProps) {
             minHeight: "48px", // Ensure minimum height for button content
           }}
         >
-          PORTOFOLIU
+          WEB Design & Development
         </button>
       </Annotation>
       <Annotation
@@ -472,7 +474,7 @@ function Model({ position, rotation, isLowPerformance = false }: ModelProps) {
             width: "100%",
             height: "100%",
             display: "flex",
-            alignItems: "center",
+            alignItems: "left",
             justifyContent: "center",
             margin: 0,
             padding: "0.5rem 1rem",
@@ -481,7 +483,7 @@ function Model({ position, rotation, isLowPerformance = false }: ModelProps) {
             minHeight: "48px", // Ensure minimum height for button content
           }}
         >
-          CONTACT
+          Videoclipuri
         </button>
       </Annotation>
       <Annotation
@@ -505,7 +507,7 @@ function Model({ position, rotation, isLowPerformance = false }: ModelProps) {
             minHeight: "48px", // Ensure minimum height for button content
           }}
         >
-          SERVICII
+          Digital & Social Media
         </button>
       </Annotation>
     </group>

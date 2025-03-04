@@ -1,11 +1,10 @@
 import React from "react";
-import GracesThree from "./components/graces/GracesThree";
 
-// Main page component that displays the 3D GracesThree scene
+// Main page component that displays the SVG path morphing animation
 function Page() {
   return (
-    <div style={{ width: "100vw", height: "100vh" }}>
-      <GracesThree />
+    <div className="text-center font-3xl">
+      <h1>UNDER CONSTRUCTION</h1>
     </div>
   );
 }
