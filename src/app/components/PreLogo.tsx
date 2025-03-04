@@ -1,86 +1,44 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 
 const PreLogo = () => {
   // State to control drawer visibility
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  // State to track viewport dimensions for responsive behavior
+  const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
 
-  // Animation variants for the overall SVG
-  const svgVariants = {
-    initial: {
-      scale: 0,
-      rotate: -180,
-    },
-    animate: {
-      scale: 1,
-      rotate: 0,
-      transition: {
-        duration: 1.5,
-        type: "spring",
-        stiffness: 100,
-        damping: 15,
-      },
-    },
-    hover: {
-      scale: 1.1,
-      transition: {
-        duration: 0.3,
-        ease: "easeInOut",
-      },
-    },
-  };
+  // Effect to handle viewport resizing
+  useEffect(() => {
+    // Set initial dimensions
+    setDimensions({
+      width: window.innerWidth,
+      height: window.innerHeight,
+    });
 
-  // Shine animation variants
-  const shineVariants = {
-    initial: { x: -300, opacity: 0 },
-    animate: {
-      x: 300,
-      opacity: [0, 1, 0],
-      transition: {
-        duration: 2,
-        repeat: Infinity,
-        repeatDelay: 3,
-        ease: "easeInOut",
-      },
-    },
-  };
+    // Update dimensions on resize
+    const handleResize = () => {
+      setDimensions({
+        width: window.innerWidth,
+        height: window.innerHeight,
+      });
+    };
 
-  // E tips fluctuation variants
-  const eTipsVariants = {
-    animate: {
-      y: [0, -5, 0],
-      transition: {
-        duration: 2,
-        repeat: Infinity,
-        ease: "easeInOut",
-      },
-    },
-  };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
-  // Drawer animation variants
-  const drawerVariants = {
-    closed: {
-      x: "100%",
-      transition: {
-        type: "spring",
-        stiffness: 400,
-        damping: 40,
-      },
-    },
-    open: {
-      x: 0,
-      transition: {
-        type: "spring",
-        stiffness: 400,
-        damping: 40,
-      },
-    },
-  };
+  // Effect to handle body scroll lock when drawer is open
+  useEffect(() => {
+    // Clean up function to ensure we reset everything properly
+    return () => {
+      // Reset any state or effects when component unmounts
+    };
+  }, [isDrawerOpen]);
 
-  // Menu items animation variants
+  // Menu items animation variants - staggered entrance for menu items
   const menuItemVariants = {
     hidden: { opacity: 0, x: 20 },
     visible: (index: number) => ({
@@ -93,14 +51,15 @@ const PreLogo = () => {
     }),
   };
 
-  // New overlapping animation variants
-  const overlappingVariants = {
-    hidden: { pathLength: 0, opacity: 0 },
-    visible: {
-      pathLength: 1,
-      opacity: 1,
+  // Cloud floating animation variants
+  const cloudFloatingVariants = {
+    float: {
+      y: [0, -8, 0],
+      scale: [1, 1.02, 1],
       transition: {
-        duration: 2,
+        duration: 4,
+        repeat: Infinity,
+        repeatType: "reverse" as const,
         ease: "easeInOut",
       },
     },
@@ -108,94 +67,61 @@ const PreLogo = () => {
 
   return (
     <>
-      {/* Animated SVG Logo */}
-      <motion.svg
-        width="275"
-        height="275"
-        viewBox="0 0 300 300"
-        className="fixed top-4 left-4 w-[70px] h-[70px] md:w-[90px] md:h-[90px] lg:w-[110px] lg:h-[110px] cursor-pointer z-50"
-        variants={svgVariants}
-        initial="initial"
-        animate="animate"
-        whileHover="hover"
+      {/* Futuristic Shape Container */}
+      <motion.div
+        className="fixed top-0 left-1/2 transform -translate-x-1/2 w-[60vw] h-[15vh] z-50 cursor-pointer"
         onClick={() => setIsDrawerOpen(true)}
-        style={{
-          filter: "drop-shadow(0 0 10px rgba(220,20,60,0.2))",
-        }}
+        animate={{ opacity: isDrawerOpen ? 0 : 1 }}
+        transition={{ duration: 0.3 }}
       >
-        {/* Shine effect */}
-        <motion.rect
-          width="50"
-          height="300"
-          fill="url(#shine-gradient)"
-          variants={shineVariants}
-          initial="initial"
-          animate="animate"
-          style={{ mixBlendMode: "overlay" }}
-        />
-
-        {/* Gradient definition */}
-        <defs>
-          <linearGradient id="shine-gradient" x1="0" x2="1" y1="0" y2="0">
-            <stop offset="0" stopColor="rgba(255,255,255,0)" />
-            <stop offset="0.5" stopColor="rgba(255,255,255,0.8)" />
-            <stop offset="1" stopColor="rgba(255,255,255,0)" />
-          </linearGradient>
-        </defs>
-
-        {/* T path */}
-        <motion.path
-          d="M 60 50 L 240 50 M 150 50 L 150 250"
-          stroke="#DC143C"
-          strokeWidth="20"
-          strokeLinecap="round"
-          fill="none"
-          variants={overlappingVariants}
-          initial="hidden"
-          animate="visible"
-        />
-
-        {/* E path base - moved to right side */}
-        <motion.path
-          d="M 210 100 L 210 250"
-          stroke="#DC143C"
-          strokeWidth="20"
-          strokeLinecap="round"
-          fill="none"
-          variants={overlappingVariants}
-          initial="hidden"
-          animate="visible"
-        />
-
-        {/* E tips with perpetual animation - flipped horizontally */}
-        <motion.path
-          d="M 210 100 L 90 100"
-          stroke="#DC143C"
-          strokeWidth="20"
-          strokeLinecap="round"
-          fill="none"
-          variants={eTipsVariants}
-          animate="animate"
-        />
-        <motion.path
-          d="M 210 175 L 110 175"
-          stroke="#DC143C"
-          strokeWidth="20"
-          strokeLinecap="round"
-          fill="none"
-          variants={eTipsVariants}
-          animate="animate"
-        />
-        <motion.path
-          d="M 210 250 L 90 250"
-          stroke="#DC143C"
-          strokeWidth="20"
-          strokeLinecap="round"
-          fill="none"
-          variants={eTipsVariants}
-          animate="animate"
-        />
-      </motion.svg>
+        {/* Cloud Logo with Gradient and Floating Animation */}
+        <motion.svg
+          xmlns="http://www.w3.org/2000/svg"
+          version="1.1"
+          xmlnsXlink="http://www.w3.org/1999/xlink"
+          viewBox="0 0 800 800"
+          width="100%"
+          height="150%"
+          preserveAspectRatio="xMidYMid meet"
+          style={{
+            filter: "drop-shadow(0 0 10px rgba(220,20,60,0.3))",
+          }}
+          variants={cloudFloatingVariants}
+          animate="float"
+        >
+          <defs>
+            <linearGradient
+              x1="50%"
+              y1="0%"
+              x2="50%"
+              y2="100%"
+              id="cccloud-grad"
+            >
+              <stop
+                stopColor="hsla(0, 0%, 100%, 1.00)"
+                stopOpacity="1"
+                offset="0%"
+              ></stop>
+              <stop
+                stopColor="hsla(0, 96%, 45%, 1.00)"
+                stopOpacity="1"
+                offset="100%"
+              ></stop>
+            </linearGradient>
+          </defs>
+          <g
+            fill="url(#cccloud-grad)"
+            id="cloud"
+            transform="matrix(1,0,0,1,20,-330)"
+          >
+            <path
+              d="M 300 600 A  1 1 0 1 1 200 400 A  1 1 0 1 1 200 250 A  1 1 0 1 1 350 200 A  1 1 0 1 1 500 250 A  1 1 0 1 1 650 400 A  1 1 0 1 1 550 500 A  1 1 0 1 1 450 550 A  1 1 0 1 1 300 600 Z"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            ></path>
+          </g>
+        </motion.svg>
+      </motion.div>
 
       {/* Overlay */}
       {isDrawerOpen && (
@@ -205,96 +131,46 @@ const PreLogo = () => {
         />
       )}
 
-      {/* Navigation Drawer */}
+      {/* Navigation Drawer - With chandelier-like descent animation */}
       <motion.div
-        className="fixed top-0 right-0 h-full w-full sm:w-[80%] md:w-[65%] lg:w-[35%] bg-white dark:bg-gray-900 z-50 shadow-lg overflow-y-auto"
-        variants={drawerVariants}
+        className="fixed left-[20%] lg:left-[calc(50%-15%)] w-[60%] lg:w-[30%] h-[70%] md:h-[65%] lg:h-[90%] bg-[#FF1212] z-50 shadow-lg overflow-y-auto"
+        style={{
+          // Using a custom path to create a shape with straight top instead of triangle
+          clipPath: "polygon(0% 0%, 100% 0%, 100% 75%, 50% 100%, 0% 75%)",
+          // Adding a more pronounced shadow for depth
+          boxShadow: "0 10px 25px rgba(0,0,0,0.5)",
+        }}
+        variants={{
+          closed: {
+            y: "-120%",
+            opacity: 0.8,
+            scale: 0.95,
+            transition: {
+              type: "tween",
+              ease: [0.22, 1, 0.36, 1], // Custom cubic-bezier for elegant chandelier-like movement
+              duration: 0.8,
+            },
+          },
+          open: {
+            y: 0,
+            opacity: 1,
+            scale: 1,
+            transition: {
+              type: "tween",
+              ease: [0.16, 1, 0.3, 1], // Smooth easing for elegant descent
+              duration: 1.2, // Slower duration for more elegant movement
+              opacity: { duration: 0.6 }, // Fade in slightly faster than position change
+            },
+          },
+        }}
         initial="closed"
         animate={isDrawerOpen ? "open" : "closed"}
       >
-        <button
-          onClick={() => setIsDrawerOpen(false)}
-          className="absolute top-4 right-4 p-2 text-gray-500 hover:text-gray-700 dark:text-gray-300 dark:hover:text-gray-100"
-        >
-          <svg
-            className="w-6 h-6"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M6 18L18 6M6 6l12 12"
-            />
-          </svg>
-        </button>
-
         <div className="flex flex-col items-center justify-center min-h-full px-4 py-16 sm:px-8">
-          {/* Overlapping T and E SVG Logo */}
-          <motion.svg
-            width="150"
-            height="100"
-            viewBox="0 0 200 100"
-            className="mb-8"
-          >
-            {/* T path */}
-            <motion.path
-              d="M 60 20 L 140 20 M 100 20 L 100 80"
-              stroke="#DC143C"
-              strokeWidth="8"
-              strokeLinecap="round"
-              fill="none"
-              variants={overlappingVariants}
-              initial="hidden"
-              animate="visible"
-            />
-
-            {/* E path base - moved to right side */}
-            <motion.path
-              d="M 120 30 L 120 80"
-              stroke="#DC143C"
-              strokeWidth="8"
-              strokeLinecap="round"
-              fill="none"
-              variants={overlappingVariants}
-              initial="hidden"
-              animate="visible"
-            />
-
-            {/* E tips - flipped horizontally */}
-            <motion.path
-              d="M 120 30 L 80 30"
-              stroke="#DC143C"
-              strokeWidth="8"
-              strokeLinecap="round"
-              fill="none"
-              variants={eTipsVariants}
-              animate="animate"
-            />
-            <motion.path
-              d="M 120 55 L 90 55"
-              stroke="#DC143C"
-              strokeWidth="8"
-              strokeLinecap="round"
-              fill="none"
-              variants={eTipsVariants}
-              animate="animate"
-            />
-            <motion.path
-              d="M 120 80 L 80 80"
-              stroke="#DC143C"
-              strokeWidth="8"
-              strokeLinecap="round"
-              fill="none"
-              variants={eTipsVariants}
-              animate="animate"
-            />
-          </motion.svg>
+          {/* Menu icon in drawer */}
 
           <motion.h2
-            className="text-2xl font-bold mb-8 sm:mb-12 text-gray-800 dark:text-white font-muller"
+            className="text-4xl font-bold mb-8 sm:mb-12 text-white font-ogg"
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
@@ -317,7 +193,7 @@ const PreLogo = () => {
               >
                 <Link
                   href={item.href}
-                  className="text-lg sm:text-xl text-gray-700 hover:text-crimson dark:text-gray-200 dark:hover:text-crimson transition-colors font-averta block px-2 py-1"
+                  className="text-lg sm:text-xl text-white hover:text-gray-200 transition-colors font-dexa block px-2 py-1"
                   onClick={() => setIsDrawerOpen(false)}
                 >
                   {item.text}
@@ -325,6 +201,26 @@ const PreLogo = () => {
               </motion.div>
             ))}
           </div>
+
+          {/* Close button with just X */}
+          <button
+            onClick={() => setIsDrawerOpen(false)}
+            className="absolute bottom-8 left-1/2 transform -translate-x-1/2 p-3 text-white hover:text-gray-200 font-ogg rounded-full border border-white/30 mt-8"
+          >
+            <svg
+              className="w-6 h-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1.5}
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
         </div>
       </motion.div>
     </>

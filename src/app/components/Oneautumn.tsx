@@ -116,15 +116,8 @@ class CustomSphere extends THREE.Group {
         color: 0x000000,
       });
       const moustache = new THREE.Mesh(moustacheGeometry, moustacheMaterial);
-      moustache.position.set(0, -0.35, 1.17);
+      moustache.position.set(0, -0.45, 1.17);
       this.eyeContainer.add(moustache);
-
-      // Draw mouth (horizontal white line)
-      const mouthGeometry = new THREE.PlaneGeometry(0.3, 0.03);
-      const mouthMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
-      const mouth = new THREE.Mesh(mouthGeometry, mouthMaterial);
-      mouth.position.set(0, -0.4, 1.17); // Position below the moustache
-      this.eyeContainer.add(mouth);
     }
   }
 
@@ -733,6 +726,67 @@ const Scene: React.FC = () => {
             </div>
           </h3>
         </div>
+      </div>
+
+      {/* Call to action button */}
+      <div
+        style={{
+          position: "absolute",
+          bottom: "10%",
+          left: 0,
+          width: "100%",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          zIndex: 10,
+        }}
+      >
+        <button
+          onClick={() => {
+            // Copy phone number to clipboard
+            navigator.clipboard.writeText("0721 792 999");
+            // Show a custom popup notification instead of alert
+            const popup = document.createElement("div");
+            popup.style.position = "fixed";
+            popup.style.top = "50%";
+            popup.style.left = "50%";
+            popup.style.transform = "translate(-50%, -50%)";
+            popup.style.backgroundColor = "black";
+            popup.style.color = "white";
+            popup.style.padding = "1rem 2rem";
+            popup.style.borderRadius = "0.5rem";
+            popup.style.zIndex = "1000";
+            popup.style.boxShadow = "0 4px 12px rgba(0, 0, 0, 0.2)";
+            popup.style.opacity = "0";
+            popup.style.transition = "opacity 0.3s ease";
+            popup.innerText = "Număr de telefon copiat";
+            document.body.appendChild(popup);
+
+            // Animate in and auto-remove after delay
+            setTimeout(() => {
+              popup.style.opacity = "1";
+            }, 10);
+            setTimeout(() => {
+              popup.style.opacity = "0";
+              setTimeout(() => document.body.removeChild(popup), 300);
+            }, 2000);
+          }}
+          className="px-12 py-2 rounded-full relative bg-black text-white text-xl lg:text-6xl hover:shadow-4xl hover:shadow-white/[0.1] transition duration-100 border border-red-300 font-ogg animate-horizontal-float"
+          style={{
+            animation: "verticalFloat 3s ease-in-out infinite",
+            transform: "translateY(0)",
+            animationName: "verticalFloat",
+            animationDuration: "4s",
+            animationTimingFunction: "ease-in-out",
+            animationIterationCount: "infinite",
+            animationDirection: "alternate",
+            // Responsive positioning based on screen width
+            marginLeft: "max(0px, calc((100vw - 1000px) * 1.5))",
+          }}
+        >
+          <div className="absolute inset-x-0 h-px w-1/2 mx-auto -top-px shadow-4xl bg-gradient-to-r from-transparent via-red-600 to-transparent" />
+          <span className="relative z-20">Hai sa discutam</span>
+        </button>
       </div>
 
       <style jsx>{`
