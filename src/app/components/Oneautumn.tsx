@@ -34,7 +34,7 @@ class CustomSphere extends THREE.Group {
   }
 
   createOuterSphere() {
-    const geometry = new THREE.SphereGeometry(1.15, 48, 48);
+    const geometry = new THREE.SphereGeometry(1.15, 24, 24);
     const material = new THREE.MeshPhongMaterial({
       color: "#FF0000",
       opacity: 0.7,
@@ -125,42 +125,60 @@ const Face: React.FC = () => {
         {/* Left eye */}
         <svg
           ref={leftEyeRef}
-          x="-45"
-          y="-30"
+          x="-65"
+          y="-40"
           width="35"
           height="35"
           viewBox="0 0 200 200"
           fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+          version="1.1"
+          xmlnsXlink="http://www.w3.org/1999/xlink"
         >
-          <path
-            fill="white"
-            d="M127.233 110.308c18.623 7.05 43.69 5.765 59.65-3.058L200 100l-13.117-7.25c-15.96-8.823-41.026-10.107-59.65-3.058l-13.966 5.286c-.087-.281-.192-.553-.295-.826l13.574-6.12c18.154-8.184 34.969-26.817 40.017-44.341l4.148-14.402-14.402 4.148c-17.524 5.047-36.157 21.863-44.342 40.017l-5.91 13.11a13.937 13.937 0 0 0-.828-.379l5.079-13.419c7.049-18.623 5.764-43.69-3.058-59.65L100 0l-7.25 13.117c-8.823 15.96-10.107 41.026-3.058 59.65l5.079 13.419c-.283.114-.556.246-.828.379l-5.91-13.111C79.847 55.3 61.214 38.484 43.69 33.437L29.289 29.29l4.148 14.402C38.484 61.215 55.3 79.848 73.454 88.033l13.573 6.12c-.102.273-.208.544-.294.826l-13.967-5.287c-18.623-7.05-43.69-5.764-59.65 3.058L0 100l13.117 7.25c15.96 8.823 41.026 10.108 59.65 3.058l14.62-5.533c.114.252.23.505.36.749l-14.293 6.444c-18.153 8.184-34.97 26.817-40.017 44.341l-4.148 14.402 14.402-4.148c17.524-5.047 36.157-21.863 44.342-40.016l6.633-14.713c.245.102.5.186.751.275l-5.725 15.125c-7.05 18.623-5.764 43.69 3.058 59.65l7.25 13.117 7.251-13.117c8.822-15.96 10.107-41.026 3.058-59.65l-5.726-15.126c.252-.088.507-.172.752-.275l6.633 14.713c8.184 18.154 26.817 34.969 44.341 40.017l14.402 4.148-4.148-14.402c-5.047-17.524-21.863-36.157-40.016-44.342l-14.294-6.443c.13-.244.246-.497.361-.75l14.619 5.534Z"
-          />
+          <g clipPath="url(#clip0_133_2)">
+            <path
+              fill="rgba(255, 255, 255, 1)"
+              d="M50.714 0h-50v50c0 25.462 19.033 46.479 43.647 49.6C19.401 102.402 0 123.578 0 149.286v50h50c25.462 0 46.479-19.033 49.6-43.647 2.802 24.96 23.978 44.361 49.686 44.361h50v-50c0-25.462-19.033-46.479-43.647-49.6C180.599 97.598 200 76.422 200 50.714v-50h-50c-25.462 0-46.479 19.033-49.6 43.647C97.598 19.401 76.422 0 50.714 0Z"
+            />
+          </g>
         </svg>
 
         {/* Right eye */}
         <svg
           ref={rightEyeRef}
-          x="15"
-          y="-30"
+          x="35"
+          y="-40"
           width="35"
           height="35"
           viewBox="0 0 200 200"
           fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+          version="1.1"
+          xmlnsXlink="http://www.w3.org/1999/xlink"
+        >
+          <g clipPath="url(#clip0_133_2)">
+            <path
+              fill="rgba(255, 255, 255, 1)"
+              d="M50.714 0h-50v50c0 25.462 19.033 46.479 43.647 49.6C19.401 102.402 0 123.578 0 149.286v50h50c25.462 0 46.479-19.033 49.6-43.647 2.802 24.96 23.978 44.361 49.686 44.361h50v-50c0-25.462-19.033-46.479-43.647-49.6C180.599 97.598 200 76.422 200 50.714v-50h-50c-25.462 0-46.479 19.033-49.6 43.647C97.598 19.401 76.422 0 50.714 0Z"
+            />
+          </g>
+        </svg>
+        {/* Smile (upside down) */}
+        <svg
+          x="-35"
+          y="20"
+          width="70"
+          height="65"
+          viewBox="0 0 200 200"
+          xmlns="http://www.w3.org/2000/svg"
+          version="1.1"
+          xmlnsXlink="http://www.w3.org/1999/xlink"
         >
           <path
-            fill="white"
-            d="M127.233 110.308c18.623 7.05 43.69 5.765 59.65-3.058L200 100l-13.117-7.25c-15.96-8.823-41.026-10.107-59.65-3.058l-13.966 5.286c-.087-.281-.192-.553-.295-.826l13.574-6.12c18.154-8.184 34.969-26.817 40.017-44.341l4.148-14.402-14.402 4.148c-17.524 5.047-36.157 21.863-44.342 40.017l-5.91 13.11a13.937 13.937 0 0 0-.828-.379l5.079-13.419c7.049-18.623 5.764-43.69-3.058-59.65L100 0l-7.25 13.117c-8.823 15.96-10.107 41.026-3.058 59.65l5.079 13.419c-.283.114-.556.246-.828.379l-5.91-13.111C79.847 55.3 61.214 38.484 43.69 33.437L29.289 29.29l4.148 14.402C38.484 61.215 55.3 79.848 73.454 88.033l13.573 6.12c-.102.273-.208.544-.294.826l-13.967-5.287c-18.623-7.05-43.69-5.764-59.65 3.058L0 100l13.117 7.25c15.96 8.823 41.026 10.108 59.65 3.058l14.62-5.533c.114.252.23.505.36.749l-14.293 6.444c-18.153 8.184-34.97 26.817-40.017 44.341l-4.148 14.402 14.402-4.148c17.524-5.047 36.157-21.863 44.342-40.016l6.633-14.713c.245.102.5.186.751.275l-5.725 15.125c-7.05 18.623-5.764 43.69 3.058 59.65l7.25 13.117 7.251-13.117c8.822-15.96 10.107-41.026 3.058-59.65l-5.726-15.126c.252-.088.507-.172.752-.275l6.633 14.713c8.184 18.154 26.817 34.969 44.341 40.017l14.402 4.148-4.148-14.402c-5.047-17.524-21.863-36.157-40.016-44.342l-14.294-6.443c.13-.244.246-.497.361-.75l14.619 5.534Z"
+            fill="rgba(255, 255, 255, 1)"
+            d="M0 50c0 55.228 44.772 100 100 100s100-44.772 100-100H0Z"
           />
         </svg>
-
-        {/* Smile */}
-        <path
-          d="M -35 20 Q 0 50 35 20"
-          stroke="white"
-          strokeWidth="1"
-          fill="none"
-        />
       </svg>
     </Html>
   );
@@ -176,23 +194,29 @@ function DynamicCameraRig() {
   const frameIdRef = useRef<number>();
   const sphereRef = useRef<CustomSphere>();
 
-  // Add visual feedback for interaction and face tracking
+  // Add visual feedback for interaction and face tracking with device-specific handling
   useEffect(() => {
     const canvas = gl.domElement;
-    canvas.style.cursor = "grab";
+    const isTouchDevice =
+      "ontouchstart" in window || navigator.maxTouchPoints > 0;
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
 
-    const handleInteraction = (event: PointerEvent | TouchEvent) => {
-      const x = "touches" in event ? event.touches[0].clientX : event.clientX;
-      const y = "touches" in event ? event.touches[0].clientY : event.clientY;
+    // Set appropriate cursor style for non-touch devices
+    if (!isTouchDevice) {
+      canvas.style.cursor = "grab";
+    }
+
+    // Handle mouse movement for desktop devices
+    const handleMouseMove = (event: MouseEvent) => {
+      const x = event.clientX;
+      const y = event.clientY;
 
       // Convert screen coordinates to normalized device coordinates (-1 to +1)
       const normalizedX = (x / window.innerWidth) * 2 - 1;
       const normalizedY = -(y / window.innerHeight) * 2 + 1;
 
-      // Update pointer position for face tracking
       setPointerPosition({ x: normalizedX, y: normalizedY });
 
-      // Calculate target position in 3D space
       if (sphereRef.current) {
         const targetPos = new THREE.Vector3(
           normalizedX * 4,
@@ -203,12 +227,47 @@ function DynamicCameraRig() {
       }
     };
 
-    canvas.addEventListener("pointermove", handleInteraction);
-    canvas.addEventListener("touchmove", handleInteraction);
+    // Handle touch movement for mobile devices
+    const handleTouchMove = (event: TouchEvent) => {
+      const touch = event.touches[0];
+
+      // iOS-specific touch coordinate adjustment
+      const x = isIOS ? touch.screenX : touch.clientX;
+      const y = isIOS ? touch.screenY : touch.clientY;
+
+      // Apply iOS-specific scaling factor
+      const scaleFactor = isIOS ? 0.8 : 1;
+
+      const normalizedX = ((x / window.innerWidth) * 2 - 1) * scaleFactor;
+      const normalizedY = (-(y / window.innerHeight) * 2 + 1) * scaleFactor;
+
+      setPointerPosition({ x: normalizedX, y: normalizedY });
+
+      if (sphereRef.current) {
+        const targetPos = new THREE.Vector3(
+          normalizedX * 4,
+          normalizedY * 4,
+          0
+        );
+        sphereRef.current.lookAt(targetPos);
+      }
+    };
+
+    // Add appropriate event listeners based on device type
+    if (isTouchDevice) {
+      // For touch devices, add touchmove with passive true
+      canvas.addEventListener("touchmove", handleTouchMove, { passive: true });
+    } else {
+      // For non-touch devices
+      canvas.addEventListener("mousemove", handleMouseMove, { passive: true });
+    }
 
     return () => {
-      canvas.removeEventListener("pointermove", handleInteraction);
-      canvas.removeEventListener("touchmove", handleInteraction);
+      if (isTouchDevice) {
+        canvas.removeEventListener("touchmove", handleTouchMove);
+      } else {
+        canvas.removeEventListener("mousemove", handleMouseMove);
+      }
     };
   }, [gl]);
 
@@ -366,15 +425,25 @@ const Scene: React.FC = () => {
   const [canvasError, setCanvasError] = useState(false);
   const [isClient, setIsClient] = useState(false);
   const glRef = useRef<THREE.WebGLRenderer | null>(null);
+  const headlineRef = useRef<HTMLSpanElement>(null);
+  const dotRef = useRef<HTMLSpanElement>(null);
 
   useEffect(() => {
     setIsClient(true);
-    return () => {
-      if (glRef.current) {
-        glRef.current.dispose();
-      }
-    };
-  }, []);
+
+    // Wait for DOM elements to be available
+    const headline = headlineRef.current;
+    const dot = dotRef.current;
+
+    if (headline && dot) {
+      // Cleanup function
+      return () => {
+        if (glRef.current) {
+          glRef.current.dispose();
+        }
+      };
+    }
+  }, [isClient]); // Keep isClient dependency for DOM readiness
 
   const handleContextCreationError = () => {
     setCanvasError(true);
@@ -424,8 +493,10 @@ const Scene: React.FC = () => {
             hyphens: "auto",
           }}
         >
-          <span>DISTINCT</span>
-          <span style={{ color: "#FF0000" }}>.</span>
+          <span ref={headlineRef}>DISTINCT</span>
+          <span ref={dotRef} style={{ color: "#FF0000" }}>
+            .
+          </span>
         </h1>
       </div>
 
@@ -447,6 +518,8 @@ const Scene: React.FC = () => {
             glRef.current = gl;
           }}
           onError={handleContextCreationError}
+          eventSource={document.getElementById("root") || undefined}
+          eventPrefix="client"
         >
           <PerspectiveCamera makeDefault position={[0, 0, 3]} fov={80} />
           <DynamicCameraRig />
