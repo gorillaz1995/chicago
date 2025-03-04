@@ -14,6 +14,15 @@ const avertaDemo = localFont({
   variable: "--font-averta", // Creates CSS variable for use in Tailwind
 });
 
+const dexaPro = localFont({
+  src: "./fonts/Dexap.otf",
+  variable: "--font-dexa",
+});
+// Removing DexaPro font since the file is missing
+// To fix this, either:
+// 1. Add the DexaPro.ttf file to the fonts directory
+// 2. Or remove references to the font if not needed
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -21,7 +30,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${mullerExtraBold.variable} ${avertaDemo.variable}`}>
+      <body
+        className={`${mullerExtraBold.variable} ${avertaDemo.variable} ${dexaPro.variable}`}
+      >
         <PreLogo />
         {children}
       </body>

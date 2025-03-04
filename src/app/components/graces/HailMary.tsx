@@ -66,7 +66,7 @@ const Section2 = ({ progress }: { progress: MotionValue<number> }) => (
   >
     <div className="max-w-4xl">
       <motion.h2
-        className="text-4xl md:text-6xl font-light mb-8 bg-clip-text text-transparent font-muller"
+        className="text-4xl md:text-6xl font-light mb-8 bg-clip-text text-transparent font-dexa"
         style={{
           backgroundImage: useTransform(
             progress,
