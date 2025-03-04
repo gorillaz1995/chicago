@@ -11,6 +11,7 @@ import {
 import { PerspectiveCamera } from "@react-three/drei";
 
 import * as THREE from "three";
+import gsap from "gsap";
 
 // Custom sphere class for creating the 3D sphere object
 class CustomSphere extends THREE.Group {
@@ -18,6 +19,9 @@ class CustomSphere extends THREE.Group {
   outerSphere: THREE.Mesh;
   innerSpheresGroup: THREE.Group;
   orbitGroup: THREE.Group;
+  leftEye: THREE.Mesh | null;
+  rightEye: THREE.Mesh | null;
+  eyeContainer: THREE.Group;
 
   constructor(subdivisions = 3) {
     super();
@@ -25,8 +29,12 @@ class CustomSphere extends THREE.Group {
     this.outerSphere = new THREE.Mesh();
     this.innerSpheresGroup = new THREE.Group();
     this.orbitGroup = new THREE.Group();
+    this.leftEye = null;
+    this.rightEye = null;
+    this.eyeContainer = new THREE.Group();
     this.add(this.orbitGroup);
     this.orbitGroup.add(this.innerSpheresGroup);
+    this.orbitGroup.add(this.eyeContainer);
     this.createOuterSphere();
     this.createFaceTexture();
   }
@@ -55,28 +63,13 @@ class CustomSphere extends THREE.Group {
       ctx.fillStyle = "transparent";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // Draw eyes (white circles)
-      ctx.fillStyle = "white";
-
-      // Left eye
-      ctx.beginPath();
-      ctx.arc(170, 200, 50, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Right eye
-      ctx.beginPath();
-      ctx.arc(342, 200, 50, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Draw smile (half circle)
-      ctx.beginPath();
-      ctx.arc(256, 300, 80, 0, Math.PI);
-      ctx.fill();
-
-      // Create texture from canvas
+      // Create texture from canvas for the face base
       const texture = new THREE.CanvasTexture(canvas);
+      texture.minFilter = THREE.LinearMipmapLinearFilter;
+      texture.magFilter = THREE.LinearFilter;
+      texture.needsUpdate = true;
 
-      // Create a plane to display the face
+      // Create a plane to display the face base
       const planeGeometry = new THREE.PlaneGeometry(1.5, 1.5);
       const planeMaterial = new THREE.MeshBasicMaterial({
         map: texture,
@@ -86,8 +79,77 @@ class CustomSphere extends THREE.Group {
 
       const facePlane = new THREE.Mesh(planeGeometry, planeMaterial);
       facePlane.position.z = 1.16; // Position slightly in front of the sphere
-
       this.orbitGroup.add(facePlane);
+
+      // Create 3D eyes that can track movement
+      // Eye whites
+      const eyeWhiteGeometry = new THREE.CircleGeometry(0.15, 32);
+      const eyeWhiteMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
+
+      // Left eye white
+      const leftEyeWhite = new THREE.Mesh(eyeWhiteGeometry, eyeWhiteMaterial);
+      leftEyeWhite.position.set(-0.3, 0.1, 1.17);
+      this.eyeContainer.add(leftEyeWhite);
+
+      // Right eye white
+      const rightEyeWhite = new THREE.Mesh(eyeWhiteGeometry, eyeWhiteMaterial);
+      rightEyeWhite.position.set(0.3, 0.1, 1.17);
+      this.eyeContainer.add(rightEyeWhite);
+
+      // Eye pupils
+      const eyePupilGeometry = new THREE.CircleGeometry(0.07, 32);
+      const eyePupilMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
+
+      // Left eye pupil
+      this.leftEye = new THREE.Mesh(eyePupilGeometry, eyePupilMaterial);
+      this.leftEye.position.set(-0.3, 0.1, 1.18);
+      this.eyeContainer.add(this.leftEye);
+
+      // Right eye pupil
+      this.rightEye = new THREE.Mesh(eyePupilGeometry, eyePupilMaterial);
+      this.rightEye.position.set(0.3, 0.1, 1.18);
+      this.eyeContainer.add(this.rightEye);
+
+      // Draw moustache (half circle)
+      const moustacheGeometry = new THREE.CircleGeometry(0.25, 32, 0, Math.PI);
+      const moustacheMaterial = new THREE.MeshBasicMaterial({
+        color: 0x000000,
+      });
+      const moustache = new THREE.Mesh(moustacheGeometry, moustacheMaterial);
+      moustache.position.set(0, -0.35, 1.17);
+      this.eyeContainer.add(moustache);
+
+      // Draw mouth (horizontal white line)
+      const mouthGeometry = new THREE.PlaneGeometry(0.3, 0.03);
+      const mouthMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
+      const mouth = new THREE.Mesh(mouthGeometry, mouthMaterial);
+      mouth.position.set(0, -0.4, 1.17); // Position below the moustache
+      this.eyeContainer.add(mouth);
+    }
+  }
+
+  // Method to update eye positions based on pointer coordinates
+  updateEyePosition(normalizedX: number, normalizedY: number) {
+    if (this.leftEye && this.rightEye) {
+      // Limit the movement range of the pupils
+      const maxEyeMove = 0.05;
+      const eyeX = normalizedX * maxEyeMove;
+      const eyeY = normalizedY * maxEyeMove;
+
+      // Use GSAP for smooth animation
+      gsap.to(this.leftEye.position, {
+        x: -0.3 + eyeX,
+        y: 0.1 + eyeY,
+        duration: 0.3,
+        ease: "power2.out",
+      });
+
+      gsap.to(this.rightEye.position, {
+        x: 0.3 + eyeX,
+        y: 0.1 + eyeY,
+        duration: 0.3,
+        ease: "power2.out",
+      });
     }
   }
 
@@ -99,6 +161,24 @@ class CustomSphere extends THREE.Group {
       if (sphere instanceof THREE.Mesh) {
         sphere.geometry.dispose();
         (sphere.material as THREE.Material).dispose();
+      }
+    });
+
+    // Dispose of eye geometries and materials
+    if (this.leftEye instanceof THREE.Mesh) {
+      this.leftEye.geometry.dispose();
+      (this.leftEye.material as THREE.Material).dispose();
+    }
+
+    if (this.rightEye instanceof THREE.Mesh) {
+      this.rightEye.geometry.dispose();
+      (this.rightEye.material as THREE.Material).dispose();
+    }
+
+    this.eyeContainer.children.forEach((item) => {
+      if (item instanceof THREE.Mesh) {
+        item.geometry.dispose();
+        (item.material as THREE.Material).dispose();
       }
     });
   }
@@ -116,9 +196,37 @@ declare module "@react-three/fiber" {
 const Sphere: React.FC<{ scale: number }> = ({ scale }) => {
   const groupRef = useRef<CustomSphere>(null!);
   const frameIdRef = useRef<number>();
+  const { gl } = useThree();
 
   useEffect(() => {
     const currentGroupRef = groupRef.current;
+
+    // Handle mouse/touch movement for eye tracking
+    const handlePointerMove = (event: MouseEvent | TouchEvent) => {
+      if (!groupRef.current) return;
+
+      const x =
+        "touches" in event
+          ? event.touches[0].clientX
+          : (event as MouseEvent).clientX;
+      const y =
+        "touches" in event
+          ? event.touches[0].clientY
+          : (event as MouseEvent).clientY;
+
+      // Convert to normalized coordinates (-1 to 1)
+      const normalizedX = (x / window.innerWidth) * 2 - 1;
+      const normalizedY = -((y / window.innerHeight) * 2 - 1);
+
+      // Update eye positions
+      groupRef.current.updateEyePosition(normalizedX, normalizedY);
+    };
+
+    // Add event listeners
+    const canvas = gl.domElement;
+    canvas.addEventListener("mousemove", handlePointerMove);
+    canvas.addEventListener("touchmove", handlePointerMove);
+
     return () => {
       if (frameIdRef.current) {
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -127,22 +235,27 @@ const Sphere: React.FC<{ scale: number }> = ({ scale }) => {
       if (currentGroupRef) {
         currentGroupRef.dispose();
       }
+
+      // Remove event listeners
+      canvas.removeEventListener("mousemove", handlePointerMove);
+      canvas.removeEventListener("touchmove", handlePointerMove);
     };
-  }, []);
+  }, [gl]);
 
   useFrame((state) => {
     if (groupRef.current) {
-      // Instead of making the face look at camera, we'll rotate the entire sphere
-      // to create an illusion of the face following the viewer
+      // Add subtle breathing animation to the sphere
       const time = state.clock.getElapsedTime();
+      groupRef.current.scale.x =
+        scale * 1.224 * (1 + Math.sin(time * 0.5) * 0.02);
+      groupRef.current.scale.y =
+        scale * 1.224 * (1 + Math.sin(time * 0.5) * 0.02);
+      groupRef.current.scale.z =
+        scale * 1.224 * (1 + Math.sin(time * 0.5) * 0.02);
 
-      // Rotate the sphere to generally face the camera
-      groupRef.current.rotation.y = Math.sin(time * 0.2) * 0.1;
-      groupRef.current.rotation.x = Math.cos(time * 0.3) * 0.05;
-
-      // Add orbital rotation to the sphere itself
-      groupRef.current.orbitGroup.rotation.y += 0.005; // Adjust speed as needed
-      groupRef.current.orbitGroup.rotation.x = Math.sin(time * 0.2) * 0.1; // Add slight wobble
+      // Subtle rotation for more natural appearance
+      groupRef.current.rotation.y = Math.sin(time * 0.1) * 0.05;
+      groupRef.current.rotation.x = Math.cos(time * 0.15) * 0.03;
     }
   });
 
