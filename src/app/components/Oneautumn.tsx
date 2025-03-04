@@ -292,6 +292,10 @@ function DynamicCameraRig() {
   ];
 
   useEffect(() => {
+    // Check if device has touch capability
+    const isTouchDevice =
+      "ontouchstart" in window || navigator.maxTouchPoints > 0;
+
     const handleScroll = () => {
       const scrollPos = window.scrollY;
       const windowHeight = window.innerHeight;
@@ -303,30 +307,31 @@ function DynamicCameraRig() {
       setScrollSection(section);
     };
 
-    const handlePointerMove = (event: PointerEvent | TouchEvent) => {
-      const x =
-        "touches" in event
-          ? event.touches[0].clientX
-          : (event as PointerEvent).clientX;
-      const y =
-        "touches" in event
-          ? event.touches[0].clientY
-          : (event as PointerEvent).clientY;
+    const handlePointerMove = (event: PointerEvent) => {
+      // Only handle mouse interactions on non-touch devices
+      if (!isTouchDevice) {
+        const x = event.clientX;
+        const y = event.clientY;
 
-      setPointerPosition({
-        x: (x / window.innerWidth) * 2 - 1,
-        y: -(y / window.innerHeight) * 2 + 1,
-      });
+        setPointerPosition({
+          x: (x / window.innerWidth) * 2 - 1,
+          y: -(y / window.innerHeight) * 2 + 1,
+        });
+      }
     };
 
     window.addEventListener("scroll", handleScroll);
-    window.addEventListener("pointermove", handlePointerMove);
-    window.addEventListener("touchmove", handlePointerMove);
+
+    // Only add pointer interaction listeners for non-touch devices
+    if (!isTouchDevice) {
+      window.addEventListener("pointermove", handlePointerMove);
+    }
 
     return () => {
       window.removeEventListener("scroll", handleScroll);
-      window.removeEventListener("pointermove", handlePointerMove);
-      window.removeEventListener("touchmove", handlePointerMove);
+      if (!isTouchDevice) {
+        window.removeEventListener("pointermove", handlePointerMove);
+      }
       if (frameIdRef.current) {
         // eslint-disable-next-line react-hooks/exhaustive-deps
         cancelAnimationFrame(frameIdRef.current);
@@ -339,23 +344,27 @@ function DynamicCameraRig() {
     const time = state.clock.getElapsedTime();
     const currentPos = cameraPositions[scrollSection];
 
-    // Smoother animation with pointer/touch influence
+    // Check if device has touch capability
+    const isTouchDevice =
+      "ontouchstart" in window || navigator.maxTouchPoints > 0;
+
+    // Smoother animation with pointer influence only on non-touch devices
     const animationSpeed = 0.3 + Math.sin(time * 0.1) * 0.05;
-    const pointerInfluence = 0.3;
+    const pointerInfluence = isTouchDevice ? 0 : 0.3; // No pointer influence on touch devices
 
     vec.set(
       currentPos.pos[0] +
         Math.sin(time * animationSpeed) * 0.2 +
-        pointerPosition.x * pointerInfluence,
+        (isTouchDevice ? 0 : pointerPosition.x * pointerInfluence),
       currentPos.pos[1] +
         Math.cos(time * (animationSpeed * 0.6)) * 0.15 +
-        pointerPosition.y * pointerInfluence,
+        (isTouchDevice ? 0 : pointerPosition.y * pointerInfluence),
       currentPos.pos[2] + Math.sin(time * (animationSpeed * 0.4)) * 0.1
     );
 
     targetLookAt.set(
-      currentPos.lookAt[0] + pointerPosition.x * 0.2,
-      currentPos.lookAt[1] + pointerPosition.y * 0.2,
+      currentPos.lookAt[0] + (isTouchDevice ? 0 : pointerPosition.x * 0.2),
+      currentPos.lookAt[1] + (isTouchDevice ? 0 : pointerPosition.y * 0.2),
       currentPos.lookAt[2]
     );
 
@@ -479,7 +488,7 @@ const Scene: React.FC = () => {
         }}
       >
         <h1
-          className="font-dexa"
+          className="font-ogg"
           style={{
             fontSize: "clamp(4.99rem, 9vw, 9rem)", // Reduced font size
             color: "#000000",

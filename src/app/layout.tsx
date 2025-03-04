@@ -18,6 +18,11 @@ const dexaPro = localFont({
   src: "./fonts/Dexap.otf",
   variable: "--font-dexa",
 });
+
+const oggD = localFont({
+  src: "./fonts/Ogg-Bold.otf",
+  variable: "--font-ogg",
+});
 // Removing DexaPro font since the file is missing
 // To fix this, either:
 // 1. Add the DexaPro.ttf file to the fonts directory
@@ -31,7 +36,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${mullerExtraBold.variable} ${avertaDemo.variable} ${dexaPro.variable}`}
+        className={`${mullerExtraBold.variable} ${avertaDemo.variable} ${dexaPro.variable} ${oggD.variable}`}
       >
         <PreLogo />
         {children}
