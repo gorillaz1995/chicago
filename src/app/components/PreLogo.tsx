@@ -7,34 +7,19 @@ import Link from "next/link";
 const PreLogo = () => {
   // State to control drawer visibility
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  // State to track viewport dimensions for responsive behavior
-  const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
-
-  // Effect to handle viewport resizing
-  useEffect(() => {
-    // Set initial dimensions
-    setDimensions({
-      width: window.innerWidth,
-      height: window.innerHeight,
-    });
-
-    // Update dimensions on resize
-    const handleResize = () => {
-      setDimensions({
-        width: window.innerWidth,
-        height: window.innerHeight,
-      });
-    };
-
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
 
   // Effect to handle body scroll lock when drawer is open
   useEffect(() => {
+    // Lock body scroll when drawer is open
+    if (isDrawerOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+
     // Clean up function to ensure we reset everything properly
     return () => {
-      // Reset any state or effects when component unmounts
+      document.body.style.overflow = "";
     };
   }, [isDrawerOpen]);
 
