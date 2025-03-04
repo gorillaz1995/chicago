@@ -8,16 +8,15 @@ import {
   Object3DNode,
   useFrame,
 } from "@react-three/fiber";
-import { PerspectiveCamera, Html } from "@react-three/drei";
+import { PerspectiveCamera } from "@react-three/drei";
 
 import * as THREE from "three";
 
-// Custom sphere class for creating the 3D sphere object with face
+// Custom sphere class for creating the 3D sphere object
 class CustomSphere extends THREE.Group {
   subdivisions: number;
   outerSphere: THREE.Mesh;
   innerSpheresGroup: THREE.Group;
-  facePlane: THREE.Mesh;
   orbitGroup: THREE.Group;
 
   constructor(subdivisions = 3) {
@@ -25,12 +24,11 @@ class CustomSphere extends THREE.Group {
     this.subdivisions = subdivisions;
     this.outerSphere = new THREE.Mesh();
     this.innerSpheresGroup = new THREE.Group();
-    this.facePlane = new THREE.Mesh();
     this.orbitGroup = new THREE.Group();
     this.add(this.orbitGroup);
     this.orbitGroup.add(this.innerSpheresGroup);
     this.createOuterSphere();
-    this.createFace();
+    this.createFaceTexture();
   }
 
   createOuterSphere() {
@@ -44,53 +42,58 @@ class CustomSphere extends THREE.Group {
     this.orbitGroup.add(this.outerSphere);
   }
 
-  createFace() {
-    // Generate dynamic random angles with increased rotation range for more fluid face movement
-    // Define angles for front and profile views (90° intervals)
-    const baseAngles = [-120, 0, 120]; // Front and profile angles
-    const angles = baseAngles.map((angle) => {
-      // Add subtle random variation to maintain face-like appearance
+  // Create a face using textures instead of HTML/SVG for better cross-browser compatibility
+  createFaceTexture() {
+    // Create a canvas to draw the face
+    const canvas = document.createElement("canvas");
+    canvas.width = 512;
+    canvas.height = 512;
+    const ctx = canvas.getContext("2d");
 
-      const fluidMotion = Math.cos(Date.now() * 0.0005) * 10; // Subtle fluid motion
-      // Combine effects while maintaining recognizable front/profile poses
-      return angle + fluidMotion;
-    });
+    if (ctx) {
+      // Clear canvas
+      ctx.fillStyle = "transparent";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Create multiple planes with dynamic positioning
-    angles.forEach((angle) => {
-      const planeGeometry = new THREE.PlaneGeometry(1.015, 1.015);
+      // Draw eyes (white circles)
+      ctx.fillStyle = "white";
+
+      // Left eye
+      ctx.beginPath();
+      ctx.arc(170, 200, 50, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Right eye
+      ctx.beginPath();
+      ctx.arc(342, 200, 50, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Draw smile (half circle)
+      ctx.beginPath();
+      ctx.arc(256, 300, 80, 0, Math.PI);
+      ctx.fill();
+
+      // Create texture from canvas
+      const texture = new THREE.CanvasTexture(canvas);
+
+      // Create a plane to display the face
+      const planeGeometry = new THREE.PlaneGeometry(1.5, 1.5);
       const planeMaterial = new THREE.MeshBasicMaterial({
+        map: texture,
         transparent: true,
-        opacity: 0,
         side: THREE.DoubleSide,
       });
 
-      const plane = new THREE.Mesh(planeGeometry, planeMaterial);
+      const facePlane = new THREE.Mesh(planeGeometry, planeMaterial);
+      facePlane.position.z = 1.16; // Position slightly in front of the sphere
 
-      // Dynamic positioning with more extreme variations
-      const distanceFromCenter = 1.045 + Math.random() * 0.5;
-      const heightVariation = (Math.random() - 0.5) * 0.5;
-
-      // Complex rotation for more unpredictable face orientations
-      plane.rotation.y = (angle * Math.PI) / 120;
-      plane.rotation.x = ((Math.random() - 0.5) * Math.PI) / 14; // Slight tilt
-      plane.rotation.z = ((Math.random() - 0.5) * Math.PI) / 16; // Additional rotation
-
-      // Position with added randomness while maintaining front-facing tendency
-      plane.position.x = Math.sin(plane.rotation.y) * distanceFromCenter;
-      plane.position.y = heightVariation;
-      plane.position.z = Math.cos(plane.rotation.y) * distanceFromCenter;
-
-      this.facePlane = plane;
-      this.orbitGroup.add(plane);
-    });
+      this.orbitGroup.add(facePlane);
+    }
   }
 
   dispose() {
     this.outerSphere.geometry.dispose();
     (this.outerSphere.material as THREE.Material).dispose();
-    this.facePlane.geometry.dispose();
-    (this.facePlane.material as THREE.Material).dispose();
 
     this.innerSpheresGroup.children.forEach((sphere) => {
       if (sphere instanceof THREE.Mesh) {
@@ -109,79 +112,41 @@ declare module "@react-three/fiber" {
   }
 }
 
-// Face SVG component that will always face the camera
-const Face: React.FC = () => {
-  const leftEyeRef = useRef<SVGSVGElement>(null);
-  const rightEyeRef = useRef<SVGSVGElement>(null);
+// Sphere component with cleanup on unmount
+const Sphere: React.FC<{ scale: number }> = ({ scale }) => {
+  const groupRef = useRef<CustomSphere>(null!);
+  const frameIdRef = useRef<number>();
 
-  return (
-    <Html transform>
-      <svg
-        width="70"
-        height="70"
-        viewBox="-65 -80 140 150"
-        style={{ pointerEvents: "none" }}
-      >
-        {/* Left eye */}
-        <svg
-          ref={leftEyeRef}
-          x="-65"
-          y="-40"
-          width="35"
-          height="35"
-          viewBox="0 0 200 200"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-          version="1.1"
-          xmlnsXlink="http://www.w3.org/1999/xlink"
-        >
-          <g clipPath="url(#clip0_133_2)">
-            <path
-              fill="rgba(255, 255, 255, 1)"
-              d="M50.714 0h-50v50c0 25.462 19.033 46.479 43.647 49.6C19.401 102.402 0 123.578 0 149.286v50h50c25.462 0 46.479-19.033 49.6-43.647 2.802 24.96 23.978 44.361 49.686 44.361h50v-50c0-25.462-19.033-46.479-43.647-49.6C180.599 97.598 200 76.422 200 50.714v-50h-50c-25.462 0-46.479 19.033-49.6 43.647C97.598 19.401 76.422 0 50.714 0Z"
-            />
-          </g>
-        </svg>
+  useEffect(() => {
+    const currentGroupRef = groupRef.current;
+    return () => {
+      if (frameIdRef.current) {
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        cancelAnimationFrame(frameIdRef.current);
+      }
+      if (currentGroupRef) {
+        currentGroupRef.dispose();
+      }
+    };
+  }, []);
 
-        {/* Right eye */}
-        <svg
-          ref={rightEyeRef}
-          x="35"
-          y="-40"
-          width="35"
-          height="35"
-          viewBox="0 0 200 200"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-          version="1.1"
-          xmlnsXlink="http://www.w3.org/1999/xlink"
-        >
-          <g clipPath="url(#clip0_133_2)">
-            <path
-              fill="rgba(255, 255, 255, 1)"
-              d="M50.714 0h-50v50c0 25.462 19.033 46.479 43.647 49.6C19.401 102.402 0 123.578 0 149.286v50h50c25.462 0 46.479-19.033 49.6-43.647 2.802 24.96 23.978 44.361 49.686 44.361h50v-50c0-25.462-19.033-46.479-43.647-49.6C180.599 97.598 200 76.422 200 50.714v-50h-50c-25.462 0-46.479 19.033-49.6 43.647C97.598 19.401 76.422 0 50.714 0Z"
-            />
-          </g>
-        </svg>
-        {/* Smile (upside down) */}
-        <svg
-          x="-35"
-          y="20"
-          width="70"
-          height="65"
-          viewBox="0 0 200 200"
-          xmlns="http://www.w3.org/2000/svg"
-          version="1.1"
-          xmlnsXlink="http://www.w3.org/1999/xlink"
-        >
-          <path
-            fill="rgba(255, 255, 255, 1)"
-            d="M0 50c0 55.228 44.772 100 100 100s100-44.772 100-100H0Z"
-          />
-        </svg>
-      </svg>
-    </Html>
-  );
+  useFrame((state) => {
+    if (groupRef.current) {
+      // Instead of making the face look at camera, we'll rotate the entire sphere
+      // to create an illusion of the face following the viewer
+      const time = state.clock.getElapsedTime();
+
+      // Rotate the sphere to generally face the camera
+      groupRef.current.rotation.y = Math.sin(time * 0.2) * 0.1;
+      groupRef.current.rotation.x = Math.cos(time * 0.3) * 0.05;
+
+      // Add orbital rotation to the sphere itself
+      groupRef.current.orbitGroup.rotation.y += 0.005; // Adjust speed as needed
+      groupRef.current.orbitGroup.rotation.x = Math.sin(time * 0.2) * 0.1; // Add slight wobble
+    }
+  });
+
+  return <customSphere ref={groupRef} scale={scale * 1.224} />;
 };
 
 // Dynamic camera rig that responds to scroll position and pointer/touch input
@@ -194,7 +159,7 @@ function DynamicCameraRig() {
   const frameIdRef = useRef<number>();
   const sphereRef = useRef<CustomSphere>();
 
-  // Add visual feedback for interaction and face tracking with device-specific handling
+  // Add visual feedback for interaction with device-specific handling
   useEffect(() => {
     const canvas = gl.domElement;
     const isTouchDevice =
@@ -292,10 +257,6 @@ function DynamicCameraRig() {
   ];
 
   useEffect(() => {
-    // Check if device has touch capability
-    const isTouchDevice =
-      "ontouchstart" in window || navigator.maxTouchPoints > 0;
-
     const handleScroll = () => {
       const scrollPos = window.scrollY;
       const windowHeight = window.innerHeight;
@@ -307,31 +268,30 @@ function DynamicCameraRig() {
       setScrollSection(section);
     };
 
-    const handlePointerMove = (event: PointerEvent) => {
-      // Only handle mouse interactions on non-touch devices
-      if (!isTouchDevice) {
-        const x = event.clientX;
-        const y = event.clientY;
+    const handlePointerMove = (event: PointerEvent | TouchEvent) => {
+      const x =
+        "touches" in event
+          ? event.touches[0].clientX
+          : (event as PointerEvent).clientX;
+      const y =
+        "touches" in event
+          ? event.touches[0].clientY
+          : (event as PointerEvent).clientY;
 
-        setPointerPosition({
-          x: (x / window.innerWidth) * 2 - 1,
-          y: -(y / window.innerHeight) * 2 + 1,
-        });
-      }
+      setPointerPosition({
+        x: (x / window.innerWidth) * 2 - 1,
+        y: -(y / window.innerHeight) * 2 + 1,
+      });
     };
 
     window.addEventListener("scroll", handleScroll);
-
-    // Only add pointer interaction listeners for non-touch devices
-    if (!isTouchDevice) {
-      window.addEventListener("pointermove", handlePointerMove);
-    }
+    window.addEventListener("pointermove", handlePointerMove);
+    window.addEventListener("touchmove", handlePointerMove);
 
     return () => {
       window.removeEventListener("scroll", handleScroll);
-      if (!isTouchDevice) {
-        window.removeEventListener("pointermove", handlePointerMove);
-      }
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("touchmove", handlePointerMove);
       if (frameIdRef.current) {
         // eslint-disable-next-line react-hooks/exhaustive-deps
         cancelAnimationFrame(frameIdRef.current);
@@ -344,27 +304,23 @@ function DynamicCameraRig() {
     const time = state.clock.getElapsedTime();
     const currentPos = cameraPositions[scrollSection];
 
-    // Check if device has touch capability
-    const isTouchDevice =
-      "ontouchstart" in window || navigator.maxTouchPoints > 0;
-
-    // Smoother animation with pointer influence only on non-touch devices
+    // Smoother animation with pointer/touch influence
     const animationSpeed = 0.3 + Math.sin(time * 0.1) * 0.05;
-    const pointerInfluence = isTouchDevice ? 0 : 0.3; // No pointer influence on touch devices
+    const pointerInfluence = 0.3;
 
     vec.set(
       currentPos.pos[0] +
         Math.sin(time * animationSpeed) * 0.2 +
-        (isTouchDevice ? 0 : pointerPosition.x * pointerInfluence),
+        pointerPosition.x * pointerInfluence,
       currentPos.pos[1] +
         Math.cos(time * (animationSpeed * 0.6)) * 0.15 +
-        (isTouchDevice ? 0 : pointerPosition.y * pointerInfluence),
+        pointerPosition.y * pointerInfluence,
       currentPos.pos[2] + Math.sin(time * (animationSpeed * 0.4)) * 0.1
     );
 
     targetLookAt.set(
-      currentPos.lookAt[0] + (isTouchDevice ? 0 : pointerPosition.x * 0.2),
-      currentPos.lookAt[1] + (isTouchDevice ? 0 : pointerPosition.y * 0.2),
+      currentPos.lookAt[0] + pointerPosition.x * 0.2,
+      currentPos.lookAt[1] + pointerPosition.y * 0.2,
       currentPos.lookAt[2]
     );
 
@@ -390,44 +346,6 @@ function DynamicCameraRig() {
 
   return null;
 }
-
-// Sphere component with cleanup on unmount and face tracking
-const Sphere: React.FC<{ scale: number }> = ({ scale }) => {
-  const groupRef = useRef<CustomSphere>(null!);
-  const frameIdRef = useRef<number>();
-  const { camera } = useThree();
-
-  useEffect(() => {
-    const currentGroupRef = groupRef.current;
-    return () => {
-      if (frameIdRef.current) {
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-        cancelAnimationFrame(frameIdRef.current);
-      }
-      if (currentGroupRef) {
-        currentGroupRef.dispose();
-      }
-    };
-  }, []);
-
-  useFrame((state) => {
-    if (groupRef.current) {
-      // Make the face always look at camera
-      groupRef.current.quaternion.copy(camera.quaternion);
-
-      // Add orbital rotation to the sphere itself
-      const time = state.clock.getElapsedTime();
-      groupRef.current.orbitGroup.rotation.y += 0.005; // Adjust speed as needed
-      groupRef.current.orbitGroup.rotation.x = Math.sin(time * 0.2) * 0.1; // Add slight wobble
-    }
-  });
-
-  return (
-    <customSphere ref={groupRef} scale={scale * 1.224}>
-      <Face />
-    </customSphere>
-  );
-};
 
 // Main scene component that renders 3D element with transparent background
 const Scene: React.FC = () => {
@@ -490,7 +408,7 @@ const Scene: React.FC = () => {
         <h1
           className="font-ogg"
           style={{
-            fontSize: "clamp(4.99rem, 9vw, 9rem)", // Reduced font size
+            fontSize: "clamp(4.99rem, 9vw, 9rem)", // Responsive font size
             color: "#000000",
             textTransform: "uppercase",
             textShadow: "3px 3px 6px rgba(0,0,0,0.4)",
