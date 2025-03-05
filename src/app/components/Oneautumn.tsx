@@ -12,6 +12,9 @@ import { PerspectiveCamera } from "@react-three/drei";
 
 import * as THREE from "three";
 import gsap from "gsap";
+import ScrollTrigger from "gsap/ScrollTrigger";
+
+gsap.registerPlugin(ScrollTrigger);
 
 // Custom sphere class for creating the 3D sphere object
 class CustomSphere extends THREE.Group {
@@ -459,24 +462,87 @@ const Scene: React.FC = () => {
   const [isClient, setIsClient] = useState(false);
   const glRef = useRef<THREE.WebGLRenderer | null>(null);
   const headlineRef = useRef<HTMLSpanElement>(null);
-  const dotRef = useRef<HTMLSpanElement>(null);
+
+  const headlineContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setIsClient(true);
 
     // Wait for DOM elements to be available
     const headline = headlineRef.current;
-    const dot = dotRef.current;
+    const container = headlineContainerRef.current;
 
-    if (headline && dot) {
+    if (headline && container) {
+      // Create a timeline for synchronized animations
+      const tl = gsap.timeline({
+        defaults: {
+          ease: "power2.out",
+          duration: 1.5,
+        },
+      });
+
+      // Initial animation sequence
+      tl.from(headline, {
+        y: 100,
+        opacity: 0,
+      });
+      // Scroll-triggered animation with graceful, ice-skating-like motion
+      ScrollTrigger.create({
+        trigger: container,
+        start: "top top",
+        end: "bottom center",
+        scrub: true, // Enable dynamic scrubbing
+        pin: container,
+        pinSpacing: false,
+        onUpdate: (self) => {
+          const progress = self.progress;
+          const velocity = Math.abs(self.getVelocity() / 1000); // Get scroll velocity
+
+          // Calculate dynamic duration based on scroll velocity
+          // Faster scrolls = shorter duration for responsiveness
+          // Slower scrolls = longer duration for graceful motion
+          const dynamicDuration = Math.max(0.8, 2.5 - velocity);
+
+          // Calculate dynamic ease strength
+          // Faster scrolls = sharper ease
+          // Slower scrolls = gentler ease
+          const easeStrength = Math.min(0.8, 0.3 + velocity * 0.2);
+
+          // Custom ease function combining power and elastic for graceful motion
+          const customEase = `power${Math.min(
+            4,
+            Math.max(2, velocity * 3)
+          )}.out(${easeStrength})`;
+
+          // Animate headline with dynamic parameters
+          gsap.to(headline, {
+            y: progress * window.innerHeight * 0.5,
+            opacity: 1 - progress * 0.5,
+            duration: dynamicDuration,
+            ease: customEase,
+            overwrite: true, // Prevent animation queue buildup
+          });
+        },
+        onLeaveBack: () => {
+          // Smooth return animation
+          gsap.to(headline, {
+            y: 0,
+            opacity: 1,
+            duration: 1.2,
+            ease: "elastic.out(0.7, 0.5)", // Bouncy, graceful return
+          });
+        },
+      });
+
       // Cleanup function
       return () => {
         if (glRef.current) {
           glRef.current.dispose();
         }
+        ScrollTrigger.getAll().forEach((trigger) => trigger.kill());
       };
     }
-  }, [isClient]); // Keep isClient dependency for DOM readiness
+  }, [isClient]);
 
   const handleContextCreationError = () => {
     setCanvasError(true);
@@ -499,6 +565,7 @@ const Scene: React.FC = () => {
     <div style={{ position: "relative", width: "100%", height: "100vh" }}>
       {/* NEW ERA Headline */}
       <div
+        ref={headlineContainerRef}
         style={{
           position: "absolute",
           top: "20%",
@@ -508,28 +575,27 @@ const Scene: React.FC = () => {
           display: "flex",
           justifyContent: "center",
           alignItems: "center",
-          padding: "0 1rem", // Add padding for mobile
+          padding: "0 1rem",
         }}
       >
         <h1
           className="font-ogg"
           style={{
-            fontSize: "clamp(4.99rem, 9vw, 9rem)", // Responsive font size
+            fontSize: "clamp(4.99rem, 9vw, 9rem)",
             color: "#000000",
             textTransform: "uppercase",
             textShadow: "3px 3px 6px rgba(0,0,0,0.4)",
             letterSpacing: "0.2em",
             textAlign: "left",
-            wordBreak: "break-word",
-            maxWidth: "120%",
-            overflowWrap: "break-word",
-            hyphens: "auto",
+            whiteSpace: "normal", // Allow text wrapping
+            wordBreak: "break-word", // Break words when needed
+            display: "flex", // Keep flex for dot alignment
+            alignItems: "center",
+            flexWrap: "wrap", // Allow flex items to wrap
+            justifyContent: "center", // Center wrapped content
           }}
         >
           <span ref={headlineRef}>DISTINCT</span>
-          <span ref={dotRef} style={{ color: "#FF0000" }}>
-            .
-          </span>
         </h1>
       </div>
 
@@ -745,6 +811,8 @@ const Scene: React.FC = () => {
           onClick={() => {
             // Copy phone number to clipboard
             navigator.clipboard.writeText("0721 792 999");
+            // Animate button click with GSAP
+
             // Show a custom popup notification instead of alert
             const popup = document.createElement("div");
             popup.style.position = "fixed";
@@ -761,26 +829,9 @@ const Scene: React.FC = () => {
             popup.style.transition = "opacity 0.3s ease";
             popup.innerText = "Număr de telefon copiat";
             document.body.appendChild(popup);
-
-            // Animate in and auto-remove after delay
-            setTimeout(() => {
-              popup.style.opacity = "1";
-            }, 10);
-            setTimeout(() => {
-              popup.style.opacity = "0";
-              setTimeout(() => document.body.removeChild(popup), 300);
-            }, 2000);
           }}
-          className="px-12 py-2 rounded-full relative bg-black text-white text-xl lg:text-6xl hover:shadow-4xl hover:shadow-white/[0.1] transition duration-100 border border-red-300 font-ogg animate-horizontal-float"
+          className="px-12 py-2 rounded-full relative bg-black text-white text-xl lg:text-6xl hover:shadow-4xl hover:shadow-white/[0.1] transition duration-100 border border-red-300 font-ogg"
           style={{
-            animation: "verticalFloat 3s ease-in-out infinite",
-            transform: "translateY(0)",
-            animationName: "verticalFloat",
-            animationDuration: "4s",
-            animationTimingFunction: "ease-in-out",
-            animationIterationCount: "infinite",
-            animationDirection: "alternate",
-            // Responsive positioning based on screen width
             marginLeft: "max(0px, calc((100vw - 1000px) * 1.5))",
           }}
         >
