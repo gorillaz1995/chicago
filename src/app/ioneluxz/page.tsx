@@ -6,7 +6,7 @@ import Section24 from "../components/Oer/Section24";
 
 function page() {
   return (
-    <div className="overflow-hidden">
+    <div className="overflow-hidden ">
       <Scene />
       <Section22 />
       <Section23 />

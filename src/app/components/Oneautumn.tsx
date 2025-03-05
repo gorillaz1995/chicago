@@ -577,13 +577,13 @@ const Scene: React.FC = () => {
         }}
       >
         <h1
-          className="font-ogg"
+          className="font-geist font-black"
           style={{
             fontSize: "clamp(4.99rem, 9vw, 9rem)",
-            color: "#000000",
-            textTransform: "uppercase",
+            color: "#2a2a2a",
+
             textShadow: "3px 3px 6px rgba(0,0,0,0.4)",
-            letterSpacing: "0.2em",
+            letterSpacing: "0.21em",
             textAlign: "left",
             whiteSpace: "normal",
             wordBreak: "break-word",
@@ -599,6 +599,7 @@ const Scene: React.FC = () => {
 
       {/* Canvas container limited to first section */}
       <div
+        className="gradient"
         style={{
           position: "absolute",
           top: 0,
@@ -623,7 +624,7 @@ const Scene: React.FC = () => {
           <DynamicCameraRig />
           <ambientLight intensity={0.1} />
           <pointLight position={[5, 5, 5]} />
-          <directionalLight position={[3, 3, 3]} intensity={3} castShadow />
+          <directionalLight position={[3, 3, 3]} intensity={2} castShadow />
           <fog attach="fog" args={["white", 1, 3]} />
           <Sphere scale={0.4} />
         </Canvas>
@@ -649,7 +650,7 @@ const Scene: React.FC = () => {
             position: "absolute",
             width: "120%",
             height: "clamp(2.232rem, 4.65vw, 5.58rem)",
-            background: "#000000",
+            background: "#383838",
             transform: "rotate(-15deg) translateY(-100%)",
             display: "flex",
             justifyContent: "center",
@@ -661,12 +662,11 @@ const Scene: React.FC = () => {
         >
           <h3
             style={{
-              color: "#FFFFFF",
+              color: "#F8F8F8",
               fontSize: "clamp(1rem, 2vw, 1.5rem)",
-              fontWeight: "bold",
-              textTransform: "uppercase",
+
               textShadow: "1px 1px 2px rgba(0,0,0,0.5)",
-              padding: "0.5rem",
+              padding: "0.15rem",
               whiteSpace: "nowrap",
               overflow: "hidden",
               display: "flex",
@@ -678,7 +678,7 @@ const Scene: React.FC = () => {
             <div style={{ overflow: "hidden", width: "100%" }}>
               <div style={{ display: "flex", width: "200%" }}>
                 <span
-                  className="font-dexa"
+                  className="font-geist font-normal"
                   style={{
                     display: "inline-block",
                     whiteSpace: "nowrap",
@@ -696,7 +696,7 @@ const Scene: React.FC = () => {
                   LIMITE • DIGITAL FARA LIMITE • DIGITAL FARA LIMITE •&nbsp;
                 </span>
                 <span
-                  className="font-dexa"
+                  className="font-geist font-normal"
                   style={{
                     display: "inline-block",
                     whiteSpace: "nowrap",
@@ -722,7 +722,7 @@ const Scene: React.FC = () => {
             position: "absolute",
             width: "120%",
             height: "clamp(2.232rem, 4.65vw, 5.58rem)",
-            background: "#FFFFFF",
+            background: "#F8F8F8",
             transform: "rotate(-15deg)",
             display: "flex",
             justifyContent: "center",
@@ -734,12 +734,11 @@ const Scene: React.FC = () => {
         >
           <h3
             style={{
-              color: "#000000",
+              color: "#383838",
               fontSize: "clamp(1rem, 2vw, 1.5rem)",
-              fontWeight: "bold",
-              textTransform: "uppercase",
+
               textShadow: "1px 1px 2px rgba(0,0,0,0.5)",
-              padding: "0.5rem",
+              padding: "0.15rem",
               whiteSpace: "nowrap",
               overflow: "hidden",
               display: "flex",
@@ -751,7 +750,7 @@ const Scene: React.FC = () => {
             <div style={{ overflow: "hidden", width: "100%" }}>
               <div style={{ display: "flex", width: "200%" }}>
                 <span
-                  className="font-dexa"
+                  className="font-geist font-normal"
                   style={{
                     display: "inline-block",
                     whiteSpace: "nowrap",
@@ -769,7 +768,7 @@ const Scene: React.FC = () => {
                   • FACEBOOK ADs • TikTok ADs •&nbsp;&nbsp;
                 </span>
                 <span
-                  className="font-dexa"
+                  className="font-geist font-normal"
                   style={{
                     display: "inline-block",
                     whiteSpace: "nowrap",
@@ -828,7 +827,7 @@ const Scene: React.FC = () => {
             popup.innerText = "Număr de telefon copiat";
             document.body.appendChild(popup);
           }}
-          className="px-12 py-2 rounded-full relative bg-black text-white text-xl lg:text-5xl hover:shadow-4xl hover:shadow-white/[0.1] transition duration-100 border border-red-300 font-ogg"
+          className="px-8 py-2 rounded-full bg-black text-2xl lg:text-3xl text-white focus:ring-2 focus:ring-blue-400 hover:shadow-xl transition duration-200"
           style={{
             marginLeft: "max(0px, calc((100vw - 1000px) * 1.5))",
             transform: "scale(1)", // Default scale for mobile
@@ -878,7 +877,7 @@ const Scene: React.FC = () => {
             rgba(252, 171, 252, 0.4),
             transparent
           );
-          animation: shimmer 1.5s infinite;
+          animation: shimmer 1s infinite;
         }
         .banner-top::after {
           animation-direction: reverse;

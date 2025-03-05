@@ -53,7 +53,7 @@ const config: Config = {
         },
       },
       animation: {
-        shimmer: "shimmer 2s linear infinite",
+        shimmer: "shimmer 1s linear infinite",
         marquee: "marquee var(--duration) linear infinite",
         "marquee-vertical": "marquee-vertical var(--duration) linear infinite",
       },
@@ -77,10 +77,8 @@ const config: Config = {
         },
       },
       fontFamily: {
-        muller: ["Muller-ExtraBold", "sans-serif"],
-        averta: ["AvertaDemoPECuttedDemo-Regular", "sans-serif"],
-        dexa: ["var(--font-dexa)", "sans-serif"],
         ogg: ["var(--font-ogg)", "sans-serif"],
+        geist: ["var(--font-geist)", "sans-serif"],
       },
       borderRadius: {
         lg: "var(--radius)",

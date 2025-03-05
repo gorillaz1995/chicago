@@ -33,10 +33,21 @@ const files = [
 
 const features = [
   {
+    Icon: TrendingUp,
+    name: "Ramai relevant",
+    description: "Mereu cu un pas inaintea competitiei!",
+    className: "col-span-3 lg:col-span-1",
+    background: (
+      <AnimatedListDemo className="absolute right-2 top-4 h-[300px] w-full scale-75 border-none transition-all duration-300 ease-out [mask-image:linear-gradient(to_top,transparent_10%,#000_100%)] group-hover:scale-90" />
+    ),
+    href: "/notifications",
+    cta: "View Notifications",
+  },
+  {
     Icon: FileTextIcon,
     name: "Save your files",
     description: "We automatically save your files as you type.",
-    className: "col-span-3 lg:col-span-1",
+    className: "col-span-3 lg:col-span-2",
     background: (
       <Marquee
         pauseOnHover
@@ -54,7 +65,7 @@ const features = [
           >
             <div className="flex flex-row items-center gap-2">
               <div className="flex flex-col">
-                <figcaption className="text-sm font-medium dark:text-white">
+                <figcaption className="text-sm font-lg dark:text-white">
                   {f.name}
                 </figcaption>
               </div>
@@ -66,17 +77,6 @@ const features = [
     ),
     href: "/files",
     cta: "View Files",
-  },
-  {
-    Icon: TrendingUp,
-    name: "Ramai relevant",
-    description: "Mereu cu un pas inaintea competitiei!",
-    className: "col-span-3 lg:col-span-2",
-    background: (
-      <AnimatedListDemo className="absolute right-2 top-4 h-[300px] w-full scale-75 border-none transition-all duration-300 ease-out [mask-image:linear-gradient(to_top,transparent_10%,#000_100%)] group-hover:scale-90" />
-    ),
-    href: "/notifications",
-    cta: "View Notifications",
   },
   {
     Icon: Share2Icon,
