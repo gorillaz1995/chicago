@@ -1,12 +1,14 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 
 const PreLogo = () => {
-  // State to control drawer visibility
+  // State to control drawer visibility and menu state
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const leftEyeRef = useRef<SVGCircleElement>(null);
+  const rightEyeRef = useRef<SVGCircleElement>(null);
 
   // Effect to handle body scroll lock when drawer is open
   useEffect(() => {
@@ -22,6 +24,45 @@ const PreLogo = () => {
       document.body.style.overflow = "";
     };
   }, [isDrawerOpen]);
+
+  // Handle eye movement based on pointer position with vertical tracking
+  useEffect(() => {
+    const handlePointerMove = (event: PointerEvent) => {
+      const x = event.clientX;
+      const y = event.clientY;
+
+      // Convert to normalized coordinates (-1 to 1)
+      const normalizedX = (x / window.innerWidth) * 2 - 1;
+      // Invert the Y coordinate by removing the negative sign
+      const normalizedY = (y / window.innerHeight) * 2 - 1;
+
+      // Calculate vertical position relative to screen center
+      const screenCenterY = window.innerHeight / 2;
+      const isLookingDown = y > screenCenterY;
+
+      // Update eye positions
+      if (leftEyeRef.current && rightEyeRef.current) {
+        // Limit the movement range of the pupils
+        const maxEyeMove = 6;
+        const maxVerticalMove = 8; // Slightly larger vertical movement
+
+        // Calculate horizontal movement
+        const eyeX = normalizedX * maxEyeMove;
+
+        // Calculate vertical movement with enhanced downward look
+        let eyeY = normalizedY * maxEyeMove;
+        if (isLookingDown) {
+          eyeY = Math.min(eyeY, normalizedY * maxVerticalMove); // Enhance downward movement
+        }
+
+        leftEyeRef.current.style.transform = `translate(${eyeX}px, ${eyeY}px)`;
+        rightEyeRef.current.style.transform = `translate(${eyeX}px, ${eyeY}px)`;
+      }
+    };
+
+    window.addEventListener("pointermove", handlePointerMove);
+    return () => window.removeEventListener("pointermove", handlePointerMove);
+  }, []);
 
   // Menu items animation variants - staggered entrance for menu items
   const menuItemVariants = {
@@ -105,6 +146,35 @@ const PreLogo = () => {
               strokeLinejoin="round"
             ></path>
           </g>
+
+          {/* Eyes */}
+          <g id="eyes" transform="translate(0, -240)">
+            {/* Eye whites */}
+            <circle cx="300" cy="350" r="30" fill="white" />
+            <circle cx="500" cy="350" r="30" fill="white" />
+
+            {/* Eye pupils */}
+            <circle
+              ref={leftEyeRef}
+              cx="300"
+              cy="350"
+              r="15"
+              fill="black"
+              style={{
+                transition: "transform 0.3s ease-out",
+              }}
+            />
+            <circle
+              ref={rightEyeRef}
+              cx="500"
+              cy="350"
+              r="15"
+              fill="black"
+              style={{
+                transition: "transform 0.3s ease-out",
+              }}
+            />
+          </g>
         </motion.svg>
       </motion.div>
 
@@ -120,9 +190,7 @@ const PreLogo = () => {
       <motion.div
         className="fixed left-[20%] lg:left-[calc(50%-15%)] w-[60%] lg:w-[30%] h-[70%] md:h-[65%] lg:h-[90%] bg-[#FF1212] z-50 shadow-lg overflow-y-auto"
         style={{
-          // Using a custom path to create a shape with straight top instead of triangle
           clipPath: "polygon(0% 0%, 100% 0%, 100% 75%, 50% 100%, 0% 75%)",
-          // Adding a more pronounced shadow for depth
           boxShadow: "0 10px 25px rgba(0,0,0,0.5)",
         }}
         variants={{
@@ -132,7 +200,7 @@ const PreLogo = () => {
             scale: 0.95,
             transition: {
               type: "tween",
-              ease: [0.22, 1, 0.36, 1], // Custom cubic-bezier for elegant chandelier-like movement
+              ease: [0.22, 1, 0.36, 1],
               duration: 0.8,
             },
           },
@@ -142,9 +210,9 @@ const PreLogo = () => {
             scale: 1,
             transition: {
               type: "tween",
-              ease: [0.16, 1, 0.3, 1], // Smooth easing for elegant descent
-              duration: 1.2, // Slower duration for more elegant movement
-              opacity: { duration: 0.6 }, // Fade in slightly faster than position change
+              ease: [0.16, 1, 0.3, 1],
+              duration: 1.2,
+              opacity: { duration: 0.6 },
             },
           },
         }}
@@ -152,8 +220,6 @@ const PreLogo = () => {
         animate={isDrawerOpen ? "open" : "closed"}
       >
         <div className="flex flex-col items-center justify-center min-h-full px-4 py-16 sm:px-8">
-          {/* Menu icon in drawer */}
-
           <motion.h2
             className="text-4xl font-bold mb-8 sm:mb-12 text-white font-ogg"
             initial={{ opacity: 0, y: -20 }}
