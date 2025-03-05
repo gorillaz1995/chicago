@@ -3,7 +3,7 @@
 import React, { useRef, useEffect, useState } from "react";
 import { Canvas, useThree, useFrame } from "@react-three/fiber";
 import { PerspectiveCamera, useGLTF, useTexture } from "@react-three/drei";
-
+import LoadingSec from "./Oer/Loadingsec";
 import * as THREE from "three";
 import gsap from "gsap";
 import ScrollTrigger from "gsap/ScrollTrigger";
@@ -161,12 +161,18 @@ function DynamicCameraRig() {
 const Scene: React.FC = () => {
   const [canvasError, setCanvasError] = useState(false);
   const [isClient, setIsClient] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const glRef = useRef<THREE.WebGLRenderer | null>(null);
   const headlineRef = useRef<HTMLSpanElement>(null);
   const headlineContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setIsClient(true);
+
+    // Ensure minimum loading time of 0.5 seconds
+    const minLoadingTimer = setTimeout(() => {
+      setIsLoading(false);
+    }, 1000);
 
     // Wait for DOM elements to be available
     const headline = headlineRef.current;
@@ -225,6 +231,7 @@ const Scene: React.FC = () => {
       });
 
       return () => {
+        clearTimeout(minLoadingTimer);
         if (glRef.current) {
           glRef.current.dispose();
         }
@@ -239,7 +246,7 @@ const Scene: React.FC = () => {
   };
 
   if (!isClient) {
-    return <div>Loading...</div>;
+    return <LoadingSec />;
   }
 
   if (canvasError) {
@@ -248,6 +255,10 @@ const Scene: React.FC = () => {
         Failed to create WebGL context. Please check your browser settings.
       </div>
     );
+  }
+
+  if (isLoading) {
+    return <LoadingSec />;
   }
 
   return (
