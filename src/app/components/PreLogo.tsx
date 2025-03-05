@@ -66,7 +66,7 @@ const PreLogo = () => {
           xmlnsXlink="http://www.w3.org/1999/xlink"
           viewBox="0 0 800 800"
           width="100%"
-          height="150%"
+          height="100%"
           preserveAspectRatio="xMidYMid meet"
           style={{
             filter: "drop-shadow(0 0 10px rgba(220,20,60,0.3))",

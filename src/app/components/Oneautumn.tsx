@@ -351,25 +351,16 @@ function DynamicCameraRig() {
     { pos: [0.25, -0.2, 2.6], lookAt: [0, 0.1, 0], ease: 0.009 },
     { pos: [0.5, 0.1, 2.8], lookAt: [0, 0, 0], ease: 0.01 },
     { pos: [0.5, 0.5, 3], lookAt: [0, -0.25, 0], ease: 0.011 },
-    { pos: [1.25, 0.75, 3.1], lookAt: [0, 0.1, 0], ease: 0.012 },
-    { pos: [2, 1, 3.2], lookAt: [0, 0.4, 0], ease: 0.013 },
-    { pos: [1.5, 1.25, 3.35], lookAt: [0, 0.5, 0], ease: 0.014 },
-    { pos: [1, 1.5, 3.5], lookAt: [0, 0.6, 0], ease: 0.015 },
-    { pos: [0, 1.25, 3.65], lookAt: [0, 0.45, 0], ease: 0.016 },
-    { pos: [-1, 0.5, 3.8], lookAt: [0, 0.3, 0], ease: 0.017 },
-    { pos: [-1.5, 0, 3.9], lookAt: [0, 0, 0], ease: 0.018 },
-    { pos: [-2, -0.5, 4], lookAt: [0, -0.2, 0], ease: 0.019 },
-    { pos: [-1.5, 0.25, 3.9], lookAt: [0, 0.15, 0], ease: 0.018 },
-    { pos: [-1, 1, 3.8], lookAt: [0, 0.5, 0], ease: 0.017 },
-    { pos: [-0.5, 1.5, 3.65], lookAt: [0, 0.75, 0], ease: 0.016 },
-    { pos: [0, 2, 3.5], lookAt: [0, 1, 0], ease: 0.015 },
   ];
 
   useEffect(() => {
     const handleScroll = () => {
       const scrollPos = window.scrollY;
       const windowHeight = window.innerHeight;
-      const rawSection = (scrollPos / windowHeight) * 2; // Multiply by 2 for smoother transitions
+      // Only animate for first 20% of next section
+      const maxScroll = windowHeight * 1.2; // 120% of first section
+      const clampedScrollPos = Math.min(scrollPos, maxScroll);
+      const rawSection = (clampedScrollPos / windowHeight) * 2;
       const section = Math.min(
         Math.floor(rawSection),
         cameraPositions.length - 1
@@ -562,7 +553,14 @@ const Scene: React.FC = () => {
   }
 
   return (
-    <div style={{ position: "relative", width: "100%", height: "100vh" }}>
+    <div
+      style={{
+        position: "relative",
+        width: "100%",
+        height: "100vh",
+        overflow: "hidden",
+      }}
+    >
       {/* NEW ERA Headline */}
       <div
         ref={headlineContainerRef}
@@ -571,7 +569,7 @@ const Scene: React.FC = () => {
           top: "20%",
           left: 0,
           width: "100%",
-          zIndex: -1,
+          zIndex: 1,
           display: "flex",
           justifyContent: "center",
           alignItems: "center",
@@ -587,26 +585,27 @@ const Scene: React.FC = () => {
             textShadow: "3px 3px 6px rgba(0,0,0,0.4)",
             letterSpacing: "0.2em",
             textAlign: "left",
-            whiteSpace: "normal", // Allow text wrapping
-            wordBreak: "break-word", // Break words when needed
-            display: "flex", // Keep flex for dot alignment
+            whiteSpace: "normal",
+            wordBreak: "break-word",
+            display: "flex",
             alignItems: "center",
-            flexWrap: "wrap", // Allow flex items to wrap
-            justifyContent: "center", // Center wrapped content
+            flexWrap: "wrap",
+            justifyContent: "center",
           }}
         >
           <span ref={headlineRef}>DISTINCT</span>
         </h1>
       </div>
 
+      {/* Canvas container limited to first section */}
       <div
         style={{
-          position: "fixed",
+          position: "absolute",
           top: 0,
           left: 0,
           width: "100%",
           height: "100%",
-          zIndex: 1,
+          zIndex: 0,
         }}
       >
         <Canvas
@@ -620,13 +619,12 @@ const Scene: React.FC = () => {
           eventSource={document.getElementById("root") || undefined}
           eventPrefix="client"
         >
-          <PerspectiveCamera makeDefault position={[0, 0, 3]} fov={80} />
+          <PerspectiveCamera makeDefault position={[0, 0, 2]} fov={80} />
           <DynamicCameraRig />
-          <ambientLight intensity={0.9} />
-          <pointLight position={[10, 10, 10]} />
-          <directionalLight position={[3, 3, 3]} intensity={5} castShadow />
-          {/* Add white fog near bottom of view */}
-          <fog attach="fog" args={["white", 1, 4]} />
+          <ambientLight intensity={0.1} />
+          <pointLight position={[5, 5, 5]} />
+          <directionalLight position={[3, 3, 3]} intensity={3} castShadow />
+          <fog attach="fog" args={["white", 1, 3]} />
           <Sphere scale={0.4} />
         </Canvas>
       </div>
@@ -830,9 +828,10 @@ const Scene: React.FC = () => {
             popup.innerText = "Număr de telefon copiat";
             document.body.appendChild(popup);
           }}
-          className="px-12 py-2 rounded-full relative bg-black text-white text-xl lg:text-6xl hover:shadow-4xl hover:shadow-white/[0.1] transition duration-100 border border-red-300 font-ogg"
+          className="px-12 py-2 rounded-full relative bg-black text-white text-xl lg:text-5xl hover:shadow-4xl hover:shadow-white/[0.1] transition duration-100 border border-red-300 font-ogg"
           style={{
             marginLeft: "max(0px, calc((100vw - 1000px) * 1.5))",
+            transform: "scale(1)", // Default scale for mobile
           }}
         >
           <div className="absolute inset-x-0 h-px w-1/2 mx-auto -top-px shadow-4xl bg-gradient-to-r from-transparent via-red-600 to-transparent" />
