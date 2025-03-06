@@ -6,15 +6,15 @@ import { FlipWords } from "./FlipWords";
 const LoadingSec = () => {
   // Array of greetings in different languages
   const greetings = [
-    "SALUT",
-    "HELLO",
-    "HOLA",
-    "CIAO",
-    "BONJOUR",
-    "HALLO",
-    "ПРИВЕТ",
+    "SALUT!",
+    "HELLO!",
+    "HOLA!",
+    "CIAO!",
+    "BONJOUR!",
+    "HALLO!",
+    "ПРИВЕТ!",
     "你好",
-    "こんにちは",
+    "!こんにちは",
   ];
 
   return (
@@ -24,7 +24,7 @@ const LoadingSec = () => {
         <FlipWords
           words={greetings}
           duration={1000} // 1 second duration between words
-          className="text-6xl md:text-8xl font-bold text-white tracking-tight"
+          className="text-6xl md:text-8xl  text-white font-geist font-extralight tracking-tight"
         />
       </div>
     </div>

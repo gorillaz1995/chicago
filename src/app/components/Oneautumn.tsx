@@ -169,11 +169,6 @@ const Scene: React.FC = () => {
   useEffect(() => {
     setIsClient(true);
 
-    // Ensure minimum loading time of 0.5 seconds
-    const minLoadingTimer = setTimeout(() => {
-      setIsLoading(false);
-    }, 1000);
-
     // Wait for DOM elements to be available
     const headline = headlineRef.current;
     const container = headlineContainerRef.current;
@@ -231,7 +226,6 @@ const Scene: React.FC = () => {
       });
 
       return () => {
-        clearTimeout(minLoadingTimer);
         if (glRef.current) {
           glRef.current.dispose();
         }
@@ -257,10 +251,6 @@ const Scene: React.FC = () => {
     );
   }
 
-  if (isLoading) {
-    return <LoadingSec />;
-  }
-
   return (
     <div
       style={{
@@ -270,6 +260,8 @@ const Scene: React.FC = () => {
         overflow: "hidden",
       }}
     >
+      {isLoading && <LoadingSec />}
+
       {/* NEW ERA Headline */}
       <div
         ref={headlineContainerRef}
@@ -323,6 +315,8 @@ const Scene: React.FC = () => {
           onCreated={({ gl }) => {
             gl.setClearColor(0x000000, 0);
             glRef.current = gl;
+            // Set loading to false after Canvas is created
+            setTimeout(() => setIsLoading(false), 1000);
           }}
           onError={handleContextCreationError}
           eventSource={document.getElementById("root") || undefined}
