@@ -15,13 +15,31 @@ export function LampDemo() {
           duration: 0.8,
           ease: "easeInOut",
         }}
-        className="mt-8 bg-gradient-to-br from-[#e0e0ff] to-[#b4c6ff] py-4 bg-clip-text text-center  font-medium tracking-tight text-transparent "
+        className="mt-8 py-4 text-center tracking-tight"
       >
-        <span className="font-muller font-extrabold text-4xl md:text-8xl ">
-          Fii fizibil in mediul digital!
+        <span
+          className="font-geist font-extrabold text-4xl md:text-8xl"
+          style={{
+            backgroundImage:
+              "linear-gradient(to right bottom, #333333, #525252, #747474, #979797, #bcbcbc, #cecece, #e0e0e0, #f2f2f2, #f3f3f3, #f4f5f4, #f6f6f6, #f7f7f7)",
+            WebkitBackgroundClip: "text",
+            backgroundClip: "text",
+            color: "transparent",
+          }}
+        >
+          Fii vizibil in mediul digital
         </span>
         <br />
-        <span className="font-averta text-4xl md:text-7xl">
+        <span
+          className="font-geist font-thin text-4xl md:text-7xl"
+          style={{
+            backgroundImage:
+              "linear-gradient(to right bottom, #333333, #525252, #747474, #979797, #bcbcbc, #cecece, #e0e0e0, #f2f2f2, #f3f3f3, #f4f5f4, #f6f6f6, #f7f7f7)",
+            WebkitBackgroundClip: "text",
+            backgroundClip: "text",
+            color: "transparent",
+          }}
+        >
           Autentic si relevant.
         </span>
       </motion.div>
@@ -143,7 +161,7 @@ export const LampContainer = ({
         <div className="absolute inset-auto z-40 h-44 w-full -translate-y-[12.5rem] bg-[rgba(15,15,25,1)]"></div>
       </div>
 
-      <div className="relative z-50 flex -translate-y-80 flex-col items-center px-5">
+      <div className="relative z-50 flex -translate-y-80 flex-col items-center px-5 ">
         {children}
       </div>
 
@@ -152,8 +170,8 @@ export const LampContainer = ({
         onClick={scrollToContent}
         className="absolute top-[85%] left-1/2 transform -translate-x-1/2 -translate-y-1/2 inline-flex h-12 overflow-hidden rounded-full p-[1px] focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 focus:ring-offset-slate-50"
       >
-        <span className="absolute inset-[-1000%] animate-[spin_2s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,#E2CBFF_0%,#393BB2_50%,#E2CBFF_100%)]" />
-        <span className="inline-flex h-full w-full cursor-pointer items-center justify-center rounded-full bg-slate-950 px-3 py-1 text-sm font-medium text-white backdrop-blur-3xl">
+        <span className="absolute inset-[-1000%] animate-[spin_2s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,#333333_0%,#979797_50%,#f7f7f7_75%,#333333_100%)]" />
+        <span className="inline-flex h-full w-full cursor-pointer items-center justify-center rounded-full  px-3 py-1 text-sm font-medium font-geist text-black backdrop-blur-3xl">
           Alege viitorul
         </span>
       </button>

@@ -49,14 +49,14 @@ export function BoxRevealDemo() {
       <BoxReveal boxColor={"#FF1212"} duration={0.5}>
         <h2
           className={`mt-[.5rem] ${
-            isMobile ? "text-[0.875rem]" : "text-[1rem]"
+            isMobile ? "text-[0.8rem]" : "text-[1rem]"
           } font-geist font-normal`}
         >
           Utilizare A.I. pentru solutii eficiente, costuri reduse si timp salvat
           {!isMobile && <br />}{" "}
           <span
             className={`font-geist font-bold ${
-              isMobile ? "text-[1.25rem] block mt-2" : "text-[1.5rem]"
+              isMobile ? "text-[1rem] block mt-2" : "text-[1.5rem]"
             }`}
             style={{
               backgroundImage:
@@ -76,7 +76,7 @@ export function BoxRevealDemo() {
         >
           <p
             className={`${
-              isMobile ? "text-[1.2rem]" : "text-3xl"
+              isMobile ? "text-[1rem]" : "text-3xl"
             } font-geist font-light`}
           >
             Servicii custom de{" "}
