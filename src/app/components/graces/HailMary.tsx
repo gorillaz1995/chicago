@@ -32,20 +32,22 @@ const Section2 = ({ progress }: { progress: MotionValue<number> }) => (
     whileInView="animate"
     viewport={{ once: true, amount: 0.8 }}
     style={{
+      // Use transform to animate background gradient based on scroll progress
       background: useTransform(
         progress,
         [0, 0.3],
         [
-          "linear-gradient(to bottom, #0f0f0f, #000000)",
-          "linear-gradient(to bottom, #b1b1b1, #bbbbbb, #c5c5c5, #cfcfcf, #d9d9d9, #dfdfdf, #e4e4e4, #eaeaea, #ededed, #f1f1f1, #f4f4f4, #f8f8f8)",
+          "linear-gradient(to bottom, #333333, #000000)",
+          "linear-gradient(to bottom, #b1b1b1, #bbbbbb, #c5c5c5, #cfcfcf, #d9d9d9, #dfdfdf, #e4e4e4, #eaeaea, #ededed, #f1f1f1, #f4f4f4, #f8f8f8, #a1a1a1)", // Updated final color
         ]
       ),
     }}
   >
     <div className="max-w-4xl">
       <motion.h2
-        className="text-4xl md:text-6xl  mb-8 bg-clip-text text-transparent font-geist font-semibold"
+        className="text-4xl md:text-6xl mb-8 bg-clip-text text-transparent font-geist font-semibold"
         style={{
+          // Use transform to animate text gradient based on scroll progress
           backgroundImage: useTransform(
             progress,
             [0, 0.3],
@@ -66,6 +68,7 @@ const Section2 = ({ progress }: { progress: MotionValue<number> }) => (
       <motion.div
         className="text-lg md:text-xl leading-relaxed font-geist font-light overflow-hidden"
         style={{
+          // Use transform to animate text color based on scroll progress
           color: useTransform(progress, [0, 0.3], ["#f9fafb", "#1f2937"]),
         }}
         initial="initial"
