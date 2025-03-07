@@ -1,13 +1,6 @@
 "use client";
 import { cn } from "@/lib/utils";
 import { BentoGrid, BentoGridItem } from "./bento-grid";
-import {
-  IconBoxAlignRightFilled,
-  IconClipboardCopy,
-  IconFileBroken,
-  IconSignature,
-  IconTableColumn,
-} from "@tabler/icons-react";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 
@@ -321,7 +314,7 @@ const items = [
     ),
     header: <SkeletonOne />,
     className: "md:col-span-1",
-    icon: <IconClipboardCopy className="h-4 w-4 text-neutral-500" />,
+    icon: <span className="h-4 w-4 text-neutral-500">📋</span>,
   },
   {
     title: "Fara clauze contractuale omise",
@@ -332,7 +325,7 @@ const items = [
     ),
     header: <SkeletonTwo />,
     className: "md:col-span-1",
-    icon: <IconFileBroken className="h-4 w-4 text-neutral-500" />,
+    icon: <span className="h-4 w-4 text-neutral-500">📄</span>,
   },
   {
     title: "Continut digital optimizat",
@@ -344,7 +337,7 @@ const items = [
     ),
     header: <SkeletonThree />,
     className: "md:col-span-1",
-    icon: <IconSignature className="h-4 w-4 text-neutral-500" />,
+    icon: <span className="h-4 w-4 text-neutral-500">✍️</span>,
   },
   {
     title: "Sentiment Analysis",
@@ -355,7 +348,7 @@ const items = [
     ),
     header: <SkeletonFour />,
     className: "md:col-span-2",
-    icon: <IconTableColumn className="h-4 w-4 text-neutral-500" />,
+    icon: <span className="h-4 w-4 text-neutral-500">📊</span>,
   },
 
   {
@@ -367,6 +360,6 @@ const items = [
     ),
     header: <SkeletonFive />,
     className: "md:col-span-1",
-    icon: <IconBoxAlignRightFilled className="h-4 w-4 text-neutral-500" />,
+    icon: <span className="h-4 w-4 text-neutral-500">📑</span>,
   },
 ];
