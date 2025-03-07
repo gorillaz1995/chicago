@@ -26,7 +26,7 @@ function ServiciiPage() {
   return (
     <div style={{ position: "relative", width: "100%", height: "100%" }}>
       <HailMary />
-      <div className="gradient">
+      <div className="gradient1">
         <BentoGridThirdDemo />
       </div>
     </div>
