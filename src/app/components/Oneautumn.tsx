@@ -3,7 +3,7 @@
 import React, { useRef, useEffect, useState } from "react";
 import { Canvas, useThree, useFrame } from "@react-three/fiber";
 import { PerspectiveCamera, useGLTF, useTexture } from "@react-three/drei";
-import LoadingSec from "./Oer/Loadingsec";
+import { LoadingSec } from "./Oer/Loadingsec";
 import * as THREE from "three";
 import gsap from "gsap";
 import ScrollTrigger from "gsap/ScrollTrigger";
@@ -240,7 +240,8 @@ const Scene: React.FC = () => {
   };
 
   if (!isClient) {
-    return <LoadingSec />;
+    // Use the LoadingSec component with controlled loading state
+    return <LoadingSec isLoading={true} duration={3000} />;
   }
 
   if (canvasError) {
@@ -260,7 +261,14 @@ const Scene: React.FC = () => {
         overflow: "hidden",
       }}
     >
-      {isLoading && <LoadingSec />}
+      {/* Use the LoadingSec component with controlled loading state */}
+      {isLoading && (
+        <LoadingSec
+          isLoading={isLoading}
+          onLoadingComplete={() => setIsLoading(false)}
+          duration={1250}
+        />
+      )}
 
       {/* NEW ERA Headline */}
       <div
@@ -352,7 +360,8 @@ const Scene: React.FC = () => {
             position: "absolute",
             width: "120%",
             height: "clamp(2.232rem, 4.65vw, 5.58rem)",
-            background: "#383838",
+            backgroundImage:
+              "radial-gradient(circle, #303030, #313131, #333333, #343434, #363636, #363636, #373737, #373737, #363636, #353535, #353535, #343434)",
             transform: "rotate(-15deg) translateY(-100%)",
             display: "flex",
             justifyContent: "center",
@@ -379,7 +388,7 @@ const Scene: React.FC = () => {
             <div style={{ overflow: "hidden", width: "100%" }}>
               <div style={{ display: "flex", width: "200%" }}>
                 <span
-                  className="font-geist font-normal"
+                  className="font-geist font-normal "
                   style={{
                     display: "inline-block",
                     whiteSpace: "nowrap",
@@ -423,7 +432,8 @@ const Scene: React.FC = () => {
             position: "absolute",
             width: "120%",
             height: "clamp(2.232rem, 4.65vw, 5.58rem)",
-            background: "#F8F8F8",
+            backgroundImage:
+              "linear-gradient(to top, #f8f8f8, #f4f4f4, #f1f1f1, #ededed, #eaeaea, #eaeaea, #eaeaea, #eaeaea, #ededed, #f0f0f0, #f4f4f4, #f7f7f7)",
             transform: "rotate(-15deg)",
             display: "flex",
             justifyContent: "center",
@@ -524,10 +534,13 @@ const Scene: React.FC = () => {
             popup.innerText = "Număr de telefon copiat";
             document.body.appendChild(popup);
           }}
-          className="px-8 py-2 rounded-full bg-black text-2xl lg:text-3xl text-white focus:ring-2 focus:ring-blue-400 hover:shadow-xl transition duration-200"
+          className="px-8 py-2 rounded-full text-2xl lg:text-3xl text-white focus:ring-2 focus:ring-blue-400 hover:shadow-xl transition duration-200"
           style={{
             marginLeft: "max(0px, calc((100vw - 1000px) * 1.5))",
             transform: "scale(1)",
+            backgroundImage:
+              "radial-gradient(circle, #353535, #2c2c2c, #232323, #1b1b1b, #121212, #121212, #121212, #121212, #1b1b1b, #232323, #2c2c2c, #353535)",
+            boxShadow: "4px 4px 8px rgba(255, 255, 255, 0.2)", // Added white shadow for 3D effect
           }}
         >
           <div className="absolute inset-x-0 h-px w-1/2 mx-auto -top-px shadow-4xl bg-gradient-to-r from-transparent via-red-600 to-transparent" />

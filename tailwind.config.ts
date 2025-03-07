@@ -53,11 +53,16 @@ const config: Config = {
         },
       },
       animation: {
+        orbit: "orbit calc(var(--duration)*1s) linear infinite",
+        "orbit-reverse":
+          "orbit calc(var(--duration)*1s) linear infinite reverse",
+        "orbit-pulse":
+          "orbit calc(var(--duration)*1s) linear infinite, pulse 2s ease-in-out infinite",
+        "icon-hover": "icon-hover 0.3s ease-in-out forwards",
         shimmer: "shimmer 1s linear infinite",
         marquee: "marquee var(--duration) linear infinite",
         "marquee-vertical": "marquee-vertical var(--duration) linear infinite",
       },
-
       keyframes: {
         shimmer: {
           from: {
@@ -68,12 +73,38 @@ const config: Config = {
           },
         },
         marquee: {
-          from: { transform: "translateX(0)" },
-          to: { transform: "translateX(calc(-100% - var(--gap)))" },
+          from: {
+            transform: "translateX(0)",
+          },
+          to: {
+            transform: "translateX(calc(-100% - var(--gap)))",
+          },
         },
         "marquee-vertical": {
-          from: { transform: "translateY(0)" },
-          to: { transform: "translateY(calc(-100% - var(--gap)))" },
+          from: {
+            transform: "translateY(0)",
+          },
+          to: {
+            transform: "translateY(calc(-100% - var(--gap)))",
+          },
+        },
+        orbit: {
+          "0%": {
+            transform:
+              "rotate(calc(var(--angle) * 1deg)) translateY(calc(var(--radius) * 1px)) rotate(calc(var(--angle) * -1deg))",
+          },
+          "100%": {
+            transform:
+              "rotate(calc(var(--angle) * 1deg + 360deg)) translateY(calc(var(--radius) * 1px)) rotate(calc((var(--angle) * -1deg) - 360deg))",
+          },
+        },
+        "icon-hover": {
+          "0%": {
+            transform: "scale(1) rotate(0deg)",
+          },
+          "100%": {
+            transform: "scale(1.2) rotate(5deg)",
+          },
         },
       },
       fontFamily: {

@@ -3,6 +3,7 @@ import type React from "react";
 import type { ComponentPropsWithoutRef, ReactNode } from "react";
 
 import { cn } from "@/lib/utils";
+import { BorderBeam } from "@/components/magicui/border-beam";
 
 interface BentoGridProps extends ComponentPropsWithoutRef<"div"> {
   children: ReactNode;
@@ -54,6 +55,17 @@ const BentoCard = ({
     )}
     {...props}
   >
+    {/* Border beam animation on hover */}
+    <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+      <BorderBeam
+        size={160}
+        duration={1.5}
+        colorFrom="#8e1616"
+        colorTo="#d84040"
+        className="opacity-90"
+      />
+    </div>
+
     <div className="bg-gradient-to-br from-white via-[#f8f8f8] to-[#f0f0f0]">
       {background}
     </div>

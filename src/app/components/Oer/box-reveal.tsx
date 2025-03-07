@@ -12,7 +12,7 @@ interface BoxRevealProps {
 export const BoxReveal = ({
   children,
   width = "fit-content",
-  boxColor = "#5046e6",
+
   duration,
 }: BoxRevealProps) => {
   const mainControls = useAnimation();
@@ -38,7 +38,7 @@ export const BoxReveal = ({
       // Create interval for infinite loop
       const interval = setInterval(() => {
         startAnimation();
-      }, 4500); // 3.5 seconds
+      }, 6500); // 3.5 seconds
 
       return () => clearInterval(interval);
     }
@@ -72,7 +72,8 @@ export const BoxReveal = ({
           left: 0,
           right: 0,
           zIndex: 20,
-          background: boxColor,
+          background:
+            "linear-gradient(to right, #d84040, #b2393a, #8e3134, #6a2a2c, #482223, #391e1f, #2b1a1a, #1d1616, #1d1616, #1d1616, #1d1616, #1d1616)",
         }}
       />
     </div>

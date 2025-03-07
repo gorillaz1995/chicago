@@ -1,89 +1,11 @@
-import { TrendingUp, Share2Icon, Layers, Github } from "lucide-react";
+import { TrendingUp, Share2Icon, Layers, ShieldAlert } from "lucide-react";
 
-import { cn } from "@/lib/utils";
+// Removed unused import of cn
 import AnimatedBeamMultipleOutputDemo from "@/components/animated-beam-multiple-outputs";
 import AnimatedListDemo from "@/components/animated-list-demo";
 import { BentoCard, BentoGrid } from "@/components/bento-grid";
-import { Marquee } from "@/components/marquee";
+import { OrbitingCircles } from "@/components/magicui/orbiting-circles";
 import { BoxRevealDemo } from "@/app/components/Oer/box-reveal-demo";
-
-const files = [
-  {
-    name: "facturi.pdf",
-    body: `FACTURA FISCALĂ\n
-      Seria RO | Nr. 2023-156\n
-      \n
-      FURNIZOR                                  CLIENT\n
-      SC EXPERT CONSULTING SRL                  SC DORU SRL\n
-      CUI: RO12345678                          CUI: RO87654321\n
-      \n
-      PRODUSE/SERVICII\n
-      Servicii consultanță profesională............1.500,00 lei\n
-      TVA (19%).................................285,00 lei\n
-      TOTAL DE PLATĂ............................1.785,00 lei\n
-      \n
-      Data scadentă: 15.04.2023\n
-      Modalitate plată: Transfer bancar`,
-  },
-  {
-    name: "situatie_financiara.xlsx",
-    body: `RAPORT FINANCIAR - IANUARIE 2023\n
-      \n
-      VENITURI OPERAȚIONALE\n
-      Venituri din servicii.....................45.600,00 lei\n
-      \n
-      CHELTUIELI OPERAȚIONALE\n 
-      Cheltuieli totale........................28.900,00 lei\n
-      \n
-      REZULTATE FINANCIARE\n
-      Profit brut..............................16.700,00 lei\n
-      Taxe și impozite.........................2.670,00 lei\n
-      Profit net..............................14.030,00 lei\n
-      \n
-      Creștere față de luna precedentă: +12%`,
-  },
-  {
-    name: "Logo.svg",
-    body: `<?xml version="1.0" encoding="UTF-8"?>\n
-      <svg width='100' height='50' viewBox="0 0 100 50">\n
-        <rect width='40' height='40' fill='#2B60DE'/>\n
-        <text x='45' y='25' fill='#333' font-family="Arial" font-weight="bold">\n
-          FIRMA SRL\n
-        </text>\n
-      </svg>`,
-  },
-  {
-    name: "contracte_furnizori.docx",
-    body: `CONTRACT DE FURNIZARE\n
-      Nr. 2023/45 din 01.01.2023\n
-      \n
-      PĂRȚI CONTRACTANTE\n
-      Furnizor: Materiale SRL\n
-      Beneficiar: Expert Consulting SRL\n
-      \n
-      OBIECTUL CONTRACTULUI\n
-      Art.1 Livrare consumabile birou\n
-      \n
-      VALOARE CONTRACT\n
-      Valoare lunară: 890,00 lei + TVA\n
-      Termen livrare: 48 ore\n
-      Durata contract: 12 luni`,
-  },
-  {
-    name: "instructiuni_soft.txt",
-    body: `GHID UTILIZARE - GENERARE RAPORT LUNAR\n
-      \n
-      Pași necesari:\n
-      1. Accesați modulul "Rapoarte" din meniul principal\n
-      2. În secțiunea "Interval", selectați:\n
-         - Data început: 01 luna curentă\n
-         - Data sfârșit: 31 luna curentă\n
-      3. Din categoria "Tip Raport", bifați opțiunea "Centralizator"\n
-      4. Click pe butonul "Export PDF" din partea dreaptă jos\n
-      \n
-      Notă: Asigurați-vă că aveți toate datele actualizate înainte de generare`,
-  },
-];
 
 const features = [
   {
@@ -99,35 +21,325 @@ const features = [
   },
   {
     Icon: Layers,
-    name: "Salveaza timp",
+    name: "Ai probleme cu organizarea?",
     description: "Toate fluxurile, atat interne cat si externe, centralizate.",
     className: "col-span-3 lg:col-span-2",
     background: (
-      <Marquee
-        pauseOnHover
-        className="absolute top-10 [--duration:20s] [mask-image:linear-gradient(to_top,transparent_40%,#000_100%)]"
-      >
-        {files.map((f, idx) => (
-          <figure
-            key={idx}
-            className={cn(
-              "relative w-64 h-96 cursor-pointer overflow-hidden rounded-xl border p-4",
-              "border-gray-950/[.1] bg-gray-950/[.01] hover:bg-gray-950/[.05]",
-
-              "transform-gpu blur-[1px] transition-all duration-300 ease-out hover:blur-none"
-            )}
+      <div className="absolute inset-0 flex items-center justify-center">
+        <OrbitingCircles
+          className="relative  flex flex-col items-center justify-center overflow-hidden"
+          duration={20}
+          radius={100}
+          iconSize={40}
+        >
+          <svg
+            width="24"
+            height="24"
+            viewBox="0 0 175.216 175.552"
+            xmlns="http://www.w3.org/2000/svg"
+            className="transition-transform hover:scale-110"
           >
-            <div className="flex flex-row items-center gap-2">
-              <div className="flex flex-col">
-                <figcaption className="text-sm font-lg dark:text-white">
-                  {f.name}
-                </figcaption>
-              </div>
-            </div>
-            <blockquote className="mt-2 text-xs">{f.body}</blockquote>
-          </figure>
-        ))}
-      </Marquee>
+            <defs>
+              <linearGradient
+                id="b"
+                x1="85.915"
+                x2="86.535"
+                y1="32.567"
+                y2="137.092"
+                gradientUnits="userSpaceOnUse"
+              >
+                <stop offset="0" stopColor="#57d163" />
+                <stop offset="1" stopColor="#23b33a" />
+              </linearGradient>
+            </defs>
+            <path
+              d="M87.184 25.227c-33.733 0-61.166 27.423-61.178 61.13a60.98 60.98 0 0 0 9.349 32.535l1.455 2.313-6.179 22.558 23.146-6.069 2.235 1.324c9.387 5.571 20.15 8.517 31.126 8.523h.023c33.707 0 61.14-27.426 61.153-61.135a60.75 60.75 0 0 0-17.895-43.251 60.75 60.75 0 0 0-43.235-17.928z"
+              fill="url(#b)"
+            />
+            <path
+              d="M68.772 55.603c-1.378-3.061-2.828-3.123-4.137-3.176l-3.524-.043c-1.226 0-3.218.46-4.902 2.3s-6.435 6.287-6.435 15.332 6.588 17.785 7.506 19.013 12.718 20.381 31.405 27.75c15.529 6.124 18.689 4.906 22.061 4.6s10.877-4.447 12.408-8.74 1.532-7.971 1.073-8.74-1.685-1.226-3.525-2.146-10.877-5.367-12.562-5.981-2.91-.919-4.137.921-4.746 5.979-5.819 7.206-2.144 1.381-3.984.462-7.76-2.861-14.784-9.124c-5.465-4.873-9.154-10.891-10.228-12.73s-.114-2.835.808-3.751c.825-.824 1.838-2.147 2.759-3.22s1.224-1.84 1.836-3.065.307-2.301-.153-3.22-4.032-10.011-5.666-13.647"
+              fill="#ffffff"
+              fillRule="evenodd"
+            />
+          </svg>
+          {/* Google Drive icon */}
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            viewBox="0 0 48 48"
+            className="transition-transform hover:scale-110"
+          >
+            <path
+              fill="#4caf50"
+              d="M45,16.2l-5,2.75l-5,4.75L35,40h7c1.657,0,3-1.343,3-3V16.2z"
+            ></path>
+            <path
+              fill="#1e88e5"
+              d="M3,16.2l3.614,1.71L13,23.7V40H6c-1.657,0-3-1.343-3-3V16.2z"
+            ></path>
+            <polygon
+              fill="#e53935"
+              points="35,11.2 24,19.45 13,11.2 12,17 13,23.7 24,31.95 35,23.7 36,17"
+            ></polygon>
+            <path
+              fill="#c62828"
+              d="M3,12.298V16.2l10,7.5V11.2L9.876,8.859C9.132,8.301,8.228,8,7.298,8h0C4.924,8,3,9.924,3,12.298z"
+            ></path>
+            <path
+              fill="#fbc02d"
+              d="M45,12.298V16.2l-10,7.5V11.2l3.124-2.341C38.868,8.301,39.772,8,40.702,8h0 C43.076,8,45,9.924,45,12.298z"
+            ></path>
+          </svg>
+          <svg
+            width="24"
+            height="24"
+            viewBox="0 0 87.3 78"
+            xmlns="http://www.w3.org/2000/svg"
+            className="transition-transform hover:scale-110"
+          >
+            <path
+              d="m6.6 66.85 3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8h-27.5c0 1.55.4 3.1 1.2 4.5z"
+              fill="#0066da"
+            />
+            <path
+              d="m43.65 25-13.75-23.8c-1.35.8-2.5 1.9-3.3 3.3l-25.4 44a9.06 9.06 0 0 0 -1.2 4.5h27.5z"
+              fill="#00ac47"
+            />
+            <path
+              d="m73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5h-27.502l5.852 11.5z"
+              fill="#ea4335"
+            />
+            <path
+              d="m43.65 25 13.75-23.8c-1.35-.8-2.9-1.2-4.5-1.2h-18.5c-1.6 0-3.15.45-4.5 1.2z"
+              fill="#00832d"
+            />
+            <path
+              d="m59.8 53h-32.3l-13.75 23.8c1.35.8 2.9 1.2 4.5 1.2h50.8c1.6 0 3.15-.45 4.5-1.2z"
+              fill="#2684fc"
+            />
+            <path
+              d="m73.4 26.5-12.7-22c-.8-1.4-1.95-2.5-3.3-3.3l-13.75 23.8 16.15 28h27.45c0-1.55-.4-3.1-1.2-4.5z"
+              fill="#ffba00"
+            />
+          </svg>
+
+          {/* WhatsApp icon */}
+          <svg
+            width="24"
+            height="24"
+            viewBox="0 0 175.216 175.552"
+            xmlns="http://www.w3.org/2000/svg"
+            className="transition-transform hover:scale-110"
+          >
+            <defs>
+              <linearGradient
+                id="b"
+                x1="85.915"
+                x2="86.535"
+                y1="32.567"
+                y2="137.092"
+                gradientUnits="userSpaceOnUse"
+              >
+                <stop offset="0" stopColor="#57d163" />
+                <stop offset="1" stopColor="#23b33a" />
+              </linearGradient>
+            </defs>
+            <path
+              d="M87.184 25.227c-33.733 0-61.166 27.423-61.178 61.13a60.98 60.98 0 0 0 9.349 32.535l1.455 2.313-6.179 22.558 23.146-6.069 2.235 1.324c9.387 5.571 20.15 8.517 31.126 8.523h.023c33.707 0 61.14-27.426 61.153-61.135a60.75 60.75 0 0 0-17.895-43.251 60.75 60.75 0 0 0-43.235-17.928z"
+              fill="url(#b)"
+            />
+            <path
+              d="M68.772 55.603c-1.378-3.061-2.828-3.123-4.137-3.176l-3.524-.043c-1.226 0-3.218.46-4.902 2.3s-6.435 6.287-6.435 15.332 6.588 17.785 7.506 19.013 12.718 20.381 31.405 27.75c15.529 6.124 18.689 4.906 22.061 4.6s10.877-4.447 12.408-8.74 1.532-7.971 1.073-8.74-1.685-1.226-3.525-2.146-10.877-5.367-12.562-5.981-2.91-.919-4.137.921-4.746 5.979-5.819 7.206-2.144 1.381-3.984.462-7.76-2.861-14.784-9.124c-5.465-4.873-9.154-10.891-10.228-12.73s-.114-2.835.808-3.751c.825-.824 1.838-2.147 2.759-3.22s1.224-1.84 1.836-3.065.307-2.301-.153-3.22-4.032-10.011-5.666-13.647"
+              fill="#ffffff"
+              fillRule="evenodd"
+            />
+          </svg>
+
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            viewBox="0 0 50 50"
+            className="transition-transform hover:scale-110"
+          >
+            <path d="M41,4H9C6.243,4,4,6.243,4,9v32c0,2.757,2.243,5,5,5h32c2.757,0,5-2.243,5-5V9C46,6.243,43.757,4,41,4z M37.006,22.323 c-0.227,0.021-0.457,0.035-0.69,0.035c-2.623,0-4.928-1.349-6.269-3.388c0,5.349,0,11.435,0,11.537c0,4.709-3.818,8.527-8.527,8.527 s-8.527-3.818-8.527-8.527s3.818-8.527,8.527-8.527c0.178,0,0.352,0.016,0.527,0.027v4.202c-0.175-0.021-0.347-0.053-0.527-0.053 c-2.404,0-4.352,1.948-4.352,4.352s1.948,4.352,4.352,4.352s4.527-1.894,4.527-4.298c0-0.095,0.042-19.594,0.042-19.594h4.016 c0.378,3.591,3.277,6.425,6.901,6.685V22.323z"></path>
+          </svg>
+
+          {/* Gmail icon */}
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            viewBox="0 0 48 48"
+            className="transition-transform hover:scale-110"
+          >
+            <path
+              fill="#4caf50"
+              d="M45,16.2l-5,2.75l-5,4.75L35,40h7c1.657,0,3-1.343,3-3V16.2z"
+            ></path>
+            <path
+              fill="#1e88e5"
+              d="M3,16.2l3.614,1.71L13,23.7V40H6c-1.657,0-3-1.343-3-3V16.2z"
+            ></path>
+            <polygon
+              fill="#e53935"
+              points="35,11.2 24,19.45 13,11.2 12,17 13,23.7 24,31.95 35,23.7 36,17"
+            ></polygon>
+            <path
+              fill="#c62828"
+              d="M3,12.298V16.2l10,7.5V11.2L9.876,8.859C9.132,8.301,8.228,8,7.298,8h0C4.924,8,3,9.924,3,12.298z"
+            ></path>
+            <path
+              fill="#fbc02d"
+              d="M45,12.298V16.2l-10,7.5V11.2l3.124-2.341C38.868,8.301,39.772,8,40.702,8h0 C43.076,8,45,9.924,45,12.298z"
+            ></path>
+          </svg>
+          <svg
+            width="24"
+            height="24"
+            viewBox="0 0 175.216 175.552"
+            xmlns="http://www.w3.org/2000/svg"
+            className="transition-transform hover:scale-110"
+          >
+            <defs>
+              <linearGradient
+                id="b"
+                x1="85.915"
+                x2="86.535"
+                y1="32.567"
+                y2="137.092"
+                gradientUnits="userSpaceOnUse"
+              >
+                <stop offset="0" stopColor="#57d163" />
+                <stop offset="1" stopColor="#23b33a" />
+              </linearGradient>
+            </defs>
+            <path
+              d="M87.184 25.227c-33.733 0-61.166 27.423-61.178 61.13a60.98 60.98 0 0 0 9.349 32.535l1.455 2.313-6.179 22.558 23.146-6.069 2.235 1.324c9.387 5.571 20.15 8.517 31.126 8.523h.023c33.707 0 61.14-27.426 61.153-61.135a60.75 60.75 0 0 0-17.895-43.251 60.75 60.75 0 0 0-43.235-17.928z"
+              fill="url(#b)"
+            />
+            <path
+              d="M68.772 55.603c-1.378-3.061-2.828-3.123-4.137-3.176l-3.524-.043c-1.226 0-3.218.46-4.902 2.3s-6.435 6.287-6.435 15.332 6.588 17.785 7.506 19.013 12.718 20.381 31.405 27.75c15.529 6.124 18.689 4.906 22.061 4.6s10.877-4.447 12.408-8.74 1.532-7.971 1.073-8.74-1.685-1.226-3.525-2.146-10.877-5.367-12.562-5.981-2.91-.919-4.137.921-4.746 5.979-5.819 7.206-2.144 1.381-3.984.462-7.76-2.861-14.784-9.124c-5.465-4.873-9.154-10.891-10.228-12.73s-.114-2.835.808-3.751c.825-.824 1.838-2.147 2.759-3.22s1.224-1.84 1.836-3.065.307-2.301-.153-3.22-4.032-10.011-5.666-13.647"
+              fill="#ffffff"
+              fillRule="evenodd"
+            />
+          </svg>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            viewBox="0 0 50 50"
+            className="transition-transform hover:scale-110"
+          >
+            <path d="M41,4H9C6.243,4,4,6.243,4,9v32c0,2.757,2.243,5,5,5h32c2.757,0,5-2.243,5-5V9C46,6.243,43.757,4,41,4z M37.006,22.323 c-0.227,0.021-0.457,0.035-0.69,0.035c-2.623,0-4.928-1.349-6.269-3.388c0,5.349,0,11.435,0,11.537c0,4.709-3.818,8.527-8.527,8.527 s-8.527-3.818-8.527-8.527s3.818-8.527,8.527-8.527c0.178,0,0.352,0.016,0.527,0.027v4.202c-0.175-0.021-0.347-0.053-0.527-0.053 c-2.404,0-4.352,1.948-4.352,4.352s1.948,4.352,4.352,4.352s4.527-1.894,4.527-4.298c0-0.095,0.042-19.594,0.042-19.594h4.016 c0.378,3.591,3.277,6.425,6.901,6.685V22.323z"></path>
+          </svg>
+
+          <svg
+            width="24"
+            height="24"
+            viewBox="0 0 87.3 78"
+            xmlns="http://www.w3.org/2000/svg"
+            className="transition-transform hover:scale-110"
+          >
+            <path
+              d="m6.6 66.85 3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8h-27.5c0 1.55.4 3.1 1.2 4.5z"
+              fill="#0066da"
+            />
+            <path
+              d="m43.65 25-13.75-23.8c-1.35.8-2.5 1.9-3.3 3.3l-25.4 44a9.06 9.06 0 0 0 -1.2 4.5h27.5z"
+              fill="#00ac47"
+            />
+            <path
+              d="m73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5h-27.502l5.852 11.5z"
+              fill="#ea4335"
+            />
+            <path
+              d="m43.65 25 13.75-23.8c-1.35-.8-2.9-1.2-4.5-1.2h-18.5c-1.6 0-3.15.45-4.5 1.2z"
+              fill="#00832d"
+            />
+            <path
+              d="m59.8 53h-32.3l-13.75 23.8c1.35.8 2.9 1.2 4.5 1.2h50.8c1.6 0 3.15-.45 4.5-1.2z"
+              fill="#2684fc"
+            />
+            <path
+              d="m73.4 26.5-12.7-22c-.8-1.4-1.95-2.5-3.3-3.3l-13.75 23.8 16.15 28h27.45c0-1.55-.4-3.1-1.2-4.5z"
+              fill="#ffba00"
+            />
+          </svg>
+
+          {/* TikTok icon */}
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            viewBox="0 0 50 50"
+            className="transition-transform hover:scale-110"
+          >
+            <path d="M41,4H9C6.243,4,4,6.243,4,9v32c0,2.757,2.243,5,5,5h32c2.757,0,5-2.243,5-5V9C46,6.243,43.757,4,41,4z M37.006,22.323 c-0.227,0.021-0.457,0.035-0.69,0.035c-2.623,0-4.928-1.349-6.269-3.388c0,5.349,0,11.435,0,11.537c0,4.709-3.818,8.527-8.527,8.527 s-8.527-3.818-8.527-8.527s3.818-8.527,8.527-8.527c0.178,0,0.352,0.016,0.527,0.027v4.202c-0.175-0.021-0.347-0.053-0.527-0.053 c-2.404,0-4.352,1.948-4.352,4.352s1.948,4.352,4.352,4.352s4.527-1.894,4.527-4.298c0-0.095,0.042-19.594,0.042-19.594h4.016 c0.378,3.591,3.277,6.425,6.901,6.685V22.323z"></path>
+          </svg>
+          <svg
+            width="24"
+            height="24"
+            viewBox="0 0 87.3 78"
+            xmlns="http://www.w3.org/2000/svg"
+            className="transition-transform hover:scale-110"
+          >
+            <path
+              d="m6.6 66.85 3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8h-27.5c0 1.55.4 3.1 1.2 4.5z"
+              fill="#0066da"
+            />
+            <path
+              d="m43.65 25-13.75-23.8c-1.35.8-2.5 1.9-3.3 3.3l-25.4 44a9.06 9.06 0 0 0 -1.2 4.5h27.5z"
+              fill="#00ac47"
+            />
+            <path
+              d="m73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5h-27.502l5.852 11.5z"
+              fill="#ea4335"
+            />
+            <path
+              d="m43.65 25 13.75-23.8c-1.35-.8-2.9-1.2-4.5-1.2h-18.5c-1.6 0-3.15.45-4.5 1.2z"
+              fill="#00832d"
+            />
+            <path
+              d="m59.8 53h-32.3l-13.75 23.8c1.35.8 2.9 1.2 4.5 1.2h50.8c1.6 0 3.15-.45 4.5-1.2z"
+              fill="#2684fc"
+            />
+            <path
+              d="m73.4 26.5-12.7-22c-.8-1.4-1.95-2.5-3.3-3.3l-13.75 23.8 16.15 28h27.45c0-1.55-.4-3.1-1.2-4.5z"
+              fill="#ffba00"
+            />
+          </svg>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            viewBox="0 0 48 48"
+            className="transition-transform hover:scale-110"
+          >
+            <path
+              fill="#4caf50"
+              d="M45,16.2l-5,2.75l-5,4.75L35,40h7c1.657,0,3-1.343,3-3V16.2z"
+            ></path>
+            <path
+              fill="#1e88e5"
+              d="M3,16.2l3.614,1.71L13,23.7V40H6c-1.657,0-3-1.343-3-3V16.2z"
+            ></path>
+            <polygon
+              fill="#e53935"
+              points="35,11.2 24,19.45 13,11.2 12,17 13,23.7 24,31.95 35,23.7 36,17"
+            ></polygon>
+            <path
+              fill="#c62828"
+              d="M3,12.298V16.2l10,7.5V11.2L9.876,8.859C9.132,8.301,8.228,8,7.298,8h0C4.924,8,3,9.924,3,12.298z"
+            ></path>
+            <path
+              fill="#fbc02d"
+              d="M45,12.298V16.2l-10,7.5V11.2l3.124-2.341C38.868,8.301,39.772,8,40.702,8h0 C43.076,8,45,9.924,45,12.298z"
+            ></path>
+          </svg>
+        </OrbitingCircles>
+      </div>
     ),
     href: "/files",
     cta: "View Files",
@@ -144,12 +356,12 @@ const features = [
     cta: "Learn More",
   },
   {
-    Icon: Github,
+    Icon: ShieldAlert,
     name: "Solutii no-code, low-code si custom",
     description: "Pentru a rezolva orice problema, in orice domeniu.",
     className: "col-span-3 lg:col-span-1",
     background: (
-      <div className="absolute transition-all duration-300 ease-out [mask-image:linear-gradient(to_top,transparent_40%,#000_100%)] group-hover:scale-[0.9]">
+      <div className="absolute transition-all duration-300 ease-out ">
         <BoxRevealDemo />
       </div>
     ),
