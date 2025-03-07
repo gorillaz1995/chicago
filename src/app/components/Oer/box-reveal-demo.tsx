@@ -24,11 +24,15 @@ export function BoxRevealDemo() {
   }, []);
 
   return (
-    <div className="size-full max-w-lg items-center justify-center overflow-hidden pt-8">
+    <div
+      className={`size-full max-w-lg items-center justify-center overflow-hidden pt-8 ${
+        isMobile ? "px-4" : ""
+      }`} // Add padding left and right for mobile view
+    >
       <BoxReveal boxColor={"#FF1212"} duration={0.5}>
         <p
           className={`${
-            isMobile ? "text-[2.5rem]" : "text-[3.5rem]"
+            isMobile ? "text-[2rem]" : "text-[3rem]"
           } font-semibold font-geist text-center`}
           style={{
             backgroundImage:
@@ -37,7 +41,7 @@ export function BoxRevealDemo() {
             color: "transparent",
           }}
         >
-          PROMPT Engineer
+          PROMPT Engineering
           <span className="font-geist font-semibold">.</span>
         </p>
       </BoxReveal>
@@ -67,10 +71,15 @@ export function BoxRevealDemo() {
       </BoxReveal>
 
       <BoxReveal boxColor={"#FF1212"} duration={0.5}>
-        <div className={`${isMobile ? "mt-4" : "mt-6"}`}>
-          <p className={`${isMobile ? "text-[0.9rem]" : "text-base"}`}>
-            De ce să pierzi timp și bani pe procese manuale când AI-ul poate
-            face treaba{" "}
+        <div
+          className={`${isMobile ? "mt-4" : "mt-6"} text-center lg:text-right`}
+        >
+          <p
+            className={`${
+              isMobile ? "text-[1.2rem]" : "text-3xl"
+            } font-geist font-light`}
+          >
+            Servicii custom de{" "}
             <span
               className={`font-geist font-semibold ${
                 isMobile ? "text-[100%]" : "text-[110%]"
@@ -82,9 +91,9 @@ export function BoxRevealDemo() {
                 color: "transparent",
               }}
             >
-              mai rapid și mai precis
-            </span>{" "}
-            ? Beneficiază de consultanța gratuită și află exact cum{" "}
+              Web Design, Web Development
+            </span>
+            ,{" "}
             <span
               className={`font-geist font-semibold ${
                 isMobile ? "text-[100%]" : "text-[110%]"
@@ -96,9 +105,22 @@ export function BoxRevealDemo() {
                 color: "transparent",
               }}
             >
-              pot automatiza sarcinile
+              Graphic Design
             </span>{" "}
-            care consumă timp valoros echipei tale.
+            si{" "}
+            <span
+              className={`font-geist font-semibold ${
+                isMobile ? "text-[100%]" : "text-[110%]"
+              }`}
+              style={{
+                backgroundImage:
+                  "linear-gradient(to right, #8e1616, #7d1c38, #602b49, #433346, #333333)",
+                WebkitBackgroundClip: "text",
+                color: "transparent",
+              }}
+            >
+              Social Media Marketing
+            </span>{" "}
           </p>
         </div>
       </BoxReveal>

@@ -14,10 +14,23 @@ const features = [
     description: "Mereu cu un pas inaintea competitiei!",
     className: "col-span-3 lg:col-span-1",
     background: (
-      <AnimatedListDemo className="absolute right-2 top-4 h-[300px] w-full scale-75 border-none transition-all duration-300 ease-out [mask-image:linear-gradient(to_top,transparent_10%,#000_100%)] group-hover:scale-90" />
+      <div className="absolute inset-0">
+        {/* Wrapper div for the animation */}
+        <div className="animate-pulse-subtle">
+          <AnimatedListDemo className="absolute right-2 top-4 h-[300px] w-full scale-75 border-none transition-all duration-300 ease-out [mask-image:linear-gradient(to_top,transparent_10%,#000_100%)] group-hover:scale-90" />
+        </div>
+        {/* Icon with breathing animation */}
+        <div className="absolute top-4 left-4 animate-breath">
+          <TrendingUp className="h-8 w-8 text-primary opacity-70" />
+        </div>
+      </div>
     ),
     href: "/notifications",
     cta: "View Notifications",
+    // Add custom styles for the breathing animation
+    style: {
+      "--breath-duration": "4s",
+    } as React.CSSProperties,
   },
   {
     Icon: Layers,

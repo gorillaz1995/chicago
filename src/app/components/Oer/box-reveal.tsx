@@ -38,7 +38,7 @@ export const BoxReveal = ({
       // Create interval for infinite loop
       const interval = setInterval(() => {
         startAnimation();
-      }, 6500); // 3.5 seconds
+      }, 72000); // 3.5 seconds
 
       return () => clearInterval(interval);
     }

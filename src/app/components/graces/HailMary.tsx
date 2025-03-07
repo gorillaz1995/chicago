@@ -3,7 +3,6 @@
 import { useRef, useEffect, useState } from "react";
 import { motion, useScroll, useTransform, MotionValue } from "framer-motion";
 import { LampDemo } from "../ui/lamp";
-import { TextRevealCard, TextRevealCardTitle } from "../ui/text-reveal-card";
 
 // Define animation variants for headline and text with staggered timing
 const wildTextVariants = {
@@ -256,42 +255,6 @@ const Section3 = () => (
   </motion.div>
 );
 
-// Component for Section 4 with animated text
-const Section4 = () => (
-  <motion.div
-    className="flex items-center justify-center min-h-screen p-8"
-    initial="initial"
-    whileInView="animate"
-    viewport={{ once: true, amount: 0.8 }}
-  >
-    <div className="max-w-4xl">
-      <TextRevealCard
-        text="Ai o idee?"
-        revealText="Eu am tehnologia!"
-        className="w-full max-w-[320rem]"
-      >
-        <TextRevealCardTitle>
-          <div className="text-center">
-            Custom nu mai înseamnă complicat sau scump.
-          </div>
-          <motion.div
-            className="text-center mt-4"
-            initial="initial"
-            whileInView="animate"
-            viewport={{ once: true, amount: 0.8 }}
-          >
-            {"Înseamnă al tău.".split("").map((letter, index) => (
-              <motion.span key={index} custom={index} variants={letterVariants}>
-                {letter}
-              </motion.span>
-            ))}
-          </motion.div>
-        </TextRevealCardTitle>
-      </TextRevealCard>
-    </div>
-  </motion.div>
-);
-
 export default function HailMary() {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isTouchDevice, setIsTouchDevice] = useState(false);
@@ -378,7 +341,6 @@ export default function HailMary() {
 
       {/* Regular scrolling sections */}
       <Section3 />
-      <Section4 />
     </div>
   );
 }

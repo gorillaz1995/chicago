@@ -286,7 +286,7 @@ const Scene: React.FC = () => {
         }}
       >
         <h1
-          className="font-geist font-black"
+          className="font-geist "
           style={{
             fontSize: "clamp(4.99rem, 9vw, 9rem)",
             color: "#2a2a2a",
