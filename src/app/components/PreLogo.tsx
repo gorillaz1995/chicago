@@ -47,7 +47,7 @@ const PreLogo = () => {
         transition={{ duration: 0.3 }}
       >
         {/* Menu Header Image */}
-        <div className="w-[25vw] h-[3vh] lg:w-[18vw] lg:h-[4.5vh] relative">
+        <div className="w-[25vw] h-[vh] lg:w-[18vw] lg:h-[4.5vh] relative">
           <Image
             src="/images/menu-header.PNG"
             alt="Menu Header"
@@ -81,16 +81,16 @@ const PreLogo = () => {
 
       {/* Navigation Drawer - Using menu-bar.svg */}
       <motion.div
-        className="fixed left-[10%] md:left-[20%] lg:left-[calc(50%-15%)] w-[80%] md:w-[60%] lg:w-[30%] h-[95%] md:h-[80%] lg:h-[90%] z-50 overflow-hidden"
+        className="fixed left-[10%] bottom-[27%] lg:bottom-[20%] md:left-[20%] lg:left-[calc(50%-15%)] w-[80%] md:w-[60%] lg:w-[30%] h-[95%] md:h-[80%] lg:h-[90%] z-50 overflow-hidden"
         style={{
-          position: "relative",
           willChange: "transform",
           backfaceVisibility: "hidden",
+          visibility: isDrawerOpen ? "visible" : "hidden", // Hide element completely when closed
         }}
         variants={{
           closed: {
             y: "-120%",
-            opacity: 0.8,
+            opacity: 0,
             scale: 0.95,
             transition: {
               type: "tween",
@@ -112,6 +112,12 @@ const PreLogo = () => {
         }}
         initial="closed"
         animate={isDrawerOpen ? "open" : "closed"}
+        onAnimationComplete={(definition) => {
+          // When the closing animation completes, ensure the element is fully hidden
+          if (definition === "closed") {
+            // Additional cleanup if needed
+          }
+        }}
       >
         {/* Menu bar SVG as background */}
         <div className="absolute inset-0 w-full h-full">
@@ -164,13 +170,15 @@ const PreLogo = () => {
           {/* Close button with just X */}
           <button
             onClick={() => setIsDrawerOpen(false)}
-            className="absolute bottom-2 left-1/2 transform -translate-x-1/2 p-3 font-geist mt-8 text-white"
-            aria-label="Close menu"
+            className="absolute top-[calc(72px+55%)] lg:top-[calc(72px+68%)] left-1/2 transform -translate-x-1/2 p-3 font-geist"
+            style={{
+              color: "#FFFFFF",
+            }}
           >
             <svg
               className="w-6 h-6"
               fill="none"
-              stroke="white"
+              stroke="currentColor"
               viewBox="0 0 24 24"
             >
               <path
