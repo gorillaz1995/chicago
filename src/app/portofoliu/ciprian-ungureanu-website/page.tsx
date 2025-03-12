@@ -4,7 +4,7 @@ import React from "react";
 function Page() {
   return (
     <div style={{ width: "100vw", height: "100vh" }}>
-      <h1>Branding</h1>
+      <h1>Social Media</h1>
     </div>
   );
 }
