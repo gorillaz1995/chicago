@@ -5,7 +5,6 @@ import { Canvas, useThree, useFrame } from "@react-three/fiber";
 import { PerspectiveCamera, useGLTF, useTexture } from "@react-three/drei";
 import { LoadingSec } from "./Oer/Loadingsec";
 import { FlipWords } from "./Oer/FlipWords";
-import { AuroraText } from "../../components/magicui/aurora-text";
 import * as THREE from "three";
 import gsap from "gsap";
 import ScrollTrigger from "gsap/ScrollTrigger";
@@ -305,7 +304,7 @@ const Scene: React.FC = () => {
           padding: "0 1rem",
         }}
       >
-        {/* Static text with AuroraText for "alt film" */}
+        {/* Static text with normal text for "alt film" */}
         <div
           ref={staticTextRef}
           className="font-geist font-light"
@@ -323,32 +322,14 @@ const Scene: React.FC = () => {
           <span
             style={{
               WebkitTextStroke: "1px black", // Border for webkit browsers
-
               WebkitTextFillColor: "black", // Fill color
             }}
           >
             Sunt pe{" "}
           </span>
-          <AuroraText
-            colors={[
-              "#ff0000", // Bright red
-              "#e60000", // Slightly darker red
-              "#cc0000", // Medium red
-              "#b30000", // Deeper red
-              "#990000", // Rich red
-              "#800000", // Dark red
-              "#660000", // Very dark red
-              "#4d0000", // Deep burgundy red
-              "#330000", // Almost black red
-              "#ff3333", // Light red
-              "#ff6666", // Pale red
-              "#ff1a1a", // Vibrant red
-            ]}
-            speed={1.2}
-            className="font-geist font-extrabold inline-block"
-          >
+          <span className="font-geist font-extrabold inline-block">
             alt film
-          </AuroraText>
+          </span>
         </div>
         {/* FlipWords component */}
         <div

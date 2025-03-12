@@ -4,6 +4,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
+import { SquareArrowOutUpRight } from "lucide-react";
 
 const projects = [
   {
@@ -150,20 +151,7 @@ export default function PortfolioGrid() {
                     className="text-primary inline-flex items-center text-sm sm:text-base lg:text-lg font-geist transition-all duration-300 hover:translate-x-1"
                   >
                     Vezi proiectul
-                    <svg
-                      className="w-3 h-3 sm:w-4 sm:h-4 lg:w-5 lg:h-5 ml-1 sm:ml-2 transition-transform duration-300 group-hover:translate-x-1"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M14 5l7 7m0 0l-7 7m7-7H3"
-                      />
-                    </svg>
+                    <SquareArrowOutUpRight className="w-3 h-3 sm:w-4 sm:h-4 lg:w-5 lg:h-5 ml-1 sm:ml-2 transition-transform duration-300 group-hover:translate-x-1" />
                   </Link>
                 </div>
               </motion.div>
