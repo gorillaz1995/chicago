@@ -38,7 +38,7 @@ const Section2 = ({ progress }: { progress: MotionValue<number> }) => (
         [0, 0.3],
         [
           "linear-gradient(to bottom, #333333, #000000)",
-          "linear-gradient(to bottom, #b1b1b1, #bbbbbb, #c5c5c5, #cfcfcf, #d9d9d9, #dfdfdf, #e4e4e4, #eaeaea, #ededed, #f1f1f1, #f4f4f4, #f8f8f8, #a1a1a1)", // Updated final color
+          "linear-gradient(to bottom, #b1b1b1,  #d9d9d9, #b1b1b1)", // Updated final color to go closer to white
         ]
       ),
     }}

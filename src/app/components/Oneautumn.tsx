@@ -4,6 +4,8 @@ import React, { useRef, useEffect, useState } from "react";
 import { Canvas, useThree, useFrame } from "@react-three/fiber";
 import { PerspectiveCamera, useGLTF, useTexture } from "@react-three/drei";
 import { LoadingSec } from "./Oer/Loadingsec";
+import { FlipWords } from "./Oer/FlipWords";
+import { AuroraText } from "../../components/magicui/aurora-text";
 import * as THREE from "three";
 import gsap from "gsap";
 import ScrollTrigger from "gsap/ScrollTrigger";
@@ -163,17 +165,27 @@ const Scene: React.FC = () => {
   const [isClient, setIsClient] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const glRef = useRef<THREE.WebGLRenderer | null>(null);
-  const headlineRef = useRef<HTMLSpanElement>(null);
   const headlineContainerRef = useRef<HTMLDivElement>(null);
+  const staticTextRef = useRef<HTMLDivElement>(null);
+  const flipWordsRef = useRef<HTMLDivElement>(null);
+
+  // Array of services to flip through
+  const services = [
+    "Web Development",
+    "Web Design",
+    "Social Media",
+    "Automatizari A.I.",
+  ];
 
   useEffect(() => {
     setIsClient(true);
 
     // Wait for DOM elements to be available
-    const headline = headlineRef.current;
     const container = headlineContainerRef.current;
+    const staticText = staticTextRef.current;
+    const flipWords = flipWordsRef.current;
 
-    if (headline && container) {
+    if (container && staticText && flipWords) {
       // Create a timeline for synchronized animations
       const tl = gsap.timeline({
         defaults: {
@@ -183,10 +195,17 @@ const Scene: React.FC = () => {
       });
 
       // Initial animation sequence
-      tl.from(headline, {
+      tl.from(staticText, {
         y: 100,
         opacity: 0,
-      });
+      }).from(
+        flipWords,
+        {
+          y: 100,
+          opacity: 0,
+        },
+        "-=1.2"
+      );
 
       // Scroll-triggered animation with graceful, ice-skating-like motion
       ScrollTrigger.create({
@@ -207,7 +226,7 @@ const Scene: React.FC = () => {
             Math.max(2, velocity * 3)
           )}.out(${easeStrength})`;
 
-          gsap.to(headline, {
+          gsap.to([staticText, flipWords], {
             y: progress * window.innerHeight * 0.5,
             opacity: 1 - progress * 0.5,
             duration: dynamicDuration,
@@ -216,7 +235,7 @@ const Scene: React.FC = () => {
           });
         },
         onLeaveBack: () => {
-          gsap.to(headline, {
+          gsap.to([staticText, flipWords], {
             y: 0,
             opacity: 1,
             duration: 1.2,
@@ -270,39 +289,82 @@ const Scene: React.FC = () => {
         />
       )}
 
-      {/* NEW ERA Headline */}
+      {/* Headline with static text and FlipWords */}
       <div
         ref={headlineContainerRef}
         style={{
           position: "absolute",
-          top: "20%",
+          top: "clamp(45%, 45vw, 30%)", // Responsive positioning: 35% on smaller screens, 30% on larger screens
           left: 0,
           width: "100%",
           zIndex: 1,
           display: "flex",
+          flexDirection: "column",
           justifyContent: "center",
           alignItems: "center",
           padding: "0 1rem",
         }}
       >
-        <h1
-          className="font-geist "
+        {/* Static text with AuroraText for "alt film" */}
+        <div
+          ref={staticTextRef}
+          className="font-geist font-light"
           style={{
-            fontSize: "clamp(4.99rem, 9vw, 9rem)",
-            color: "#2a2a2a",
-            textShadow: "3px 3px 6px rgba(0,0,0,0.4)",
-            letterSpacing: "0.21em",
-            textAlign: "left",
-            whiteSpace: "normal",
-            wordBreak: "break-word",
-            display: "flex",
-            alignItems: "center",
-            flexWrap: "wrap",
-            justifyContent: "center",
+            fontSize: "clamp(2.3rem, 5vw, 4.5rem)",
+            color: "#000000", // Changed to black
+            textShadow: "2px 2px 4px rgba(0,0,0,0.3)",
+            letterSpacing: "0.15em",
+            textAlign: "center",
+            marginBottom: "0rem",
+            transform: "translateY(40%)", // Added transform to move text 15% closer to the bottom
           }}
         >
-          <span ref={headlineRef}>DISTINCT</span>
-        </h1>
+          {/* Added text-stroke effect for letter borders */}
+          <span
+            style={{
+              WebkitTextStroke: "1px black", // Border for webkit browsers
+
+              WebkitTextFillColor: "black", // Fill color
+            }}
+          >
+            Sunt pe{" "}
+          </span>
+          <AuroraText
+            colors={[
+              "#ff0000", // Bright red
+              "#e60000", // Slightly darker red
+              "#cc0000", // Medium red
+              "#b30000", // Deeper red
+              "#990000", // Rich red
+              "#800000", // Dark red
+              "#660000", // Very dark red
+              "#4d0000", // Deep burgundy red
+              "#330000", // Almost black red
+              "#ff3333", // Light red
+              "#ff6666", // Pale red
+              "#ff1a1a", // Vibrant red
+            ]}
+            speed={1.2}
+            className="font-geist font-extrabold inline-block"
+          >
+            alt film
+          </AuroraText>
+        </div>
+        {/* FlipWords component */}
+        <div
+          ref={flipWordsRef}
+          className="w-full text-center"
+          style={{ transform: "translateY(99%)" }}
+        >
+          <FlipWords
+            words={services}
+            duration={1050} // 1.75 seconds between flips
+            className="font-geist text-center text-[#2a2a2a] text-shadow-3xl tracking-[0.1em] text-[clamp(2rem,8vw,6rem)] font-thin leading-relaxed md:leading-normal"
+            // Responsive text sizing using clamp - minimum 2.5rem, scaling with viewport width, maximum 6rem
+            // Added font-bold for better visibility at larger sizes
+            // Adjusted line height for better mobile display
+          />
+        </div>
       </div>
 
       {/* Canvas container limited to first section */}
@@ -338,167 +400,6 @@ const Scene: React.FC = () => {
 
           <Suzanne scale={0.9} />
         </Canvas>
-      </div>
-
-      <div
-        style={{
-          position: "absolute",
-          top: "10%",
-          left: 0,
-          width: "150%",
-          height: "100%",
-          zIndex: 1,
-          pointerEvents: "none",
-          display: "flex",
-          flexDirection: "column",
-          justifyContent: "center",
-          alignItems: "center",
-        }}
-      >
-        <div
-          style={{
-            position: "absolute",
-            width: "120%",
-            height: "clamp(2.232rem, 4.65vw, 5.58rem)",
-            backgroundImage:
-              "radial-gradient(circle, #303030, #313131, #333333, #343434, #363636, #363636, #373737, #373737, #363636, #353535, #353535, #343434)",
-            transform: "rotate(-15deg) translateY(-100%)",
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            zIndex: 1,
-            boxShadow: "0 0 10px rgba(0,0,0,0.5)",
-            overflow: "hidden",
-          }}
-        >
-          <h3
-            style={{
-              color: "#F8F8F8",
-              fontSize: "clamp(1rem, 2vw, 1.5rem)",
-              textShadow: "1px 1px 2px rgba(0,0,0,0.5)",
-              padding: "0.15rem",
-              whiteSpace: "nowrap",
-              overflow: "hidden",
-              display: "flex",
-              width: "100%",
-              position: "relative",
-              zIndex: 1,
-            }}
-          >
-            <div style={{ overflow: "hidden", width: "100%" }}>
-              <div style={{ display: "flex", width: "200%" }}>
-                <span
-                  className="font-geist font-normal "
-                  style={{
-                    display: "inline-block",
-                    whiteSpace: "nowrap",
-                    animation: "scrollTextReverse 70s linear infinite",
-                  }}
-                >
-                  DIGITAL FARA LIMITE • DIGITAL FARA LIMITE • DIGITAL FARA
-                  LIMITE • DIGITAL FARA LIMITE • DIGITAL FARA LIMITE • DIGITAL
-                  FARA LIMITE • DIGITAL FARA LIMITE • DIGITAL FARA LIMITE •
-                  DIGITAL FARA LIMITE • DIGITAL FARA LIMITE • DIGITAL FARA
-                  LIMITE • DIGITAL FARA LIMITE •DIGITAL FARA LIMITE • DIGITAL
-                  FARA LIMITE • DIGITAL FARA LIMITE • DIGITAL FARA LIMITE •
-                  DIGITAL FARA LIMITE • DIGITAL FARA LIMITE •DIGITAL FARA LIMITE
-                  • DIGITAL FARA LIMITE • DIGITAL FARA LIMITE • DIGITAL FARA
-                  LIMITE • DIGITAL FARA LIMITE • DIGITAL FARA LIMITE •&nbsp;
-                </span>
-                <span
-                  className="font-geist font-normal"
-                  style={{
-                    display: "inline-block",
-                    whiteSpace: "nowrap",
-                    animation: "scrollTextReverse 70s linear infinite",
-                  }}
-                >
-                  DIGITAL FARA LIMITE • DIGITAL FARA LIMITE • DIGITAL FARA
-                  LIMITE • DIGITAL FARA LIMITE • DIGITAL FARA LIMITE • DIGITAL
-                  FARA LIMITE • DIGITAL FARA LIMITE • DIGITAL FARA LIMITE •
-                  DIGITAL FARA LIMITE • DIGITAL FARA LIMITE • DIGITAL FARA
-                  LIMITE • DIGITAL FARA LIMITE •DIGITAL FARA LIMITE • DIGITAL
-                  FARA LIMITE • DIGITAL FARA LIMITE • DIGITAL FARA LIMITE •
-                  DIGITAL FARA LIMITE • DIGITAL FARA LIMITE •DIGITAL FARA LIMITE
-                  • DIGITAL FARA LIMITE • DIGITAL FARA LIMITE • DIGITAL FARA
-                  LIMITE • DIGITAL FARA LIMITE • DIGITAL FARA LIMITE •&nbsp;
-                </span>
-              </div>
-            </div>
-          </h3>
-        </div>
-        <div
-          style={{
-            position: "absolute",
-            width: "120%",
-            height: "clamp(2.232rem, 4.65vw, 5.58rem)",
-            backgroundImage:
-              "linear-gradient(to top, #f8f8f8, #f4f4f4, #f1f1f1, #ededed, #eaeaea, #eaeaea, #eaeaea, #eaeaea, #ededed, #f0f0f0, #f4f4f4, #f7f7f7)",
-            transform: "rotate(-15deg)",
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            zIndex: 1,
-            boxShadow: "0 0 10px rgba(0,0,0,1)",
-            overflow: "hidden",
-          }}
-        >
-          <h3
-            style={{
-              color: "#383838",
-              fontSize: "clamp(1rem, 2vw, 1.5rem)",
-              textShadow: "1px 1px 2px rgba(0,0,0,0.5)",
-              padding: "0.15rem",
-              whiteSpace: "nowrap",
-              overflow: "hidden",
-              display: "flex",
-              width: "100%",
-              position: "relative",
-              zIndex: 1,
-            }}
-          >
-            <div style={{ overflow: "hidden", width: "100%" }}>
-              <div style={{ display: "flex", width: "200%" }}>
-                <span
-                  className="font-geist font-normal"
-                  style={{
-                    display: "inline-block",
-                    whiteSpace: "nowrap",
-                    animation: "scrollText 70s linear infinite",
-                  }}
-                >
-                  WEB DESIGN • GRAPHIC DESIGN • WEB DEV • SOCIAL MEDIA
-                  MANAGEMENT • DIGITAL MARKETING • GOOGLE ADs • FACEBOOK ADs •
-                  TikTok ADs • WEB DESIGN • GRAPHIC DESIGN • WEB DEV • SOCIAL
-                  MEDIA MANAGEMENT • DIGITAL MARKETING • GOOGLE ADs • FACEBOOK
-                  ADs • TikTok ADs •WEB DESIGN • GRAPHIC DESIGN • WEB DEV •
-                  SOCIAL MEDIA MANAGEMENT • DIGITAL MARKETING • GOOGLE ADs •
-                  FACEBOOK ADs • TikTok ADs •WEB DESIGN • GRAPHIC DESIGN • WEB
-                  DEV • SOCIAL MEDIA MANAGEMENT • DIGITAL MARKETING • GOOGLE ADs
-                  • FACEBOOK ADs • TikTok ADs •&nbsp;&nbsp;
-                </span>
-                <span
-                  className="font-geist font-normal"
-                  style={{
-                    display: "inline-block",
-                    whiteSpace: "nowrap",
-                    animation: "scrollText 70s linear infinite",
-                  }}
-                >
-                  WEB DESIGN • GRAPHIC DESIGN • WEB DEV • SOCIAL MEDIA
-                  MANAGEMENT • DIGITAL MARKETING • GOOGLE ADs • FACEBOOK ADs •
-                  TikTok ADs • WEB DESIGN • GRAPHIC DESIGN • WEB DEV • SOCIAL
-                  MEDIA MANAGEMENT • DIGITAL MARKETING • GOOGLE ADs • FACEBOOK
-                  ADs • TikTok ADs •WEB DESIGN • GRAPHIC DESIGN • WEB DEV •
-                  SOCIAL MEDIA MANAGEMENT • DIGITAL MARKETING • GOOGLE ADs •
-                  FACEBOOK ADs • TikTok ADs •WEB DESIGN • GRAPHIC DESIGN • WEB
-                  DEV • SOCIAL MEDIA MANAGEMENT • DIGITAL MARKETING • GOOGLE ADs
-                  • FACEBOOK ADs • TikTok ADs •&nbsp;
-                </span>
-              </div>
-            </div>
-          </h3>
-        </div>
       </div>
 
       {/* Call to action button */}
@@ -547,52 +448,6 @@ const Scene: React.FC = () => {
           <span className="relative z-20">Hai sa discutam</span>
         </button>
       </div>
-
-      <style jsx>{`
-        @keyframes scrollText {
-          0% {
-            transform: translateX(0);
-          }
-          100% {
-            transform: translateX(-50%);
-          }
-        }
-        @keyframes scrollTextReverse {
-          0% {
-            transform: translateX(-50%);
-          }
-          100% {
-            transform: translateX(0);
-          }
-        }
-        @keyframes shimmer {
-          0% {
-            left: -100%;
-          }
-          100% {
-            left: 100%;
-          }
-        }
-        .banner-top::after,
-        .banner-bottom::after {
-          content: "";
-          position: absolute;
-          top: 15%;
-          left: -100%;
-          width: 100%;
-          height: 70%;
-          background: linear-gradient(
-            to right,
-            transparent,
-            rgba(252, 171, 252, 0.4),
-            transparent
-          );
-          animation: shimmer 1s infinite;
-        }
-        .banner-top::after {
-          animation-direction: reverse;
-        }
-      `}</style>
     </div>
   );
 };

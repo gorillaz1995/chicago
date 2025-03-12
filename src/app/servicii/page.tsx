@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import HailMary from "../components/graces/HailMary";
 import BentoGridThirdDemo from "../components/ui/elBento/bento-grid-demo-3";
+import { FeaturesSectionDemo } from "../components/ui/Featurecards";
 
 function ServiciiPage() {
   const [mounted, setMounted] = useState(false);
@@ -26,6 +27,9 @@ function ServiciiPage() {
   return (
     <div style={{ position: "relative", width: "100%", height: "100%" }}>
       <HailMary />
+      <div className="bg-[#b1b1b1]">
+        <FeaturesSectionDemo />
+      </div>
       <div className="gradient1">
         <BentoGridThirdDemo />
       </div>
