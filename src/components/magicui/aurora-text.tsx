@@ -1,7 +1,7 @@
 "use client";
 
 import type { CSSProperties } from "react";
-import React, { useEffect, useId, useRef } from "react";
+import React, { useEffect, useId, useRef, useState } from "react";
 
 interface AuroraTextProps {
   children: React.ReactNode;
@@ -32,13 +32,19 @@ export function AuroraText({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const textRef = useRef<SVGTextElement>(null);
   const containerRef = useRef<HTMLSpanElement>(null);
-  const [fontSize, setFontSize] = React.useState(0);
-  const [dimensions, setDimensions] = React.useState({ width: 0, height: 0 });
-  const [isReady, setIsReady] = React.useState(false);
-  const [textStyle, setTextStyle] = React.useState<
-    Partial<CSSStyleDeclaration>
-  >({});
-  const maskId = useId();
+  const [fontSize, setFontSize] = useState(0);
+  const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+  const [isReady, setIsReady] = useState(false);
+  const [textStyle, setTextStyle] = useState<Partial<CSSStyleDeclaration>>({});
+  // Generate a unique ID with a prefix to ensure it's a valid ID across browsers
+  const uniqueId = useId().replace(/:/g, "-");
+  const maskId = `aurora-mask-${uniqueId}`;
+  const [isMounted, setIsMounted] = useState(false);
+
+  // Set mounted state on client-side
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   // Updated effect to compute all text styles from parent
   useEffect(() => {
@@ -63,10 +69,12 @@ export function AuroraText({
         setTextStyle(relevantStyles);
       });
     }
-  }, [className]);
+  }, [className, isMounted]);
 
   // Updated effect to compute font size from both inline and class styles
   useEffect(() => {
+    if (!isMounted) return;
+
     const updateFontSize = () => {
       if (containerRef.current) {
         const computedStyle = window.getComputedStyle(containerRef.current);
@@ -82,40 +90,61 @@ export function AuroraText({
     window.addEventListener("resize", updateFontSize);
 
     return () => window.removeEventListener("resize", updateFontSize);
-  }, [className]);
+  }, [className, isMounted]);
 
   // Update effect to set ready state after dimensions are computed
   useEffect(() => {
+    if (!isMounted || !textRef.current) return;
+
     const updateDimensions = () => {
       if (textRef.current) {
-        const bbox = textRef.current.getBBox();
-        setDimensions({
-          width: bbox.width,
-          height: bbox.height,
-        });
-        setIsReady(true);
+        try {
+          const bbox = textRef.current.getBBox();
+          setDimensions({
+            width: Math.max(bbox.width, 1), // Ensure minimum width of 1px
+            height: Math.max(bbox.height, 1), // Ensure minimum height of 1px
+          });
+          setIsReady(true);
+        } catch (error) {
+          console.error("Error getting text dimensions:", error);
+          // Fallback dimensions based on container
+          if (containerRef.current) {
+            setDimensions({
+              width: containerRef.current.offsetWidth || 100,
+              height: containerRef.current.offsetHeight || 30,
+            });
+            setIsReady(true);
+          }
+        }
       }
     };
 
-    updateDimensions();
+    // Small delay to ensure text is rendered before measuring
+    const timeoutId = setTimeout(updateDimensions, 50);
     window.addEventListener("resize", updateDimensions);
 
-    return () => window.removeEventListener("resize", updateDimensions);
-  }, [children, fontSize]);
+    return () => {
+      clearTimeout(timeoutId);
+      window.removeEventListener("resize", updateDimensions);
+    };
+  }, [children, fontSize, isMounted]);
 
   useEffect(() => {
+    if (!isReady || !isMounted) return;
+
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const ctx = canvas.getContext("2d");
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
     if (!ctx) return;
 
     // Set canvas size
-    canvas.width = dimensions.width;
-    canvas.height = dimensions.height;
+    canvas.width = Math.max(dimensions.width, 1);
+    canvas.height = Math.max(dimensions.height, 1);
 
     let time = 0;
     const baseSpeed = 0.008; // Original speed as base unit
+    let animationFrameId: number;
 
     function animate() {
       if (!ctx || !canvas) return;
@@ -135,27 +164,56 @@ export function AuroraText({
             Math.sin(time * 0.7 + i * 1.5) * 0.4 +
             Math.cos(time * 0.6 + i * 0.8) * 0.2);
 
-        const gradient = ctx.createRadialGradient(
-          x,
-          y,
-          0,
-          x,
-          y,
-          canvas.width * 0.4
-        );
+        // Create a radial gradient
+        try {
+          const gradient = ctx.createRadialGradient(
+            x,
+            y,
+            0,
+            x,
+            y,
+            canvas.width * 0.4
+          );
 
-        gradient.addColorStop(0, `${color}99`);
-        gradient.addColorStop(0.5, `${color}33`);
-        gradient.addColorStop(1, "#00000000");
+          // Add color stops with proper alpha values for cross-browser compatibility
+          const colorWithoutHash = color.replace("#", "");
+          gradient.addColorStop(
+            0,
+            `rgba(${parseInt(colorWithoutHash.substring(0, 2), 16)}, ${parseInt(
+              colorWithoutHash.substring(2, 4),
+              16
+            )}, ${parseInt(colorWithoutHash.substring(4, 6), 16)}, 0.6)`
+          );
+          gradient.addColorStop(
+            0.5,
+            `rgba(${parseInt(colorWithoutHash.substring(0, 2), 16)}, ${parseInt(
+              colorWithoutHash.substring(2, 4),
+              16
+            )}, ${parseInt(colorWithoutHash.substring(4, 6), 16)}, 0.2)`
+          );
+          gradient.addColorStop(1, "rgba(0, 0, 0, 0)");
 
-        ctx.fillStyle = gradient;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.fillStyle = gradient;
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+        } catch (error) {
+          console.error("Error creating gradient:", error);
+        }
       });
 
-      requestAnimationFrame(animate);
+      animationFrameId = requestAnimationFrame(animate);
     }
+
     animate();
-  }, [dimensions, colors, speed]);
+
+    return () => {
+      cancelAnimationFrame(animationFrameId);
+    };
+  }, [dimensions, colors, speed, isReady, isMounted]);
+
+  // If not mounted yet (SSR), render a simple placeholder
+  if (!isMounted) {
+    return <span className={`inline-block ${className}`}>{children}</span>;
+  }
 
   return (
     <span
@@ -195,6 +253,7 @@ export function AuroraText({
           width={dimensions.width}
           height={dimensions.height}
           className="absolute inset-0"
+          xmlns="http://www.w3.org/2000/svg"
         >
           <defs>
             <clipPath id={maskId}>

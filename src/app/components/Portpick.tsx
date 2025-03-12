@@ -9,53 +9,41 @@ const projects = [
   {
     id: 1,
     title: "Dark Creative Solutions",
-    description:
-      "Website de prezentare pentru agentie de publicitate si print.",
     imageUrl: "/images/portofolio-images/dark-creative.png",
     category: "Web Dev & Design",
-    link: "/portofoliu/dark-creative-solutions-website",
+    link: "https://dracarys-projekt.netlify.app/",
   },
   {
     id: 2,
     title: "Dupa apa la Razvan",
-    description: "Website de prezentare pentru pensiune in Maramures.",
     imageUrl: "/images/portofolio-images/dupaapx.png",
     category: "Web Dev & Design",
-    link: "/portofoliu/dupa-apa-la-razvan-website",
+    link: "https://www.dupaapalarazvan.ro/",
   },
-
   {
     id: 3,
     title: "Jamon Real",
-    description:
-      "Sophisticated marketing strategy for a luxury automotive brand",
     imageUrl: "/images/portofolio-images/jamonrell.webp",
     category: "Social Media",
     link: "/portofoliu/jamon-real-social",
   },
-
   {
     id: 4,
     title: "Ciprian Ungureanu",
-    description:
-      "Website de prezentare pentru cea mai buna scoala de frizerie din Romania. ",
     imageUrl: "/images/portofolio-images/ungureanu.png",
     category: "Web Dev & Design",
-    link: "/portofoliu/ciprian-ungureanu-website",
+    link: "https://www.ciprianungureanu.ro/",
   },
   {
     id: 5,
     title: "Jamon Real",
-    description: "Website de prezentare pentru evenimente culinare speciale.",
     imageUrl: "/images/portofolio-images/jamonrr.png?width=90%",
     category: "Web Dev & Design",
-    link: "/portofoliu/jamon-real-website",
+    link: "https://jamonreal.ro/",
   },
-
   {
     id: 6,
     title: "Saca Experts",
-    description: "Website de prezentare pentru agentie recrutare.",
     imageUrl: "/images/portofolio-images/sacax.png?width=90%",
     category: "Web Dev & Design",
     link: "/portofoliu/saca-experts-website",
@@ -63,8 +51,6 @@ const projects = [
   {
     id: 7,
     title: "Ciprian Ungureanu",
-    description:
-      "Website de prezentare pentru cea mai buna scoala de frizerie din Romania. ",
     imageUrl: "/images/portofolio-images/ungci.webp",
     category: "Social Media",
     link: "/portofoliu/ciprian-ungureanu-social",
@@ -137,28 +123,22 @@ export default function PortfolioGrid() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.5 }}
-                className="bg-background rounded-xl sm:rounded-2xl lg:rounded-3xl shadow-md sm:shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 ease-in-out border border-transparent hover:border-primary/10 h-full w-full"
+                className="bg-background/80 backdrop-blur-sm rounded-xl sm:rounded-2xl lg:rounded-3xl shadow-md sm:shadow-lg overflow-hidden transition-all duration-300 ease-in-out border border-white/10 h-full w-full group"
               >
-                {/* Project image with hover effect */}
-                <div className="relative h-48 sm:h-56 md:h-64 overflow-hidden group w-full">
+                {/* Project image with subtle glass effect that clears on hover/touch */}
+                <div className="relative h-96 sm:h-56 md:h-[28rem] overflow-hidden w-full">
                   <Image
                     src={project.imageUrl || "/placeholder.svg"}
                     alt={project.title}
                     fill
                     style={{ objectFit: "cover", objectPosition: "center" }}
-                    className="transition-transform duration-300 ease-in-out group-hover:scale-105 w-full"
+                    className="w-full transition-transform duration-500 ease-in-out group-hover:scale-105"
                   />
-                  <motion.div
-                    className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center opacity-0 transition-opacity duration-300"
-                    whileHover={{ opacity: 1 }}
-                  >
-                    <p className="text-white text-center text-sm sm:text-base lg:text-lg px-4">
-                      {project.description}
-                    </p>
-                  </motion.div>
+                  {/* Subtle glass overlay that disappears on hover/touch */}
+                  <div className="absolute inset-0 bg-black/15 backdrop-blur-[1px] flex items-center justify-center transition-all duration-300 ease-in-out group-hover:backdrop-blur-0 group-hover:bg-black/5 group-active:backdrop-blur-0 group-active:bg-black/5"></div>
                 </div>
                 {/* Project details */}
-                <div className="p-4 sm:p-5 md:p-6 lg:p-8 gradient1">
+                <div className="p-4 sm:p-5 md:p-6 lg:p-8 bg-white/5 backdrop-blur-sm">
                   <div className="text-xs sm:text-sm lg:text-base font-medium text-primary mb-1">
                     {project.category}
                   </div>
@@ -167,11 +147,11 @@ export default function PortfolioGrid() {
                   </h3>
                   <Link
                     href={project.link}
-                    className="text-primary hover:underline inline-flex items-center text-sm sm:text-base lg:text-lg font-geist"
+                    className="text-primary inline-flex items-center text-sm sm:text-base lg:text-lg font-geist transition-all duration-300 hover:translate-x-1"
                   >
                     Vezi proiectul
                     <svg
-                      className="w-3 h-3 sm:w-4 sm:h-4 lg:w-5 lg:h-5 ml-1 sm:ml-2"
+                      className="w-3 h-3 sm:w-4 sm:h-4 lg:w-5 lg:h-5 ml-1 sm:ml-2 transition-transform duration-300 group-hover:translate-x-1"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
