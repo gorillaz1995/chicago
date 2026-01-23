@@ -1,5 +1,6 @@
 import React from "react";
-import Scene from "./components/Oneautumn";
+import NewH from "./components/NewH";
+
 import Section22 from "./components/Oer/Section22";
 import Section23 from "./components/Oer/Section23";
 
@@ -7,7 +8,8 @@ import Section23 from "./components/Oer/Section23";
 function Page() {
   return (
     <div className="overflow-hidden">
-      <Scene />
+      <NewH />
+
       <Section22 />
       <Section23 />
     </div>
