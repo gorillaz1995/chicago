@@ -11,9 +11,14 @@ import {
 import { Canvas, useFrame, useLoader, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
-import { RGBELoader } from "three/examples/jsm/loaders/RGBELoader.js";
 import { DIVE, STAGE_FOV } from "./dive";
-import type { SceneDetail } from "./chamberEnvironment";
+import {
+  CHAMBER,
+  createChamberEnvironment,
+  tuneHeadMaterials,
+  type SceneDetail,
+} from "./chamberEnvironment";
+import SceneAtmosphere from "./SceneAtmosphere";
 
 export type HeadFraming = {
   offsetX: number;
@@ -208,29 +213,6 @@ type Props = {
   glyphCanvas: HTMLCanvasElement | null;
 };
 
-function Environment({ url }: { url: string }) {
-  const { gl, scene } = useThree();
-  const hdr = useLoader(RGBELoader, url);
-
-  useEffect(() => {
-    const pmrem = new THREE.PMREMGenerator(gl);
-
-    hdr.mapping = THREE.EquirectangularReflectionMapping;
-
-    const env = pmrem.fromEquirectangular(hdr).texture;
-
-    scene.environment = env;
-    pmrem.dispose();
-
-    return () => {
-      scene.environment = null;
-      env.dispose();
-    };
-  }, [gl, scene, hdr]);
-
-  return null;
-}
-
 function measureCavity(root: THREE.Object3D): Cavity | null {
   root.updateWorldMatrix(true, true);
 
@@ -307,7 +289,8 @@ function Head({
   onReady,
   onPoorPerformance,
   glyphCanvas,
-}: Omit<Props, "detail" | "envUrl">) {
+  detail,
+}: Omit<Props, "envUrl">) {
   const gltf = useLoader(GLTFLoader, glbUrl);
 
   const invalidate = useThree((s) => s.invalidate);
@@ -402,13 +385,37 @@ function Head({
 
     gltf.scene.updateWorldMatrix(true, true);
 
+    // Apply the procedural chamber before the first visible head frame.
+    const chamber = createChamberEnvironment(gl, detail);
+    try {
+      tuneHeadMaterials(gltf.scene, chamber);
+    } catch (error) {
+      chamber.dispose();
+      throw error;
+    }
     control.current.kick = () => invalidate();
+    invalidate();
     onReady();
-
     return () => {
       control.current.kick = () => {};
+      // The GLTF loader can cache this scene; detach the released texture.
+      gltf.scene.traverse((object) => {
+        const mesh = object as THREE.Mesh;
+        if (!mesh.isMesh) return;
+        const materials = Array.isArray(mesh.material)
+          ? mesh.material
+          : [mesh.material];
+        materials.forEach((entry) => {
+          const material = entry as THREE.MeshStandardMaterial;
+          if (material?.isMeshStandardMaterial && material.envMap === chamber) {
+            material.envMap = null;
+            material.needsUpdate = true;
+          }
+        });
+      });
+      chamber.dispose();
     };
-  }, [onReady, invalidate, control, gltf, spin, morphMeshes]);
+  }, [onReady, invalidate, control, gltf, spin, morphMeshes, gl, detail]);
 
   // The cavity is a curved shell, so a card behind it only peeks through a gap.
   // Sampling the glyph canvas in screen space keeps every character sharp and
@@ -448,12 +455,15 @@ function Head({
 
         if (!mesh.isMesh) return;
 
-        const list = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+        const list = Array.isArray(mesh.material)
+          ? mesh.material
+          : [mesh.material];
 
         for (const entry of list) {
           const mat = entry as THREE.MeshStandardMaterial;
 
-          if (!mat?.isMeshStandardMaterial || mat.name !== "MouthDark") continue;
+          if (!mat?.isMeshStandardMaterial || mat.name !== "MouthDark")
+            continue;
 
           mat.onBeforeCompile = (shader) => {
             shader.uniforms.uGlyphMap = { value: bound };
@@ -689,6 +699,8 @@ gl_FragColor.rgb = mix(gl_FragColor.rgb, glyph.rgb, glyph.a);`,
 
 export default function SilverHeadCanvas(props: Props & { active: boolean }) {
   const { active, detail, envUrl, ...rest } = props;
+  // Retained for existing callers; reflections are generated procedurally.
+  void envUrl;
 
   const dpr = useMemo<[number, number]>(() => {
     if (detail === "lean") {
@@ -719,6 +731,7 @@ export default function SilverHeadCanvas(props: Props & { active: boolean }) {
       }}
       onCreated={({ gl, camera }) => {
         gl.toneMapping = THREE.NeutralToneMapping;
+        gl.toneMappingExposure = CHAMBER.exposure;
 
         gl.setClearColor(0x000000, 0);
 
@@ -732,8 +745,8 @@ export default function SilverHeadCanvas(props: Props & { active: boolean }) {
       aria-hidden
     >
       <Suspense fallback={null}>
-        <Environment url={envUrl} />
-        <Head {...rest} />
+        <Head {...rest} detail={detail} />
+        <SceneAtmosphere control={rest.control} detail={detail} />
       </Suspense>
     </Canvas>
   );

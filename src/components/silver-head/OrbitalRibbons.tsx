@@ -7,7 +7,14 @@ import {
   useTransform,
   type MotionValue,
 } from "framer-motion";
-import { useEffect, useId, useRef } from "react";
+
+import {
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useRef,
+  type ReactNode,
+} from "react";
 
 type Props = {
   opacity: MotionValue<number>;
@@ -20,124 +27,296 @@ type Props = {
   hidden: boolean;
 };
 
-const PATH_LENGTH = 1000;
-const MOBILE_CYCLE_FALLBACK = 480;
+type Point = {
+  x: number;
+  y: number;
+};
+
+const HEAD_X = 512;
+const HEAD_Y = 520;
+const HEAD_WIDTH = 494;
+
+const RADIUS_X = 304;
+const RADIUS_Y = 44;
+const BAND_WIDTH = 54;
+const ORBIT_SPAN = 632;
+
 const SERVICES = "WEBSITES  •  GOOGLE ADS  •  E-COMMERCE  •  ";
-const MOBILE_COPIES = [-1, 0, 1, 2] as const;
-const MOBILE_GREEN_ROTATION = "rotate(-9 512 475)";
-const MOBILE_BLUE_ROTATION = "rotate(7 512 585)";
-const MOBILE_ORBIT_SPAN = 380;
+
+const COPIES = [-1, 0, 1, 2] as const;
+const SAMPLES = 96;
+
+const line = (points: Point[]) =>
+  points
+    .map((p, i) => `${i ? "L" : "M"}${p.x.toFixed(3)} ${p.y.toFixed(3)}`)
+    .join(" ");
+
+const surface = (a: Point[], b: Point[]) =>
+  `${line(a)} ${line([...b].reverse()).replace(/^M/, "L")} Z`;
+
+/**
+ * A standing sheet around an ellipse.
+ * Front and rear share the same side seams.
+ */
+function makeOrbit(degrees: number, centerY: number) {
+  const angle = (degrees * Math.PI) / 180;
+  const c = Math.cos(angle);
+  const s = Math.sin(angle);
+
+  const build = (rear: boolean) => {
+    const center: Point[] = [];
+    const top: Point[] = [];
+    const bottom: Point[] = [];
+
+    const innerTop: Point[] = [];
+    const innerBottom: Point[] = [];
+    const sheenBottom: Point[] = [];
+
+    for (let i = 0; i <= SAMPLES; i++) {
+      const t = (i / SAMPLES) * Math.PI;
+      const depth = Math.sin(t);
+
+      const px = -RADIUS_X * Math.cos(t);
+      const py = RADIUS_Y * depth * (rear ? -1 : 1);
+
+      const p = {
+        x: px * c - py * s,
+        y: px * s + py * c + centerY,
+      };
+
+      const width = BAND_WIDTH * (0.86 + (rear ? -0.08 : 0.14) * depth);
+
+      const offset = (amount: number) => ({
+        x: p.x - s * amount,
+        y: p.y + c * amount,
+      });
+
+      center.push(p);
+      top.push(offset(-width / 2));
+      bottom.push(offset(width / 2));
+
+      innerTop.push(offset(-width * 0.32));
+      innerBottom.push(offset(width * 0.32));
+      sheenBottom.push(offset(-width * 0.1));
+    }
+
+    return {
+      center: line(center),
+      top: line(top),
+      bottom: line(bottom),
+      surface: surface(top, bottom),
+      ink: surface(innerTop, innerBottom),
+      sheen: surface(top, sheenBottom),
+    };
+  };
+
+  return {
+    front: build(false),
+    rear: build(true),
+  };
+}
+
+const CYAN = makeOrbit(17, -110);
+const VIOLET = makeOrbit(-17, 20);
+
+type Orbit = typeof CYAN;
 
 const CSS = `
 .sh-orbits{
-  --orbit-front:108;
-  --orbit-rear:60;
-  --orbit-type:54px;
-  --orbit-mobile-type:20px;
-  --orbit-mobile-tracking:.9px;
   position:absolute;
   inset:0;
   z-index:2;
   pointer-events:none;
   transform-origin:50% 50%;
   will-change:transform,opacity;
+  --orbit-font:30px;
 }
-.sh-orbits svg{
+
+.sh-orbits>svg{
   display:block;
   width:100%;
   height:100%;
   overflow:visible;
 }
-.sh-orbit-band{
+
+.sh-orbits .sh-orbit-label,
+.sh-orbits .sh-orbit-ruler{
+  font-family:Arial,Helvetica,sans-serif;
+  font-size:var(--orbit-font);
+  font-weight:600;
+  letter-spacing:.65px;
+  font-kerning:none;
+  font-variant-ligatures:none;
+  white-space:pre;
+}
+
+.sh-orbits .sh-orbit-label{
+  fill:#f5fcff;
+  stroke:rgba(3,12,22,.66);
+  stroke-width:.65px;
+  paint-order:stroke fill;
+  stroke-linejoin:round;
+}
+
+.sh-orbits .sh-orbit-ruler{
+  visibility:hidden;
+}
+
+.sh-orbits .sh-orbit-edge{
   fill:none;
   stroke-linecap:round;
   stroke-linejoin:round;
 }
-.sh-orbit-rear{
-  stroke-width:var(--orbit-rear);
-  opacity:.38;
-}
-.sh-orbit-front{
-  stroke-width:var(--orbit-front);
-  filter:drop-shadow(0 7px 8px rgba(0,0,0,.18));
-}
-.sh-orbit-highlight{
-  fill:none;
-  stroke:rgba(255,255,255,.22);
-  stroke-width:4;
-  stroke-linecap:round;
-}
-.sh-orbit-text{
-  font-family:ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif;
-  font-size:var(--orbit-type);
-  font-weight:750;
-  letter-spacing:4.8px;
-  text-transform:uppercase;
-}
-.sh-orbit-tight .sh-orbit-text,
-.sh-orbit-measure{
-  font-size:var(--orbit-mobile-type);
-  font-weight:700;
-  letter-spacing:var(--orbit-mobile-tracking);
-  white-space:pre;
-}
-.sh-orbit-measure{visibility:hidden}
 
-/* Rear and front are two halves of ONE shallow band, sharing endpoints. */
-.sh-orbit-tight .sh-orbit-rear{
-  stroke-width:9;
-  stroke-linecap:butt;
-  opacity:.16;
-}
-.sh-orbit-tight .sh-orbit-front{filter:none}
-
-@media(max-width:760px){
-  .sh-orbits{--orbit-front:38}
-  .sh-orbit-wide{display:none}
-}
-@media(max-width:380px){
+@media(prefers-reduced-motion:reduce){
   .sh-orbits{
-    --orbit-front:34;
-    --orbit-mobile-type:18px;
-    --orbit-mobile-tracking:.8px;
+    will-change:auto;
   }
-}
-@media(min-width:761px){
-  .sh-orbit-tight{display:none}
 }
 `;
 
-/** Each copy gets its own baseline; additional copies prevent gaps on short arcs. */
-function MobileTextCopy({
+/** Native SVG transforms preserve the existing scene alignment. */
+function SvgMotionGroup({
+  transform,
+  className,
+  children,
+}: {
+  transform: MotionValue<string>;
+  className?: string;
+  children: ReactNode;
+}) {
+  const ref = useRef<SVGGElement>(null);
+
+  useLayoutEffect(() => {
+    const node = ref.current;
+    if (!node) return;
+
+    const apply = (value: string) => {
+      node.setAttribute("transform", value);
+    };
+
+    apply(transform.get());
+
+    return transform.on("change", apply);
+  }, [transform]);
+
+  return (
+    <g ref={ref} transform={transform.get()} className={className}>
+      {children}
+    </g>
+  );
+}
+
+function TextCopy({
   pathId,
   phase,
   cycle,
   copy,
-  color,
 }: {
   pathId: string;
   phase: MotionValue<number>;
   cycle: MotionValue<number>;
   copy: number;
-  color: string;
 }) {
   const offset = useTransform(
     [phase, cycle],
-    ([position, length]: number[]) =>
-      (position / PATH_LENGTH) * length + copy * length,
+    ([p, length]: number[]) => (p + copy) * length,
   );
 
   return (
-    <text
-      className="sh-orbit-text"
-      fill={color}
-      dy="0.34em"
-      xmlSpace="preserve"
-    >
+    <text className="sh-orbit-label" dy=".34em" xmlSpace="preserve">
       <m.textPath href={`#${pathId}`} startOffset={offset}>
         {SERVICES}
       </m.textPath>
     </text>
+  );
+}
+
+function GlassRibbon({
+  orbit,
+  tone,
+  id,
+  transform,
+  light,
+  phase,
+  cycle,
+}: {
+  orbit: Orbit;
+  tone: "cyan" | "violet";
+  id: string;
+  transform: MotionValue<string>;
+  light: MotionValue<string>;
+  phase: MotionValue<number>;
+  cycle: MotionValue<number>;
+}) {
+  const front = orbit.front;
+
+  return (
+    <SvgMotionGroup className="sh-orbit-front" transform={transform}>
+      <g mask={`url(#${id}-surface-mask)`}>
+        <path
+          className="sh-orbit-glass"
+          d={front.surface}
+          fill={`url(#${id}-${tone}-film)`}
+        />
+
+        <path d={front.sheen} fill={`url(#${id}-reflection)`} />
+
+        {/* Local contrast behind labels; outer glass stays clear. */}
+        <g mask={`url(#${id}-text-mask)`}>
+          <path d={front.ink} fill="#07131f" fillOpacity=".32" />
+        </g>
+
+        <path
+          className="sh-orbit-edge"
+          d={front.top}
+          stroke={`url(#${id}-${tone}-edge)`}
+          strokeWidth="3.2"
+          opacity=".95"
+        />
+
+        <path
+          className="sh-orbit-edge"
+          d={front.top}
+          stroke={`url(#${id}-${tone}-edge)`}
+          strokeWidth="1.1"
+          opacity=".96"
+        />
+
+        <path
+          className="sh-orbit-edge"
+          d={front.bottom}
+          stroke={`url(#${id}-${tone}-edge)`}
+          strokeWidth=".75"
+          opacity=".55"
+        />
+
+        {/* Broad reflection, clipped inside the glass. */}
+        <g clipPath={`url(#${id}-${tone}-clip)`}>
+          <SvgMotionGroup className="sh-orbit-reflection" transform={light}>
+            <rect
+              x="-80"
+              y="-440"
+              width="160"
+              height="880"
+              fill={`url(#${id}-light)`}
+            />
+          </SvgMotionGroup>
+        </g>
+      </g>
+
+      <g className="sh-orbit-readout" mask={`url(#${id}-text-mask)`}>
+        {COPIES.map((copy) => (
+          <TextCopy
+            key={copy}
+            copy={copy}
+            pathId={`${id}-${tone}-path`}
+            phase={phase}
+            cycle={cycle}
+          />
+        ))}
+      </g>
+    </SvgMotionGroup>
   );
 }
 
@@ -151,136 +330,211 @@ export default function OrbitalRibbons({
   reducedMotion,
   hidden,
 }: Props) {
-  const id = useId().replace(/[^a-zA-Z0-9_-]/g, "");
-  const greenPath = `${id}-green-front`;
-  const bluePath = `${id}-blue-front`;
-  const greenTight = `${id}-green-tight`;
-  const blueTight = `${id}-blue-tight`;
-  const rearMask = `${id}-rear-mask`;
-  const rearMaskTight = `${id}-rear-mask-tight`;
-  const maskBlur = `${id}-mask-blur`;
-  const maskBlurTight = `${id}-mask-blur-tight`;
-  const mobileTextFade = `${id}-mobile-text-fade`;
-  const mobileTextMask = `${id}-mobile-text-mask`;
-
-  const greenOffset = useMotionValue(0);
-  const blueOffset = useMotionValue(0);
-  const mobileCycle = useMotionValue(MOBILE_CYCLE_FALLBACK);
-  const mobileFit = useMotionValue(1);
-  const mobileTransform = useTransform(
-    mobileFit,
-    (value) => `translate(512 520) scale(${value}) translate(-512 -520)`,
-  );
-  const greenTwin = useTransform(greenOffset, (value) => value + PATH_LENGTH);
-  const blueTwin = useTransform(blueOffset, (value) => value - PATH_LENGTH);
+  const id = `orb-${useId().replace(/[^a-zA-Z0-9_-]/g, "")}`;
 
   const svgRef = useRef<SVGSVGElement>(null);
-  const measureRef = useRef<SVGTextElement>(null);
-  const controls = useRef<ReturnType<typeof animate>[]>([]);
-  const shouldRun = active && !paused && !reducedMotion && !hidden;
-  const shouldRunRef = useRef(shouldRun);
+  const rulerRef = useRef<SVGTextElement>(null);
 
-  // Pause/resume does not rebuild the animation or reset its phase.
+  const controls = useRef<ReturnType<typeof animate>[]>([]);
+
+  const shouldRun = active && !paused && !hidden && !reducedMotion;
+
+  const runRef = useRef(shouldRun);
+
+  const cyanPhase = useMotionValue(0.07);
+  const violetPhase = useMotionValue(-0.22);
+
+  const cycle = useMotionValue(620);
+  const layoutScale = useMotionValue(1);
+  const anchorY = useMotionValue(HEAD_Y);
+
+  const drift = useMotionValue(0);
+  const reflection = useMotionValue(0);
+
+  const systemTransform = useTransform(
+    [layoutScale, anchorY],
+    ([s, cy]: number[]) => `translate(${HEAD_X} ${cy}) scale(${s})`,
+  );
+
+  const cyanTransform = useTransform(
+    drift,
+    (v) =>
+      `translate(0 ${(v * 0.45).toFixed(3)}) rotate(${(v * 0.55).toFixed(3)})`,
+  );
+
+  const violetTransform = useTransform(
+    drift,
+    (v) =>
+      `translate(0 ${(-v * 0.55).toFixed(3)}) rotate(${(-v * 0.7).toFixed(3)})`,
+  );
+
+  const cyanLight = useTransform(
+    reflection,
+    (v) => `translate(${(-650 + v * 1300).toFixed(3)} 0) rotate(-18)`,
+  );
+
+  const violetLight = useTransform(
+    reflection,
+    (v) =>
+      `translate(${(-650 + ((v + 0.45) % 1) * 1300).toFixed(3)} 0) rotate(18)`,
+  );
+
   useEffect(() => {
-    shouldRunRef.current = shouldRun;
-    controls.current.forEach((control) => {
-      if (shouldRun) control.play();
-      else control.pause();
-    });
+    runRef.current = shouldRun;
+
+    controls.current.forEach((animation) =>
+      shouldRun ? animation.play() : animation.pause(),
+    );
   }, [shouldRun]);
 
   useEffect(() => {
-    controls.current.forEach((control) => control.stop());
-    controls.current = [];
+    cyanPhase.set(0.07);
+    violetPhase.set(-0.22);
+    drift.set(0);
+    reflection.set(0);
 
-    if (reducedMotion) {
-      greenOffset.set(-180);
-      blueOffset.set(180);
-      return;
-    }
+    if (reducedMotion) return;
 
-    greenOffset.set(0);
-    blueOffset.set(0);
+    const animations = [
+      animate(cyanPhase, -0.93, {
+        duration: 32,
+        ease: "linear",
+        repeat: Infinity,
+      }),
 
-    const green = animate(greenOffset, -PATH_LENGTH, {
-      duration: 22,
-      ease: "linear",
-      repeat: Infinity,
-      repeatType: "loop",
-    });
-    const blue = animate(blueOffset, PATH_LENGTH, {
-      duration: 27,
-      ease: "linear",
-      repeat: Infinity,
-      repeatType: "loop",
-    });
+      animate(violetPhase, 0.78, {
+        duration: 38,
+        ease: "linear",
+        repeat: Infinity,
+      }),
 
-    controls.current = [green, blue];
-    if (!shouldRunRef.current) {
-      green.pause();
-      blue.pause();
+      animate(drift, [0, 1, 0, -1, 0], {
+        duration: 22,
+        ease: "easeInOut",
+        repeat: Infinity,
+      }),
+
+      animate(reflection, 1, {
+        duration: 12.5,
+        ease: "linear",
+        repeat: Infinity,
+      }),
+    ];
+
+    controls.current = animations;
+
+    if (!runRef.current) {
+      animations.forEach((animation) => animation.pause());
     }
 
     return () => {
-      green.stop();
-      blue.stop();
+      animations.forEach((animation) => animation.stop());
+
       controls.current = [];
     };
-  }, [blueOffset, greenOffset, reducedMotion]);
+  }, [reducedMotion, cyanPhase, violetPhase, drift, reflection]);
 
-  // Measure exactly the font/spacing used by the mobile text, including spaces.
-  // Recheck after fonts load and when responsive font sizes change.
-  useEffect(() => {
+  useLayoutEffect(() => {
     let disposed = false;
     let frame: number | null = null;
 
     const read = () => {
       frame = null;
-      if (disposed || !measureRef.current) return;
-      const length = measureRef.current.getComputedTextLength();
-      if (Number.isFinite(length) && length > 1) mobileCycle.set(length);
+      if (disposed) return;
+
       const svg = svgRef.current;
-      if (svg && window.innerWidth <= 760) {
-        // Keep the angled ends inside the phone, even when the parent stage
-        // is intentionally wider than the viewport to frame the 3D head.
-        const svgScale = Math.min(svg.clientWidth, svg.clientHeight) / 1024;
-        const availableWidth = window.innerWidth * 0.94;
-        mobileFit.set(
-          svgScale > 0
-            ? Math.min(1, availableWidth / (MOBILE_ORBIT_SPAN * svgScale))
-            : 1,
-        );
-      } else {
-        mobileFit.set(1);
+      if (!svg) return;
+
+      const pixelsPerUnit = Math.min(svg.clientWidth, svg.clientHeight) / 1024;
+
+      if (pixelsPerUnit <= 0) return;
+
+      const mobile = window.innerWidth <= 760;
+      const box = svg.getBoundingClientRect();
+      const centerX = box.left + box.width / 2;
+      const margin = mobile ? 12 : 24;
+
+      const sideRoom = Math.min(centerX, window.innerWidth - centerX) - margin;
+
+      const available =
+        sideRoom > 0 ? sideRoom * 2 : window.innerWidth - margin * 2;
+
+      const viewportFit = available / (ORBIT_SPAN * pixelsPerUnit);
+
+      let targetScale = 1.08;
+
+      if (mobile) {
+        const headPixels = HEAD_WIDTH * pixelsPerUnit;
+
+        targetScale =
+          (Math.min(headPixels * 0.82, window.innerWidth * 0.88) / headPixels) *
+          1.12;
+      }
+
+      const fitted = Math.max(0.001, Math.min(targetScale, viewportFit));
+
+      layoutScale.set(fitted);
+      anchorY.set(HEAD_Y + (mobile ? -18 : 0));
+
+      const effective = pixelsPerUnit * fitted;
+
+      const targetText = mobile
+        ? Math.max(14, Math.min(16, (window.innerWidth / 390) * 15.5))
+        : Math.max(22, Math.min(27, (window.innerWidth / 1635) * 26));
+
+      const fontPixels = Math.min(targetText, BAND_WIDTH * effective * 0.58);
+
+      svg.style.setProperty(
+        "--orbit-font",
+        `${(fontPixels / effective).toFixed(3)}px`,
+      );
+
+      const length = rulerRef.current?.getComputedTextLength();
+
+      if (length && Number.isFinite(length)) {
+        cycle.set(length);
       }
     };
+
     const schedule = () => {
-      if (disposed || frame !== null) return;
-      frame = window.requestAnimationFrame(read);
+      if (!disposed && frame === null) {
+        frame = requestAnimationFrame(read);
+      }
     };
 
     read();
-    schedule();
-    window.addEventListener("resize", schedule, { passive: true });
-
-    const fonts = document.fonts;
-    fonts?.addEventListener("loadingdone", schedule);
-    if (fonts) void fonts.ready.then(schedule);
 
     const observer =
       typeof ResizeObserver !== "undefined"
         ? new ResizeObserver(schedule)
         : null;
-    if (svgRef.current) observer?.observe(svgRef.current);
+
+    if (svgRef.current) {
+      observer?.observe(svgRef.current);
+    }
+
+    window.addEventListener("resize", schedule, {
+      passive: true,
+    });
+
+    document.fonts?.addEventListener("loadingdone", schedule);
+
+    void document.fonts?.ready.then(schedule);
 
     return () => {
       disposed = true;
-      if (frame !== null) window.cancelAnimationFrame(frame);
-      window.removeEventListener("resize", schedule);
-      fonts?.removeEventListener("loadingdone", schedule);
+
+      if (frame !== null) {
+        cancelAnimationFrame(frame);
+      }
+
       observer?.disconnect();
+
+      window.removeEventListener("resize", schedule);
+
+      document.fonts?.removeEventListener("loadingdone", schedule);
     };
-  }, [mobileCycle, mobileFit]);
+  }, [cycle, layoutScale, anchorY]);
 
   return (
     <m.div
@@ -289,6 +543,7 @@ export default function OrbitalRibbons({
       aria-hidden="true"
     >
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
+
       <svg
         ref={svgRef}
         viewBox="0 0 1024 1024"
@@ -296,229 +551,239 @@ export default function OrbitalRibbons({
         focusable="false"
       >
         <defs>
-          {/* Original desktop geometry and type sizing. */}
-          <path
-            id={greenPath}
-            pathLength={PATH_LENGTH}
-            d="M18 386 C246 426 758 442 1006 394"
-          />
-          <path
-            id={bluePath}
-            pathLength={PATH_LENGTH}
-            d="M16 587 C270 547 766 529 1008 569"
-          />
+          {(
+            [
+              { orbit: CYAN, tone: "cyan" },
+              { orbit: VIOLET, tone: "violet" },
+            ] as const
+          ).map(({ orbit, tone }) => (
+            <g key={tone}>
+              <path id={`${id}-${tone}-path`} d={orbit.front.center} />
 
-          {/* Wider mobile tracks. Their parent groups provide opposing tilts. */}
-          <path id={greenTight} d="M344 458 C428 480 596 480 680 458" />
-          <path id={blueTight} d="M344 568 C428 590 596 590 680 568" />
-
-          <filter id={maskBlur} x="-20%" y="-20%" width="140%" height="140%">
-            <feGaussianBlur stdDeviation="13" />
-          </filter>
-          <mask
-            id={rearMask}
-            maskUnits="userSpaceOnUse"
-            x="0"
-            y="0"
-            width="1024"
-            height="1024"
-          >
-            <rect width="1024" height="1024" fill="white" />
-            <ellipse
-              cx="512"
-              cy="520"
-              rx="286"
-              ry="400"
-              fill="black"
-              filter={`url(#${maskBlur})`}
-            />
-          </mask>
-
-          <filter
-            id={maskBlurTight}
-            x="-20%"
-            y="-20%"
-            width="140%"
-            height="140%"
-          >
-            <feGaussianBlur stdDeviation="3" />
-          </filter>
-          <mask
-            id={rearMaskTight}
-            maskUnits="userSpaceOnUse"
-            x="0"
-            y="0"
-            width="1024"
-            height="1024"
-          >
-            <rect width="1024" height="1024" fill="white" />
-            <ellipse
-              cx="512"
-              cy="520"
-              rx="128"
-              ry="288"
-              fill="black"
-              filter={`url(#${maskBlurTight})`}
-            />
-          </mask>
+              <clipPath
+                id={`${id}-${tone}-clip`}
+                clipPathUnits="userSpaceOnUse"
+              >
+                <path d={orbit.front.surface} />
+              </clipPath>
+            </g>
+          ))}
 
           <linearGradient
-            id={mobileTextFade}
+            id={`${id}-cyan-film`}
             gradientUnits="userSpaceOnUse"
-            x1="344"
-            y1="0"
-            x2="680"
-            y2="0"
+            x1="-310"
+            x2="310"
           >
+            <stop offset="0" stopColor="#54f4e2" stopOpacity=".15" />
+            <stop offset=".45" stopColor="#d8f8ff" stopOpacity=".055" />
+            <stop offset="1" stopColor="#ae9bff" stopOpacity=".15" />
+          </linearGradient>
+
+          <linearGradient
+            id={`${id}-violet-film`}
+            gradientUnits="userSpaceOnUse"
+            x1="-310"
+            x2="310"
+          >
+            <stop offset="0" stopColor="#b496ff" stopOpacity=".15" />
+            <stop offset=".5" stopColor="#ebdfff" stopOpacity=".055" />
+            <stop offset="1" stopColor="#6eeeff" stopOpacity=".15" />
+          </linearGradient>
+
+          <linearGradient
+            id={`${id}-cyan-edge`}
+            gradientUnits="userSpaceOnUse"
+            x1="-310"
+            x2="310"
+          >
+            <stop offset="0" stopColor="#5ff4df" />
+            <stop offset=".48" stopColor="#c7f7ff" />
+            <stop offset="1" stopColor="#ac9bff" />
+          </linearGradient>
+
+          <linearGradient
+            id={`${id}-violet-edge`}
+            gradientUnits="userSpaceOnUse"
+            x1="-310"
+            x2="310"
+          >
+            <stop offset="0" stopColor="#bc9cff" />
+            <stop offset=".5" stopColor="#e6d7ff" />
+            <stop offset="1" stopColor="#82e9ff" />
+          </linearGradient>
+
+          <linearGradient
+            id={`${id}-reflection`}
+            gradientUnits="userSpaceOnUse"
+            x1="-310"
+            x2="310"
+          >
+            <stop offset="0" stopColor="#dfffff" stopOpacity=".02" />
+            <stop offset=".45" stopColor="white" stopOpacity=".11" />
+            <stop offset="1" stopColor="#e5dcff" stopOpacity=".025" />
+          </linearGradient>
+
+          <linearGradient id={`${id}-light`}>
             <stop offset="0" stopColor="white" stopOpacity="0" />
-            <stop offset="0.07" stopColor="white" stopOpacity="1" />
-            <stop offset="0.93" stopColor="white" stopOpacity="1" />
+            <stop offset=".45" stopColor="#efffff" stopOpacity=".015" />
+            <stop offset=".6" stopColor="white" stopOpacity=".16" />
             <stop offset="1" stopColor="white" stopOpacity="0" />
           </linearGradient>
-          <mask
-            id={mobileTextMask}
-            maskUnits="userSpaceOnUse"
-            x="0"
-            y="0"
-            width="1024"
-            height="1024"
+
+          <linearGradient
+            id={`${id}-surface-fade`}
+            gradientUnits="userSpaceOnUse"
+            x1="-315"
+            x2="315"
           >
-            <rect width="1024" height="1024" fill={`url(#${mobileTextFade})`} />
+            <stop offset="0" stopColor="white" stopOpacity="0" />
+            <stop offset=".07" stopColor="white" stopOpacity=".4" />
+            <stop offset=".2" stopColor="white" />
+            <stop offset=".8" stopColor="white" />
+            <stop offset=".93" stopColor="white" stopOpacity=".4" />
+            <stop offset="1" stopColor="white" stopOpacity="0" />
+          </linearGradient>
+
+          <linearGradient
+            id={`${id}-text-fade`}
+            gradientUnits="userSpaceOnUse"
+            x1="-310"
+            x2="96"
+          >
+            <stop offset="0" stopColor="white" stopOpacity="0" />
+            <stop offset=".1" stopColor="white" />
+            <stop offset=".85" stopColor="white" />
+            <stop offset="1" stopColor="white" stopOpacity="0" />
+          </linearGradient>
+
+          <radialGradient
+            id={`${id}-occlusion`}
+            gradientUnits="userSpaceOnUse"
+            cx="0"
+            cy="0"
+            r="1"
+            gradientTransform="scale(252 354)"
+          >
+            <stop offset="0" stopColor="black" />
+            <stop offset=".86" stopColor="black" />
+            <stop offset="1" stopColor="white" />
+          </radialGradient>
+
+          <mask
+            id={`${id}-surface-mask`}
+            maskUnits="userSpaceOnUse"
+            x="-360"
+            y="-280"
+            width="720"
+            height="560"
+            style={{ maskType: "luminance" }}
+          >
+            <rect
+              x="-360"
+              y="-280"
+              width="720"
+              height="560"
+              fill={`url(#${id}-surface-fade)`}
+            />
+          </mask>
+
+          <mask
+            id={`${id}-text-mask`}
+            maskUnits="userSpaceOnUse"
+            x="-310"
+            y="-280"
+            width="406"
+            height="560"
+            style={{ maskType: "luminance" }}
+          >
+            <rect
+              x="-310"
+              y="-280"
+              width="406"
+              height="560"
+              fill={`url(#${id}-text-fade)`}
+            />
+          </mask>
+
+          <mask
+            id={`${id}-rear-mask`}
+            maskUnits="userSpaceOnUse"
+            x="-360"
+            y="-400"
+            width="720"
+            height="800"
+            style={{ maskType: "luminance" }}
+          >
+            <rect
+              x="-360"
+              y="-400"
+              width="720"
+              height="800"
+              fill={`url(#${id}-occlusion)`}
+            />
           </mask>
         </defs>
 
-        <g className="sh-orbit-wide">
-          <g mask={`url(#${rearMask})`}>
-            <path
-              className="sh-orbit-band sh-orbit-rear sh-orbit--green"
-              d="M1006 394 C762 306 258 302 18 386"
-              stroke="#B6FF36"
-            />
-            <path
-              className="sh-orbit-band sh-orbit-rear sh-orbit--blue"
-              d="M1008 569 C762 673 264 665 16 587"
-              stroke="#315CFF"
-            />
-          </g>
-
-          <g className="sh-orbit--green">
-            <use
-              href={`#${greenPath}`}
-              className="sh-orbit-band sh-orbit-front"
-              stroke="#B6FF36"
-            />
-            <use href={`#${greenPath}`} className="sh-orbit-highlight" />
-            <text className="sh-orbit-text" fill="#10170A" dy="0.34em">
-              <m.textPath
-                href={`#${greenPath}`}
-                startOffset={greenOffset}
-                textLength={PATH_LENGTH}
-                lengthAdjust="spacing"
+        <SvgMotionGroup className="sh-orbit-system" transform={systemTransform}>
+          {/* Filled rear surfaces, softly hidden behind the head. */}
+          <g mask={`url(#${id}-rear-mask)`}>
+            {(
+              [
+                {
+                  orbit: CYAN,
+                  tone: "cyan",
+                  transform: cyanTransform,
+                },
+                {
+                  orbit: VIOLET,
+                  tone: "violet",
+                  transform: violetTransform,
+                },
+              ] as const
+            ).map(({ orbit, tone, transform }) => (
+              <SvgMotionGroup
+                key={tone}
+                className="sh-orbit-rear"
+                transform={transform}
               >
-                {SERVICES}
-              </m.textPath>
-              <m.textPath
-                href={`#${greenPath}`}
-                startOffset={greenTwin}
-                textLength={PATH_LENGTH}
-                lengthAdjust="spacing"
-              >
-                {SERVICES}
-              </m.textPath>
-            </text>
-          </g>
-          <g className="sh-orbit--blue">
-            <use
-              href={`#${bluePath}`}
-              className="sh-orbit-band sh-orbit-front"
-              stroke="#315CFF"
-            />
-            <use href={`#${bluePath}`} className="sh-orbit-highlight" />
-            <text className="sh-orbit-text" fill="#F7F8FF" dy="0.34em">
-              <m.textPath
-                href={`#${bluePath}`}
-                startOffset={blueOffset}
-                textLength={PATH_LENGTH}
-                lengthAdjust="spacing"
-              >
-                {SERVICES}
-              </m.textPath>
-              <m.textPath
-                href={`#${bluePath}`}
-                startOffset={blueTwin}
-                textLength={PATH_LENGTH}
-                lengthAdjust="spacing"
-              >
-                {SERVICES}
-              </m.textPath>
-            </text>
-          </g>
-        </g>
-
-        <m.g className="sh-orbit-tight" transform={mobileTransform}>
-          {/* No detached far circles or large looping side hooks on mobile. */}
-          <g mask={`url(#${rearMaskTight})`}>
-            <g transform={MOBILE_GREEN_ROTATION}>
-              <path
-                className="sh-orbit-band sh-orbit-rear"
-                d="M680 458 C596 432 428 432 344 458"
-                stroke="#B6FF36"
-              />
-            </g>
-            <g transform={MOBILE_BLUE_ROTATION}>
-              <path
-                className="sh-orbit-band sh-orbit-rear"
-                d="M680 568 C596 608 428 608 344 568"
-                stroke="#315CFF"
-              />
-            </g>
-          </g>
-
-          <g className="sh-orbit--green" transform={MOBILE_GREEN_ROTATION}>
-            <use
-              href={`#${greenTight}`}
-              className="sh-orbit-band sh-orbit-front"
-              stroke="#B6FF36"
-            />
-            <g mask={`url(#${mobileTextMask})`}>
-              {MOBILE_COPIES.map((copy) => (
-                <MobileTextCopy
-                  key={copy}
-                  pathId={greenTight}
-                  phase={greenOffset}
-                  cycle={mobileCycle}
-                  copy={copy}
-                  color="#10170A"
+                <path
+                  d={orbit.rear.surface}
+                  fill={`url(#${id}-${tone}-film)`}
+                  opacity=".62"
                 />
-              ))}
-            </g>
-          </g>
-          <g className="sh-orbit--blue" transform={MOBILE_BLUE_ROTATION}>
-            <use
-              href={`#${blueTight}`}
-              className="sh-orbit-band sh-orbit-front"
-              stroke="#315CFF"
-            />
-            <g mask={`url(#${mobileTextMask})`}>
-              {MOBILE_COPIES.map((copy) => (
-                <MobileTextCopy
-                  key={copy}
-                  pathId={blueTight}
-                  phase={blueOffset}
-                  cycle={mobileCycle}
-                  copy={copy}
-                  color="#F7F8FF"
-                />
-              ))}
-            </g>
-          </g>
-        </m.g>
 
-        <text
-          ref={measureRef}
-          className="sh-orbit-text sh-orbit-measure"
-          xmlSpace="preserve"
-        >
+                <path
+                  d={orbit.rear.sheen}
+                  fill={`url(#${id}-reflection)`}
+                  opacity=".32"
+                />
+              </SvgMotionGroup>
+            ))}
+          </g>
+
+          <GlassRibbon
+            orbit={VIOLET}
+            tone="violet"
+            id={id}
+            transform={violetTransform}
+            light={violetLight}
+            phase={violetPhase}
+            cycle={cycle}
+          />
+
+          <GlassRibbon
+            orbit={CYAN}
+            tone="cyan"
+            id={id}
+            transform={cyanTransform}
+            light={cyanLight}
+            phase={cyanPhase}
+            cycle={cycle}
+          />
+        </SvgMotionGroup>
+
+        <text ref={rulerRef} className="sh-orbit-ruler" xmlSpace="preserve">
           {SERVICES}
         </text>
       </svg>
