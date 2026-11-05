@@ -4,10 +4,30 @@ import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { heroChromeOpacity } from "@/components/silver-head/chrome";
 
 const PreLogo = () => {
   // State to control drawer visibility and menu state
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [chromeOff, setChromeOff] = useState(false);
+
+  // The hero hides this control while the mouth sequence has the screen.
+  useEffect(() => {
+    const root = document.documentElement;
+
+    const sync = () => {
+      setChromeOff(root.dataset.headChrome === "off");
+    };
+
+    const observer = new MutationObserver(sync);
+    observer.observe(root, {
+      attributes: true,
+      attributeFilter: ["data-head-chrome"],
+    });
+    sync();
+
+    return () => observer.disconnect();
+  }, []);
 
   // Effect to handle body scroll lock when drawer is open
   useEffect(() => {
@@ -39,36 +59,48 @@ const PreLogo = () => {
 
   return (
     <>
-      {/* Menu Header Container */}
+      {/* The outer layer reads the hero's scroll MotionValue without React renders. */}
       <motion.div
-        className="fixed top-0 left-1/2 transform -translate-x-1/2 z-50 cursor-pointer"
-        onClick={() => setIsDrawerOpen(true)}
-        animate={{ opacity: isDrawerOpen ? 0 : 1 }}
-        transition={{ duration: 0.3 }}
+        className="prelogo-mark fixed left-1/2 top-0 z-50 -translate-x-1/2"
+        style={{ opacity: heroChromeOpacity }}
       >
-        {/* Menu Header Image */}
-        <div className="w-[25vw] h-[vh] lg:w-[18vw] lg:h-[4.5vh] relative">
-          <Image
-            src="/images/menu-header.PNG"
-            alt="Menu Header"
-            width={500}
-            height={100}
-            style={{
-              width: "100%",
-              height: "100%",
-              objectFit: "contain",
-              filter: "drop-shadow(0 0 10px rgba(220,20,60,0.3))",
-            }}
-            priority
-          />
+        <motion.button
+          type="button"
+          className="inline-flex min-h-11 cursor-pointer items-center justify-center border-0 bg-transparent px-3 pt-[max(6px,env(safe-area-inset-top))] focus-visible:outline-none focus-visible:[box-shadow:0_0_0_2px_#070B09,0_0_0_4px_#F2F0E8]"
+          onClick={() => setIsDrawerOpen(true)}
+          animate={{ opacity: isDrawerOpen ? 0 : 1 }}
+          transition={{ duration: 0.3 }}
+          inert={chromeOff || isDrawerOpen ? true : undefined}
+          aria-hidden={chromeOff || isDrawerOpen || undefined}
+          aria-expanded={isDrawerOpen}
+          aria-controls="site-menu"
+          aria-label="Deschide meniul"
+          disabled={chromeOff || isDrawerOpen}
+          tabIndex={chromeOff || isDrawerOpen ? -1 : 0}
+        >
+          {/* Red banner stays: it is the site menu, not a hero accent. */}
+          <div className="relative aspect-[5/1] w-[clamp(128px,25vw,240px)] lg:w-[clamp(160px,18vw,280px)]">
+            <Image
+              src="/images/menu-header.PNG"
+              alt=""
+              width={500}
+              height={100}
+              style={{
+                width: "100%",
+                height: "100%",
+                objectFit: "contain",
+              }}
+              priority
+            />
 
-          {/* Hamburger menu lines overlay - 40% thinner lines */}
-          <div className="absolute inset-0 flex flex-col justify-center items-center z-[51]">
-            <div className="w-[32%] lg:w-[25%] h-[1px] lg:h-[2px] bg-white mb-1 rounded-full gradient"></div>
-            <div className="w-[32%] lg:w-[25%] h-[1px] lg:h-[2px] bg-white mb-1 rounded-full gradient"></div>
-            <div className="w-[32%] lg:w-[25%] h-[1px] lg:h-[2px] bg-white rounded-full gradient"></div>
+            {/* Hamburger menu lines overlay - 40% thinner lines */}
+            <div className="absolute inset-0 z-[51] flex flex-col items-center justify-center">
+              <div className="gradient mb-1 h-[1px] w-[32%] rounded-full bg-white lg:h-[2px] lg:w-[25%]"></div>
+              <div className="gradient mb-1 h-[1px] w-[32%] rounded-full bg-white lg:h-[2px] lg:w-[25%]"></div>
+              <div className="gradient h-[1px] w-[32%] rounded-full bg-white lg:h-[2px] lg:w-[25%]"></div>
+            </div>
           </div>
-        </div>
+        </motion.button>
       </motion.div>
 
       {/* Overlay */}
@@ -81,6 +113,7 @@ const PreLogo = () => {
 
       {/* Navigation Drawer - Using menu-bar.svg */}
       <motion.div
+        id="site-menu"
         className="fixed left-[10%] bottom-[27%] lg:bottom-[20%] md:left-[20%] lg:left-[calc(50%-15%)] w-[80%] md:w-[60%] lg:w-[30%] h-[95%] md:h-[80%] lg:h-[90%] z-50 overflow-hidden"
         style={{
           willChange: "transform",

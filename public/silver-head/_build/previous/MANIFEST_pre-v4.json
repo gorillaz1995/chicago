@@ -1,0 +1,50 @@
+[
+ {
+  "backup": "silver-head_pre-v4_blend-sculpt.blend",
+  "size": 431205,
+  "sha256_12": "ec00e4978345",
+  "src_sha256_12": "ec00e4978345",
+  "src_mtime": "2026-11-05 14:43:57",
+  "note": "Blender file as found: Head 9536+464 tris, 0.173 m wide (NOT what the site loads)"
+ },
+ {
+  "backup": "silver-head_pre-v4_deployed-web.glb",
+  "size": 291848,
+  "sha256_12": "3025542082db",
+  "src_sha256_12": "3025542082db",
+  "src_mtime": "2026-11-05 15:49:32",
+  "note": "GLB the site loads via /silver-head/silver-head.glb?v=orig: 9360+640 tris, 0.158 m wide"
+ },
+ {
+  "backup": "silver-head_pre-v4_blend-export.raw.glb",
+  "size": 288700,
+  "sha256_12": "0717ff4ee64b",
+  "src_sha256_12": "0717ff4ee64b",
+  "src_mtime": "2026-11-05 14:43:57",
+  "note": "Raw export of the .blend sculpt (matches the .blend, not the deployed GLB)"
+ },
+ {
+  "backup": "silver-head_pre-v4_poster.webp",
+  "size": 21408,
+  "sha256_12": "3c36211b1e76",
+  "src_sha256_12": "3c36211b1e76",
+  "src_mtime": "2026-11-05 18:50:34",
+  "note": "poster as found (1024)"
+ },
+ {
+  "backup": "silver-head_pre-v4_poster-512.webp",
+  "size": 6170,
+  "sha256_12": "fed98c11672f",
+  "src_sha256_12": "fed98c11672f",
+  "src_mtime": "2026-11-05 18:53:32",
+  "note": "poster as found (512)"
+ },
+ {
+  "backup": "silver-head_pre-v4_public-root-orphan.glb",
+  "size": 941568,
+  "sha256_12": "c4c15b3f252c",
+  "src_sha256_12": "c4c15b3f252c",
+  "src_mtime": "2026-11-05 13:33:18",
+  "note": "public/silver-head.glb: 27.6k+2.2k tris, UVs, no MouthOpen clip; not referenced by src"
+ }
+]

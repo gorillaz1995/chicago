@@ -19,7 +19,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="ro">
       <body className={`${oggD.variable} ${geistSans.variable}`}>
         <PreLogo />
         {children}

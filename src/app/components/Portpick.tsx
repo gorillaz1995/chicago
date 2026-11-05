@@ -6,6 +6,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { SquareArrowOutUpRight } from "lucide-react";
 
+/* Portfolio cards — social stubs removed; query suffixes stripped for next/image */
 const projects = [
   {
     id: 1,
@@ -23,38 +24,24 @@ const projects = [
   },
   {
     id: 3,
-    title: "Jamon Real",
-    imageUrl: "/images/portofolio-images/jamonrell.webp",
-    category: "Social Media",
-    link: "/portofoliu/jamon-real-social",
-  },
-  {
-    id: 4,
     title: "Ciprian Ungureanu",
     imageUrl: "/images/portofolio-images/ungureanu.png",
     category: "Web Dev & Design",
     link: "https://www.ciprianungureanu.ro/",
   },
   {
-    id: 5,
+    id: 4,
     title: "Jamon Real",
-    imageUrl: "/images/portofolio-images/jamonrr.png?width=90%",
+    imageUrl: "/images/portofolio-images/jamonrr.png",
     category: "Web Dev & Design",
     link: "https://jamonreal.ro/",
   },
   {
-    id: 6,
+    id: 5,
     title: "Saca Experts",
-    imageUrl: "/images/portofolio-images/sacax.png?width=90%",
+    imageUrl: "/images/portofolio-images/sacax.png",
     category: "Web Dev & Design",
     link: "/portofoliu/saca-experts-website",
-  },
-  {
-    id: 7,
-    title: "Ciprian Ungureanu",
-    imageUrl: "/images/portofolio-images/ungci.webp",
-    category: "Social Media",
-    link: "/portofoliu/ciprian-ungureanu-social",
   },
 ];
 
