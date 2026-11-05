@@ -18,7 +18,7 @@ import {
   tuneHeadMaterials,
   type SceneDetail,
 } from "./chamberEnvironment";
-import SceneAtmosphere from "./SceneAtmosphere";
+import SceneAtmosphere from "./sceneAtmosphere";
 
 export type HeadFraming = {
   offsetX: number;
