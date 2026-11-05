@@ -34,7 +34,7 @@ import {
   TRACK_IN_VIEWPORTS,
 } from "./dive";
 import { setHandoffTarget } from "./handoff";
-import { latchOnLamp, releaseLampLatch } from "./lampSnap";
+import { latchOnLamp, noteLampVisit, releaseLampLatch, resetLampVisit } from "./lampSnap";
 import { LAMP_PLATE } from "./lampSection";
 import OrbitalRibbons from "./OrbitalRibbons";
 import { GlyphMatrix } from "@/components/ui/glyph-matrix";
@@ -1001,6 +1001,7 @@ export default function SilverHeadHero({
         handoffTarget.current = opened;
         handoffBoot.current = false;
         setHandoffTarget(opened, true);
+        if (opened === 1) noteLampVisit();
       }
 
       const next =
@@ -1159,8 +1160,9 @@ export default function SilverHeadHero({
     posterTop,
   ]);
 
-  // Sticky and track share one viewport height, so a mobile bar change
-  // scales both and does not jump the dive progress.
+  // The track and the lamp plate stay on the small viewport (100svh).
+  // visualViewport.height changes when Chrome hides the URL bar, and rewriting
+  // the track from that value rewinds the dive into the glyphs.
   useLayoutEffect(() => {
     const frame = stickyRef.current;
     const track = trackRef.current;
@@ -1169,30 +1171,25 @@ export default function SilverHeadHero({
     const applySize = () => {
       const root = document.documentElement;
 
+      frame.style.height = "";
+      track.style.height = "";
+
       if (control.current.reducedMotion) {
-        frame.style.height = "";
-        track.style.height = "";
         root.style.removeProperty("--sh-sticky");
         return;
       }
 
-      const height = Math.round(
-        window.visualViewport?.height ?? window.innerHeight,
-      );
-
-      frame.style.height = `${height}px`;
-      track.style.height = `${height * TRACK_IN_VIEWPORTS}px`;
+      // CSS 100svh is stable while the toolbar shows and hides.
+      const height = Math.round(frame.offsetHeight);
       root.style.setProperty("--sh-sticky", `${height}px`);
     };
 
     applySize();
 
-    const viewport = window.visualViewport;
-    viewport?.addEventListener("resize", applySize);
+    // Width changes (rotation) update svh. Toolbar height changes do not.
     window.addEventListener("resize", applySize);
 
     return () => {
-      viewport?.removeEventListener("resize", applySize);
       window.removeEventListener("resize", applySize);
     };
   }, [reduced]);
@@ -1220,6 +1217,7 @@ export default function SilverHeadHero({
         handoffTarget.current = opened;
         handoffBoot.current = false;
         setHandoffTarget(opened, true);
+        if (opened === 1) noteLampVisit();
       } else {
         let desired = handoffTarget.current;
         if (next >= DIVE.black - 0.001) desired = 1;
@@ -1229,11 +1227,15 @@ export default function SilverHeadHero({
           handoffTarget.current = desired;
           setHandoffTarget(desired);
 
-          // The first sample must not yank a refresh. Only a later
-          // crossing into the mouth stops the gesture on the lamp.
-          if (desired === 1) latchOnLamp();
-          else releaseLampLatch();
+          if (desired === 0) {
+            releaseLampLatch();
+            resetLampVisit();
+          }
         }
+
+        // Retry until the plate is actually flush. A single crossing can
+        // happen while the glyphs are still the frame on screen.
+        if (desired === 1) latchOnLamp();
       }
 
       const hide = next > DIVE.chrome;

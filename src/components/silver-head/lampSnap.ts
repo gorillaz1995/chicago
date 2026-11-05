@@ -9,13 +9,30 @@ let listening = false;
 let releaseTimer = 0;
 let holdFrame = 0;
 let lastTouchY: number | null = null;
+/** True after this approach has already been pinned, until the dive scrolls back out. */
+let visitLatched = false;
+
+function plateElement() {
+  return document.querySelector<HTMLElement>("[data-mouth-reveal]");
+}
 
 /** Document offset where the lamp plate sits flush with the viewport. */
 function lampTop() {
-  const plate = document.querySelector<HTMLElement>("[data-mouth-reveal]");
+  const plate = plateElement();
   if (!plate) return null;
 
   return plate.getBoundingClientRect().top + window.scrollY;
+}
+
+/**
+ * Distance from the viewport top to the lamp plate.
+ * Positive means the lamp is still below the fold, in the glyph dive.
+ */
+function plateEdge() {
+  const plate = plateElement();
+  if (!plate) return null;
+
+  return plate.getBoundingClientRect().top;
 }
 
 /** Pull the viewport back to the lamp without a smooth scroll that can overshoot. */
@@ -69,8 +86,26 @@ export function releaseLampLatch() {
   detach();
 }
 
+/** Allow the next mouth entry to pin again. The timeout release must not call this. */
+export function resetLampVisit() {
+  visitLatched = false;
+}
+
+/** A load that is already on the lamp must not pin the first scroll. */
+export function noteLampVisit() {
+  visitLatched = true;
+}
+
 function onWheel(event: WheelEvent) {
   if (!latched) return;
+
+  // A toolbar resize can report the pin end while the plate is still below.
+  // Blocking that gesture is what freezes the glyphs.
+  const edge = plateEdge();
+  if (edge == null || edge > 2) {
+    releaseLampLatch();
+    return;
+  }
 
   // Scrolling back into the mouth must not stay pinned.
   if (event.deltaY < 0) {
@@ -93,6 +128,12 @@ function onTouchStart(event: TouchEvent) {
 
 function onTouchMove(event: TouchEvent) {
   if (!latched) return;
+
+  const edge = plateEdge();
+  if (edge == null || edge > 2) {
+    releaseLampLatch();
+    return;
+  }
 
   const y = event.touches[0]?.clientY;
   if (y == null) return;
@@ -131,6 +172,20 @@ function onTouchEnd() {
  * rest of that downward gesture so it cannot reach the white section.
  */
 export function latchOnLamp() {
+  const edge = plateEdge();
+
+  // Progress can hit the pin end before the plate is on screen. Pinning then
+  // yanks the viewport back onto the glyphs and swallows the downward swipe.
+  if (edge == null || edge > 2) {
+    if (latched) releaseLampLatch();
+    return;
+  }
+
+  // Already pinned this visit. Repeating the pin would trap the page on the lamp.
+  if (latched || visitLatched) return;
+
+  visitLatched = true;
+
   pinToLamp();
   latched = true;
   attach();
