@@ -1,0 +1,25 @@
+00:00.016  color_management | Using OCIO=C:\Program Files\Blender Foundation\Blender 5.2\5.2\datafiles\colormanagement\config.ocio
+00:01.359  blend            | Read blend: "C:\Users\tedyf\OneDrive\Documents\KoeiTecmo\chicago_projekt\public\silver-head\silver-head_v5.blend"
+23:08:35 | INFO: Data are loaded, start creating Blender stuff
+23:08:35 | INFO: Blender create Mesh node Head
+23:08:35 | INFO: glTF import finished in 0.02s
+VERIFIED 0.3 s
+00:03.531  render           | Saved: 'C:\Users\tedyf\OneDrive\Documents\KoeiTecmo\chicago_projekt\public\silver-head\_build\v5_renders\silver-head_v5_closed_000.png'
+00:04.156  render           | Saved: 'C:\Users\tedyf\OneDrive\Documents\KoeiTecmo\chicago_projekt\public\silver-head\_build\v5_renders\silver-head_v5_closed_045.png'
+00:04.766  render           | Saved: 'C:\Users\tedyf\OneDrive\Documents\KoeiTecmo\chicago_projekt\public\silver-head\_build\v5_renders\silver-head_v5_closed_090.png'
+00:05.344  render           | Saved: 'C:\Users\tedyf\OneDrive\Documents\KoeiTecmo\chicago_projekt\public\silver-head\_build\v5_renders\silver-head_v5_closed_135.png'
+00:05.891  render           | Saved: 'C:\Users\tedyf\OneDrive\Documents\KoeiTecmo\chicago_projekt\public\silver-head\_build\v5_renders\silver-head_v5_closed_180.png'
+00:06.469  render           | Saved: 'C:\Users\tedyf\OneDrive\Documents\KoeiTecmo\chicago_projekt\public\silver-head\_build\v5_renders\silver-head_v5_closed_225.png'
+00:07.141  render           | Saved: 'C:\Users\tedyf\OneDrive\Documents\KoeiTecmo\chicago_projekt\public\silver-head\_build\v5_renders\silver-head_v5_closed_270.png'
+00:07.797  render           | Saved: 'C:\Users\tedyf\OneDrive\Documents\KoeiTecmo\chicago_projekt\public\silver-head\_build\v5_renders\silver-head_v5_closed_315.png'
+00:08.469  render           | Saved: 'C:\Users\tedyf\OneDrive\Documents\KoeiTecmo\chicago_projekt\public\silver-head\_build\v5_renders\silver-head_v5_open_front.png'
+00:09.172  render           | Saved: 'C:\Users\tedyf\OneDrive\Documents\KoeiTecmo\chicago_projekt\public\silver-head\_build\v5_renders\silver-head_v5_open_profile.png'
+00:09.812  render           | Saved: 'C:\Users\tedyf\OneDrive\Documents\KoeiTecmo\chicago_projekt\public\silver-head\_build\v5_renders\silver-head_v5_poster_src.png'
+RENDERED 11 8.4 s
+00:10.750  render           | Saved: 'C:\Users\tedyf\OneDrive\Documents\KoeiTecmo\chicago_projekt\public\silver-head\_build\v5_renders\silver-head_v5_closeup_000.png'
+00:11.703  render           | Saved: 'C:\Users\tedyf\OneDrive\Documents\KoeiTecmo\chicago_projekt\public\silver-head\_build\v5_renders\silver-head_v5_closeup_035.png'
+00:12.656  render           | Saved: 'C:\Users\tedyf\OneDrive\Documents\KoeiTecmo\chicago_projekt\public\silver-head\_build\v5_renders\silver-head_v5_closeup_090.png'
+CLOSEUPS done
+Blender 5.2.3 LTS (hash e13b728c6880 built 2026-10-22 01:37:16)
+
+Blender quit

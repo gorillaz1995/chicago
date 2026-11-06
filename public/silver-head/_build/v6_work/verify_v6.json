@@ -1,0 +1,56 @@
+{
+ "objects": [
+  [
+   "Gems",
+   "MESH",
+   "Head"
+  ],
+  [
+   "Head",
+   "MESH",
+   "SpinRoot"
+  ],
+  [
+   "SpinRoot",
+   "EMPTY",
+   null
+  ]
+ ],
+ "Gems": {
+  "tris": 224,
+  "verts": 672,
+  "materials": [
+   "Gem"
+  ],
+  "shape_keys": []
+ },
+ "Head": {
+  "tris": 11764,
+  "verts": 6163,
+  "materials": [
+   "Silver",
+   "MouthDark"
+  ],
+  "shape_keys": [
+   "Basis",
+   "MouthOpen"
+  ]
+ },
+ "actions": [
+  [
+   "MouthOpen",
+   [
+    0.0,
+    18.0
+   ]
+  ],
+  [
+   "Turntable",
+   [
+    0.0,
+    480.0
+   ]
+  ]
+ ],
+ "mouth_max_delta_m": 0.03862
+}

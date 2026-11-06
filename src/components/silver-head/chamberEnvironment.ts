@@ -4,9 +4,10 @@ import { LAMP_PLATE } from "./lampSection";
 export type SceneDetail = "full" | "lean";
 
 export const CHAMBER = {
-  clear: "#070b09",
+  clear: "#080b0d",
   exposure: 0.94,
-  roughness: 0.31,
+  // Lower values make the fine eye and nose relief sparkle.
+  roughness: 0.33,
   envMapIntensity: 1,
 } as const;
 
@@ -16,9 +17,9 @@ type Lobe = {
   sharp: number;
 };
 
-// Broad, soft reflections with a restrained cyan/emerald edge.
+// Broad, soft reflections with a restrained icy cyan edge.
 // The darker underside grounds the jaw without changing MouthDark.
-const BASE = new THREE.Vector3(0.004, 0.006, 0.005);
+const BASE = new THREE.Vector3(0.004, 0.005, 0.006);
 
 const LOBES: readonly Lobe[] = [
   {
@@ -33,17 +34,18 @@ const LOBES: readonly Lobe[] = [
   },
   {
     dir: [0.96, 0.16, -0.85],
-    color: [0.035, 0.28, 0.19],
+    // Cool cyan instead of the previous emerald temple rim.
+    color: [0.08, 0.22, 0.26],
     sharp: 13,
   },
   {
     dir: [-0.78, 0.35, -0.62],
-    color: [0.045, 0.11, 0.16],
+    color: [0.05, 0.1, 0.16],
     sharp: 10,
   },
   {
     dir: [0.02, -0.88, 0.22],
-    color: [0.025, 0.032, 0.028],
+    color: [0.025, 0.028, 0.032],
     sharp: 2.1,
   },
 ];
@@ -271,25 +273,11 @@ export function tuneHeadMaterials(
   });
 }
 
-/** Screen-space glyph field mixed into the mouth interior. */
-export type MouthGlyphUniforms = {
-  uGlyphMap: { value: THREE.CanvasTexture };
-  uResolution: { value: THREE.Vector2 };
-  /** 0 = plain plate, 1 = full glyph field. Driven by the dive's glyph channel. */
-  uGlyphMix: { value: number };
-};
-
 /**
- * Patches MouthDark to sample the glyph canvas in screen space.
- *
- * Three reuses a material's compiled program without calling
- * `onBeforeCompile` again, so the uniforms and the texture live on the
- * material and survive remounts. The patch is applied before the first
- * compile, which keeps the glyph variant out of the scroll path.
+ * Clears any leftover MouthDark glyph shader patch from an earlier build so
+ * a remount always paints the matte lamp plate.
  */
-export function mouthGlyphUniforms(root: THREE.Object3D) {
-  let uniforms: MouthGlyphUniforms | null = null;
-
+export function clearMouthGlyphPatch(root: THREE.Object3D) {
   root.traverse((obj) => {
     const mesh = obj as THREE.Mesh;
     if (!mesh.isMesh) return;
@@ -302,59 +290,20 @@ export function mouthGlyphUniforms(root: THREE.Object3D) {
       const mat = entry as THREE.MeshStandardMaterial;
       if (!mat?.isMeshStandardMaterial || mat.name !== "MouthDark") continue;
 
-      const existing = mat.userData.glyphUniforms as MouthGlyphUniforms | undefined;
+      const uniforms = mat.userData.glyphUniforms as
+        | { uGlyphMap?: { value?: THREE.Texture } }
+        | undefined;
 
-      if (existing) {
-        uniforms = existing;
+      if (!uniforms && mat.customProgramCacheKey?.() !== "mouth-glyph-v7") {
         continue;
       }
 
-      // 1×1 transparent placeholder until the glyph canvas exists.
-      const placeholder = document.createElement("canvas");
-      placeholder.width = 1;
-      placeholder.height = 1;
-
-      const texture = new THREE.CanvasTexture(placeholder);
-      // Mixed in after the color transform, so the canvas white stays white.
-      texture.colorSpace = THREE.NoColorSpace;
-      texture.generateMipmaps = false;
-      texture.minFilter = THREE.LinearFilter;
-      texture.magFilter = THREE.LinearFilter;
-      texture.wrapS = THREE.ClampToEdgeWrapping;
-      texture.wrapT = THREE.ClampToEdgeWrapping;
-
-      const created: MouthGlyphUniforms = {
-        uGlyphMap: { value: texture },
-        uResolution: { value: new THREE.Vector2(1, 1) },
-        uGlyphMix: { value: 0 },
-      };
-
-      mat.userData.glyphUniforms = created;
-
-      mat.onBeforeCompile = (shader) => {
-        shader.uniforms.uGlyphMap = created.uGlyphMap;
-        shader.uniforms.uResolution = created.uResolution;
-        shader.uniforms.uGlyphMix = created.uGlyphMix;
-
-        shader.fragmentShader = shader.fragmentShader
-          .replace(
-            "#include <common>",
-            "#include <common>\nuniform sampler2D uGlyphMap;\nuniform vec2 uResolution;\nuniform float uGlyphMix;",
-          )
-          .replace(
-            "#include <colorspace_fragment>",
-            `#include <colorspace_fragment>
-vec2 glyphUv = clamp(gl_FragCoord.xy / uResolution, 0.0, 1.0);
-vec4 glyph = texture2D(uGlyphMap, glyphUv);
-gl_FragColor.rgb = mix(gl_FragColor.rgb, glyph.rgb, glyph.a * uGlyphMix);`,
-          );
-      };
-
-      mat.customProgramCacheKey = () => "mouth-glyph-v7";
+      uniforms?.uGlyphMap?.value?.dispose();
+      mat.userData.glyphUniforms = undefined;
+      // Empty compile hook keeps Three's call site safe while dropping the mix.
+      mat.onBeforeCompile = () => {};
+      mat.customProgramCacheKey = () => "mouth-plain-v1";
       mat.needsUpdate = true;
-      uniforms = created;
     }
   });
-
-  return uniforms as MouthGlyphUniforms | null;
 }

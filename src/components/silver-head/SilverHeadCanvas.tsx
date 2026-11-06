@@ -31,13 +31,19 @@ import {
 import { gsap } from "./gsapClient";
 import {
   CHAMBER,
+  clearMouthGlyphPatch,
   createChamberEnvironment,
-  mouthGlyphUniforms,
   tuneHeadMaterials,
-  type MouthGlyphUniforms,
   type SceneDetail,
 } from "./chamberEnvironment";
+import { LAMP_PLATE } from "./lampSection";
 import SceneAtmosphere from "./sceneAtmosphere";
+import {
+  applyGlassHead,
+  BURST,
+  startHeadBurst,
+  updateGlassHead,
+} from "./glassHead";
 
 export type HeadFraming = {
   offsetX: number;
@@ -65,22 +71,23 @@ export type DiveChannels = {
   camera: number;
   /** Haze, shaft, traces and the light sweep. 1 at rest. */
   atmosphere: number;
-  /** Glyph field strength inside the mouth. */
-  glyph: number;
 };
 
 export type HeadControl = {
   channels: DiveChannels;
   paused: boolean;
   reducedMotion: boolean;
+  /**
+   * Mouth fills the frame. The canvas is hidden and must not render, or the
+   * browser keeps a still of the head and paints it onto the next section.
+   */
+  covered: boolean;
   /** Work budget. `low` is set at runtime when idle frames fall behind. */
   tier: PerfTier;
   framing: HeadFraming;
   tiltX: number;
   tiltY: number;
   kick: () => void;
-  /** Uploads the mouth glyph canvas. No-op until that plane exists. */
-  syncGlyph: () => void;
   /** Debug: share of the current frame covered by the mouth interior. */
   measureCoverage?: () => number;
   /** First fully covered frame for this layout, in screen heights. */
@@ -89,13 +96,15 @@ export type HeadControl = {
 
 export const TURN_SECONDS = 20;
 
-// Initial mobile framing only.
-// Lower values give the head more breathing room.
-const MOBILE_REST_SCALE = 0.82;
+// Match the stage at rest. Values below 1 pull the head back and
+// leave it smaller than the stage the ribbons are drawn in.
+const MOBILE_REST_SCALE = 1;
 
-// Maximum share of the viewport occupied by the rotation envelope.
-const MOBILE_MAX_HEAD_WIDTH = 0.88;
-const MOBILE_MAX_HEAD_HEIGHT = 0.8;
+// The rotation envelope may approach the viewport, with a small margin,
+// so the front face can occupy about 70% of a phone's width.
+const MOBILE_MAX_HEAD_WIDTH = 0.96;
+const MOBILE_MAX_HEAD_HEIGHT = 0.94;
+const MOBILE_EDGE = 0.035;
 const MOBILE_BREAKPOINT = 760;
 
 const TWO_PI = Math.PI * 2;
@@ -115,6 +124,82 @@ const FALLBACK_LOOK = new THREE.Vector3(0, -0.0875, 0.04);
 
 const easeInOutCubic = (t: number) =>
   t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+
+const clamp01 = (value: number) => Math.min(1, Math.max(0, value));
+
+const smoothstep = (value: number) => {
+  const t = clamp01(value);
+  return t * t * (3 - 2 * t);
+};
+
+/**
+ * Idle orbit on the rest-camera sphere. Looking at the origin keeps the head
+ * centered under the ribbons. Distance stays put: a dolly would scale the head
+ * against ribbons that do not move. 18s is out of step with the 20s head turn.
+ * Angles are radians. Each pose dwells, then eases to the next.
+ */
+const CINEMATIC_SECONDS = 18;
+const CINEMATIC_SETTLE_VH = 0.2;
+/** Ease off the authored rest camera so the first pose does not cut in. */
+const CINEMATIC_INTRO_SECONDS = 1.2;
+/** Matches the canvas fade, so the poster and the rest camera stay aligned. */
+const CINEMATIC_REVEAL_MS = 600;
+/** Quiet after the last wheel or scroll before the tour may continue. */
+const CINEMATIC_QUIET_MS = 250;
+const CINEMATIC_SWIPE_PX = 12;
+
+const CINEMATIC_POSES = [
+  { azimuth: 0, elevation: -0.07 },
+  { azimuth: -0.24, elevation: 0.03 },
+  { azimuth: 0.06, elevation: 0.09 },
+  { azimuth: 0.24, elevation: -0.03 },
+] as const;
+
+const CINEMATIC_KEYS = new Set(["ArrowDown", "PageDown", "End", " "]);
+
+type TourClock = {
+  tourTouch: boolean;
+  tourKeys: number;
+  tourWheelAt: number;
+  tourScrollAt: number;
+};
+
+function cinematicPose(phase: number, target: THREE.Vector3) {
+  const count = CINEMATIC_POSES.length;
+  const scaled = (phase / CINEMATIC_SECONDS) * count;
+  const looped = ((scaled % count) + count) % count;
+  const index = Math.floor(looped);
+  const from = CINEMATIC_POSES[index];
+  const to = CINEMATIC_POSES[(index + 1) % count];
+  const blended = easeInOutCubic(looped - index);
+  const azimuth = from.azimuth + (to.azimuth - from.azimuth) * blended;
+  const elevation = from.elevation + (to.elevation - from.elevation) * blended;
+  const cosElevation = Math.cos(elevation);
+  const radius = CAM_FROM.z;
+
+  target.set(
+    radius * Math.sin(azimuth) * cosElevation,
+    radius * Math.sin(elevation),
+    radius * Math.cos(azimuth) * cosElevation,
+  );
+}
+
+function cinematicHeld(tour: TourClock, now: number) {
+  return (
+    tour.tourTouch ||
+    tour.tourKeys > 0 ||
+    now - tour.tourWheelAt < CINEMATIC_QUIET_MS ||
+    now - tour.tourScrollAt < CINEMATIC_QUIET_MS
+  );
+}
+
+function isTypingTarget(target: EventTarget | null) {
+  if (!(target instanceof Element)) return false;
+
+  return Boolean(
+    target.closest("input, textarea, select, [contenteditable='true']"),
+  );
+}
 
 type Cavity = {
   approach: THREE.Vector3;
@@ -178,8 +263,7 @@ function getRestFov(
   offsetY: number,
   envelope: THREE.Box3 | null,
 ) {
-  const compact =
-    width <= MOBILE_BREAKPOINT || (height <= 500 && width <= 1024);
+  const compact = width <= MOBILE_BREAKPOINT && height > width;
 
   if (!compact || width <= 0 || height <= 0) {
     return baseFov;
@@ -196,13 +280,16 @@ function getRestFov(
 
   const padY = height * (1 - MOBILE_MAX_HEAD_HEIGHT) * 0.5;
 
-  const left = Math.max(width * 0.1, width * 0.5 + offsetX - padX);
+  const edgeX = width * MOBILE_EDGE;
+  const edgeY = height * MOBILE_EDGE;
 
-  const right = Math.max(width * 0.1, width * 0.5 - offsetX - padX);
+  const left = Math.max(edgeX, width * 0.5 + offsetX - padX);
 
-  const top = Math.max(height * 0.1, height * 0.5 + offsetY - padY);
+  const right = Math.max(edgeX, width * 0.5 - offsetX - padX);
 
-  const bottom = Math.max(height * 0.1, height * 0.5 - offsetY - padY);
+  const top = Math.max(edgeY, height * 0.5 + offsetY - padY);
+
+  const bottom = Math.max(edgeY, height * 0.5 - offsetY - padY);
 
   const cx = (envelope.min.x + envelope.max.x) * 0.5;
   const cz = (envelope.min.z + envelope.max.z) * 0.5;
@@ -234,6 +321,13 @@ function getRestFov(
     }
   }
 
+  // The spun envelope can ask for a much wider lens than the stage.
+  // Cap that pullback so the face stays the size of the stage, with a
+  // few percent of margin, instead of shrinking into the box.
+  const stageHalf = Math.tan(THREE.MathUtils.degToRad(baseFov) / 2);
+  const cap = stageHalf / 0.96;
+  if (halfTan > cap) halfTan = cap;
+
   return THREE.MathUtils.radToDeg(2 * Math.atan(halfTan));
 }
 
@@ -247,8 +341,6 @@ type Props = {
   onTierChange: (tier: PerfTier) => void;
   /** First fully covered frame for this layout, measured at start and after resizes. */
   onCalibrate: (black: number) => void;
-  /** Hidden glyph canvas. Null keeps the cavity empty. */
-  glyphCanvas: HTMLCanvasElement | null;
 };
 
 function measureCavity(root: THREE.Object3D): Cavity | null {
@@ -328,7 +420,6 @@ function Head({
   onPoorPerformance,
   onTierChange,
   onCalibrate,
-  glyphCanvas,
   detail,
   active,
 }: Props & { active: boolean }) {
@@ -346,8 +437,9 @@ function Head({
   const tilt = useRef<THREE.Group>(null);
 
   // The GSAP ticker is the only render clock. `dirty` asks for one frame;
-  // the idle turn adds frames at the tier cap.
-  const frame = useRef({ dirty: true, lastIdle: -Infinity });
+  // the idle turn adds frames at the tier cap. `held` marks a gap while the
+  // mouth covered the frame, so that gap is not scored as a slow frame.
+  const frame = useRef({ dirty: true, lastIdle: -Infinity, held: false });
 
   const markDirty = useRef(() => {
     frame.current.dirty = true;
@@ -377,8 +469,6 @@ function Head({
 
   const cavity = useRef<Cavity | null>(null);
 
-  const glyph = useRef<MouthGlyphUniforms | null>(null);
-
   const restEnvelope = useRef<THREE.Box3 | null>(null);
 
   const state = useRef({
@@ -392,6 +482,14 @@ function Head({
     oy: Number.NaN,
     width: 0,
     height: 0,
+    tourPhase: 0,
+    tourIntro: 0,
+    revealAt: -1,
+    tourTouch: false,
+    tourKeys: 0,
+    tourWheelAt: Number.NEGATIVE_INFINITY,
+    tourScrollAt: Number.NEGATIVE_INFINITY,
+    tourScrollY: 0,
   });
 
   // Idle frame-rate check after the scene is ready. Median frame time per window,
@@ -443,9 +541,11 @@ function Head({
     // Apply the procedural chamber before the first visible head frame.
     const chamber = createChamberEnvironment(gl, detail);
     try {
+      // Drop any leftover MouthDark glyph patch from a prior build.
+      clearMouthGlyphPatch(gltf.scene);
       tuneHeadMaterials(gltf.scene, chamber);
-      // The glyph variant compiles now, not when the mouth first opens.
-      glyph.current = mouthGlyphUniforms(gltf.scene);
+      // v6: glass shell, wire build/deconstruct and diamond eyes (replaces the Silver/Gem materials).
+      applyGlassHead(gltf.scene, chamber);
     } catch (error) {
       chamber.dispose();
       throw error;
@@ -464,6 +564,9 @@ function Head({
         if (cancelled) return;
         // Measure this layout's black point while the poster is still in front.
         reportBlack.current();
+        if (state.current.revealAt < 0) {
+          state.current.revealAt = performance.now();
+        }
         kick();
         monitor.current = {
           on: true,
@@ -498,30 +601,6 @@ function Head({
     };
   }, [onReady, control, gltf, spin, morphMeshes, gl, detail, scene, camera]);
 
-  // Point the mouth texture at the hidden glyph canvas. Uploads follow each painted tick.
-  useEffect(() => {
-    const uniforms = glyph.current;
-    if (!glyphCanvas || !uniforms) return;
-
-    const texture = uniforms.uGlyphMap.value;
-    texture.image = glyphCanvas;
-    texture.needsUpdate = true;
-
-    const shared = control.current;
-    const kick = markDirty.current;
-
-    shared.syncGlyph = () => {
-      texture.needsUpdate = true;
-      kick();
-    };
-
-    kick();
-
-    return () => {
-      shared.syncGlyph = () => {};
-    };
-  }, [glyphCanvas, control]);
-
   // A resized drawing buffer is blank until the next frame.
   useEffect(() => {
     markDirty.current();
@@ -534,10 +613,26 @@ function Head({
     if (!active) return;
 
     const f = frame.current;
+    const tour = state.current;
     f.dirty = true;
 
     const tick = (time: number) => {
       const c = control.current;
+
+      // Hidden once the mouth covers the frame. Painting would refresh the
+      // GPU snapshot that sticks to the next section when sticky unsticks.
+      if (c.covered) {
+        f.dirty = false;
+        f.held = true;
+        return;
+      }
+
+      if (f.held) {
+        f.held = false;
+        // Time spent hidden is not a stalled frame. Drop it from the monitor.
+        monitor.current.skip = Math.max(monitor.current.skip, 0.1);
+      }
+
       const idle =
         !c.paused && !c.reducedMotion && c.channels.progress <= 0.0001;
       const due =
@@ -553,14 +648,128 @@ function Head({
 
     gsap.ticker.add(tick);
 
+    // The tour stops on the gesture, before scroll position has to change.
+    // A tap does not count. Resume waits until the wheel, swipe, key, or scroll goes quiet.
+    let swipeX = 0;
+    let swipeY = 0;
+    let swipeArmed = false;
+
+    const hold = () => {
+      markDirty.current();
+    };
+
+    const onWheel = (event: WheelEvent) => {
+      if (event.deltaY <= 0) return;
+
+      tour.tourWheelAt = performance.now();
+      hold();
+    };
+
+    const onScroll = () => {
+      const y = window.scrollY;
+
+      if (Math.abs(y - tour.tourScrollY) < 0.5) return;
+
+      tour.tourScrollY = y;
+      tour.tourScrollAt = performance.now();
+      hold();
+    };
+
+    const onTouchStart = (event: TouchEvent) => {
+      const point = event.touches[0];
+
+      if (!point) return;
+
+      swipeX = point.clientX;
+      swipeY = point.clientY;
+      swipeArmed = true;
+    };
+
+    const onTouchMove = (event: TouchEvent) => {
+      if (!swipeArmed) return;
+
+      const point = event.touches[0];
+
+      if (!point) return;
+
+      const dx = point.clientX - swipeX;
+      const dy = swipeY - point.clientY;
+
+      // Finger moving up scrolls the page down. A sideways drag is not a swipe.
+      if (dy <= CINEMATIC_SWIPE_PX || dy <= Math.abs(dx)) return;
+
+      tour.tourTouch = true;
+      hold();
+    };
+
+    const onTouchEnd = (event: TouchEvent) => {
+      if (event.touches.length > 0) return;
+
+      swipeArmed = false;
+      tour.tourTouch = false;
+      hold();
+    };
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.repeat || !CINEMATIC_KEYS.has(event.key)) return;
+
+      if (isTypingTarget(event.target)) return;
+
+      tour.tourKeys += 1;
+      hold();
+    };
+
+    const onKeyUp = (event: KeyboardEvent) => {
+      if (!CINEMATIC_KEYS.has(event.key) || tour.tourKeys <= 0) return;
+
+      tour.tourKeys -= 1;
+      hold();
+    };
+
+    const onBlur = () => {
+      swipeArmed = false;
+      tour.tourTouch = false;
+      tour.tourKeys = 0;
+      hold();
+    };
+
+    tour.tourScrollY = window.scrollY;
+
+    window.addEventListener("wheel", onWheel, { passive: true });
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("touchstart", onTouchStart, { passive: true });
+    window.addEventListener("touchmove", onTouchMove, { passive: true });
+    window.addEventListener("touchend", onTouchEnd, { passive: true });
+    window.addEventListener("touchcancel", onTouchEnd, { passive: true });
+    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("keyup", onKeyUp);
+    window.addEventListener("blur", onBlur);
+
     return () => {
       gsap.ticker.remove(tick);
+
+      window.removeEventListener("wheel", onWheel);
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("touchstart", onTouchStart);
+      window.removeEventListener("touchmove", onTouchMove);
+      window.removeEventListener("touchend", onTouchEnd);
+      window.removeEventListener("touchcancel", onTouchEnd);
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("keyup", onKeyUp);
+      window.removeEventListener("blur", onBlur);
+
+      tour.tourTouch = false;
+      tour.tourKeys = 0;
     };
   }, [active, control, get]);
 
+  // Automatic cube burst loop: whole head BURST.restSeconds, then the head
+  // breaks into cubes, stays out ~0.75 s, reassembles, and repeats.
+  const burstRest = useRef(0);
+
   // Camera, framing, yaw and mouth from the channels. Shared by the frame loop
   // and the coverage probe; refreshed after each render so it sees the latest size.
-  // A probe poses the head front-facing without touching the idle turn.
+  // A probe poses the head front-facing without touching the idle turn or the tour.
   const applyScene = useRef<
     (dt: number, channels?: DiveChannels, probe?: boolean) => boolean
   >(() => true);
@@ -657,6 +866,27 @@ function Head({
 
       const camT = resting ? 0 : ch.camera;
 
+      // Gesture and pause freeze the phase. Leaving rest eases the held angle
+      // back home; the clock stays where it stopped until the hero is idle again.
+      const atRest = ch.progress <= 0.0001;
+      const now = performance.now();
+      const shown =
+        s.revealAt >= 0 && now - s.revealAt >= CINEMATIC_REVEAL_MS;
+
+      const touring =
+        !probe &&
+        atRest &&
+        shown &&
+        !c.paused &&
+        !c.reducedMotion &&
+        !cinematicHeld(s, now);
+
+      if (touring) {
+        s.tourPhase += dt;
+
+        s.tourIntro = Math.min(1, s.tourIntro + dt / CINEMATIC_INTRO_SECONDS);
+      }
+
       if (camT > 0) {
         const target = cavity.current;
 
@@ -690,16 +920,41 @@ function Head({
         }
 
         s.cameraMoved = true;
-      } else if (s.cameraMoved) {
-        camera.position.copy(CAM_FROM);
-        camera.lookAt(0, 0, 0);
+      } else {
+        // Gone before the ribbons contract and before the mouth dolly starts.
+        const settle =
+          probe || c.reducedMotion
+            ? 0
+            : 1 - smoothstep(ch.vh / CINEMATIC_SETTLE_VH);
 
-        if (camera.near !== CAM_NEAR) {
-          camera.near = CAM_NEAR;
-          camera.updateProjectionMatrix();
+        const weight = settle * s.tourIntro;
+
+        if (weight > 0.0001) {
+          cinematicPose(s.tourPhase, _aim);
+
+          _pos.lerpVectors(CAM_FROM, _aim, weight);
+
+          camera.position.copy(_pos);
+
+          camera.lookAt(ORIGIN);
+
+          if (camera.near !== CAM_NEAR) {
+            camera.near = CAM_NEAR;
+            camera.updateProjectionMatrix();
+          }
+
+          s.cameraMoved = true;
+        } else if (s.cameraMoved) {
+          camera.position.copy(CAM_FROM);
+          camera.lookAt(0, 0, 0);
+
+          if (camera.near !== CAM_NEAR) {
+            camera.near = CAM_NEAR;
+            camera.updateProjectionMatrix();
+          }
+
+          s.cameraMoved = false;
         }
-
-        s.cameraMoved = false;
       }
 
       spin.rotation.y = probe ? Math.round(s.yaw / TWO_PI) * TWO_PI : s.yaw;
@@ -708,19 +963,6 @@ function Head({
         if (mesh.morphTargetInfluences) {
           mesh.morphTargetInfluences[morphIndex] = mouth;
         }
-      }
-
-      const uniforms = glyph.current;
-
-      if (uniforms && !probe) {
-        // Drawing-buffer pixels, so one glyph canvas covers the frame exactly once.
-        const pixelRatio = gl.getPixelRatio();
-        uniforms.uResolution.value.set(
-          Math.max(1, width * pixelRatio),
-          Math.max(1, height * pixelRatio),
-        );
-        // Pause only stops the mutation loop; the field stays, frozen.
-        uniforms.uGlyphMix.value = c.reducedMotion ? 0 : ch.glyph;
       }
 
       return resting;
@@ -822,7 +1064,6 @@ function Head({
           mouth: 1,
           camera: cameraAt(vh),
           atmosphere: 0,
-          glyph: 0,
         });
 
       const deepest =
@@ -848,8 +1089,14 @@ function Head({
   useEffect(() => {
     const c = control.current;
 
-    c.measureCoverage = () => withCoverage.current((probe) => probe()) ?? 0;
-    c.calibrateBlack = () => calibrate.current();
+    // The white/black probe renders into the same context. Never run it while
+    // the dive is moving, or that frame is what the compositor keeps.
+    const atRest = () =>
+      c.channels.progress <= 0.0001 && !c.covered;
+
+    c.measureCoverage = () =>
+      atRest() ? (withCoverage.current((probe) => probe()) ?? 0) : 0;
+    c.calibrateBlack = () => (atRest() ? calibrate.current() : null);
 
     return () => {
       delete c.measureCoverage;
@@ -859,8 +1106,23 @@ function Head({
 
   // The framing changes with the layout, so the black point does too.
   const lastBlack = useRef<number | null>(null);
+  // Waits out a dive before measuring, then cancelled on unmount.
+  const blackRetry = useRef(0);
 
   const reportBlack = useRef(() => {
+    window.clearTimeout(blackRetry.current);
+    blackRetry.current = 0;
+
+    // A mid-dive resize must not swap the head to the probe materials.
+    // Retry once the user is back at rest instead of flashing a photocopy.
+    if (
+      control.current.channels.progress > 0.0001 ||
+      control.current.covered
+    ) {
+      blackRetry.current = window.setTimeout(() => reportBlack.current(), 500);
+      return;
+    }
+
     const black = calibrate.current();
     if (black == null) return;
 
@@ -883,6 +1145,7 @@ function Head({
 
     // Debounced: a drag-resize or a rotation settles before measuring again.
     // The second pass confirms it once the hero's framing has caught up too.
+    // reportBlack itself waits if this fires during the dive.
     const first = window.setTimeout(() => reportBlack.current(), 300);
     const confirm = window.setTimeout(() => reportBlack.current(), 900);
 
@@ -892,11 +1155,44 @@ function Head({
     };
   }, [size]);
 
+  useEffect(() => () => window.clearTimeout(blackRetry.current), []);
+
   useFrame((_, rawDelta) => {
     const c = control.current;
     const dt = Math.min(rawDelta, 0.1);
 
     const resting = applyScene.current(dt);
+
+    // Glass build/deconstruct waves (independent of MouthOpen and the turn,
+    // frozen when paused or reduced motion) and the automatic cube burst.
+    // Leaving rest sends a running burst straight to reassembly.
+    let bursting = updateGlassHead(
+      gltf.scene,
+      dt,
+      c.paused || c.reducedMotion,
+      c.channels.progress > 0.0001,
+    );
+
+    if (
+      !bursting &&
+      c.channels.progress <= 0.0001 &&
+      !c.covered &&
+      !c.paused &&
+      !c.reducedMotion
+    ) {
+      burstRest.current += dt;
+
+      if (burstRest.current >= BURST.restSeconds) {
+        burstRest.current = 0;
+        bursting = startHeadBurst(gltf.scene);
+      }
+    } else if (!bursting) {
+      // Leaving rest or pausing restarts the whole-head wait.
+      burstRest.current = 0;
+    }
+
+    // A running burst keeps frames coming, even when the idle turn is paused.
+    if (bursting) markDirty.current();
 
     // Idle frames must keep up with the cap. Steps down DPR, then the tier, then the poster.
     const m = monitor.current;
@@ -986,16 +1282,33 @@ export default function SilverHeadCanvas(props: Props & { active: boolean }) {
         far: 10,
         position: [0, 0, 0.8],
       }}
-      gl={{
-        antialias: true,
-        alpha: true,
-        powerPreference: "high-performance",
+      gl={(defaults) => {
+        // Three r163+ ignores `alpha: false` and always requests a transparent
+        // buffer. That buffer is what gets stamped as a head-shaped cutout,
+        // so the context is created opaque and handed to the renderer.
+        const canvas = defaults.canvas as unknown as HTMLCanvasElement;
+        const context = canvas.getContext("webgl2", {
+          alpha: false,
+          depth: true,
+          stencil: false,
+          antialias: true,
+          powerPreference: "high-performance",
+          premultipliedAlpha: true,
+        });
+
+        return new THREE.WebGLRenderer({
+          canvas,
+          context: context ?? undefined,
+          antialias: true,
+          alpha: false,
+          powerPreference: "high-performance",
+        });
       }}
       onCreated={({ gl, camera }) => {
         gl.toneMapping = THREE.NeutralToneMapping;
         gl.toneMappingExposure = CHAMBER.exposure;
 
-        gl.setClearColor(0x000000, 0);
+        gl.setClearColor(LAMP_PLATE, 1);
 
         // MouthDark is on layer 1 so the scan light cannot reach the cavity.
         camera.layers.enable(1);

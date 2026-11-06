@@ -22,11 +22,12 @@ type LayerSpec = {
 };
 
 // Localized wisps with soft edges to avoid a visible canvas boundary.
+// Cool graphite and cyan wisps. Soft edges avoid a visible canvas boundary.
 const HAZE: readonly LayerSpec[] = [
   {
     position: [-0.16, -0.36, -0.65],
     scale: [1.95, 0.84, 1],
-    color: "#0b2019",
+    color: "#0b1419",
     opacity: 0.24,
     phase: 0.4,
     speed: 0.045,
@@ -34,7 +35,7 @@ const HAZE: readonly LayerSpec[] = [
   {
     position: [0.17, -0.48, -0.48],
     scale: [1.42, 0.64, 1],
-    color: "#14241e",
+    color: "#121c24",
     opacity: 0.19,
     phase: 1.3,
     speed: 0.062,
@@ -42,16 +43,16 @@ const HAZE: readonly LayerSpec[] = [
   {
     position: [0.36, -0.19, -0.84],
     scale: [1.18, 1.02, 1],
-    color: "#2a5741",
-    opacity: 0.055,
+    color: "#2a4a57",
+    opacity: 0.05,
     phase: 2.1,
     speed: 0.052,
   },
   {
     position: [-0.36, -0.23, -0.96],
     scale: [1.32, 0.92, 1],
-    color: "#263e3d",
-    opacity: 0.045,
+    color: "#26363e",
+    opacity: 0.04,
     phase: 0.2,
     speed: 0.057,
   },
@@ -280,7 +281,7 @@ export default function SceneAtmosphere({ control, detail }: Props) {
 
             <meshBasicMaterial
               map={maps.radial}
-              color="#7ccca3"
+              color="#77e1dd"
               opacity={0}
               transparent
               depthWrite={false}
@@ -310,7 +311,7 @@ export default function SceneAtmosphere({ control, detail }: Props) {
 
               <meshBasicMaterial
                 map={maps.column}
-                color="#6fc99c"
+                color="#8fd8d4"
                 opacity={0}
                 transparent
                 depthWrite={false}
@@ -323,7 +324,7 @@ export default function SceneAtmosphere({ control, detail }: Props) {
       {/* Outside the haze group, so hiding the haze never removes the light. */}
       <spotLight
         ref={sweep}
-        color="#c9e9db"
+        color="#d4ecea"
         intensity={0}
         angle={0.2}
         penumbra={1}

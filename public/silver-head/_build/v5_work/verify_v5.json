@@ -1,0 +1,89 @@
+{
+ "objects": [
+  [
+   "Head",
+   "MESH",
+   "SpinRoot"
+  ],
+  [
+   "RenderCam",
+   "CAMERA",
+   null
+  ],
+  [
+   "SpinRoot",
+   "EMPTY",
+   null
+  ]
+ ],
+ "tris": 11636,
+ "verts": 5940,
+ "materials": [
+  [
+   "MouthDark",
+   [
+    0.018,
+    0.018,
+    0.022
+   ],
+   0.0,
+   0.85
+  ],
+  [
+   "Silver",
+   [
+    0.89,
+    0.89,
+    0.9
+   ],
+   1.0,
+   0.33
+  ]
+ ],
+ "shape_keys": [
+  "Basis",
+  "MouthOpen"
+ ],
+ "actions": [
+  [
+   "MouthOpen",
+   [
+    0.0,
+    45.0
+   ]
+  ],
+  [
+   "Turntable",
+   [
+    0.0,
+    1200.0
+   ]
+  ]
+ ],
+ "fps": 60,
+ "dark_bbox_open0_gltf_m": [
+  [
+   -0.0258,
+   -0.06239,
+   0.03795
+  ],
+  [
+   0.0258,
+   -0.05362,
+   0.09746
+  ]
+ ],
+ "dark_bbox_open1_gltf_m": [
+  [
+   -0.0258,
+   -0.08927,
+   0.0336
+  ],
+  [
+   0.0258,
+   -0.05362,
+   0.09661
+  ]
+ ],
+ "rot_mode": "XYZ"
+}

@@ -1,0 +1,52 @@
+{
+ "removed_tris": 176,
+ "added_cut_verts": 108,
+ "loops": [
+  54,
+  54
+ ],
+ "rim_tris": 216,
+ "tris": {
+  "total": 11764,
+  "silver": 11208,
+  "dark": 556,
+  "gems": 224
+ },
+ "verts": 6044,
+ "gems": [
+  {
+   "centre": [
+    -32.33,
+    6.94,
+    69.4
+   ],
+   "normal": [
+    -0.223,
+    0.022,
+    0.975
+   ],
+   "length": 22.8,
+   "width": 8.59,
+   "crown": 1.72,
+   "pavilion": 4.12,
+   "tris": 112.0
+  },
+  {
+   "centre": [
+    32.33,
+    6.94,
+    69.4
+   ],
+   "normal": [
+    0.222,
+    0.023,
+    0.975
+   ],
+   "length": 22.8,
+   "width": 8.59,
+   "crown": 1.72,
+   "pavilion": 4.12,
+   "tris": 112.0
+  }
+ ]
+}

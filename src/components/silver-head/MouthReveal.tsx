@@ -23,7 +23,8 @@ const CSS = `
 /* Programmatic focus target after Explorează. Not in the tab order. */
 .mouth-reveal:focus{outline:none}
 
-/* Rasterized during the black stretch, so the blend is a compositor fade. */
+/* Rasterized only after the canvas is hidden, for the blend itself.
+   Cleared once the plate settles so it cannot keep a WebGL snapshot. */
 .mouth-reveal[data-promote="true"]{will-change:opacity}
 
 /* No spinning border while nobody can see it. */

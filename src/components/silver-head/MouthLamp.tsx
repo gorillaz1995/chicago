@@ -6,8 +6,8 @@ import { subscribeLampShown } from "./handoff";
 
 /**
  * The lamp that comes out of the silver-head mouth.
- * The beams play once the blend has fully revealed the lamp, and reset
- * only after the reverse blend has hidden it, so each new visit replays.
+ * `play` flips only after the blend fully reveals the plate, so the system
+ * timeline can settle open on refresh without replaying the beams mid-mouth.
  */
 export default function MouthLamp() {
   const [play, setPlay] = useState(false);

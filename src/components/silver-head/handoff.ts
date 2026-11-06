@@ -10,6 +10,12 @@ const listeners = new Set<LampListener>();
 let lampShown = false;
 
 /**
+ * Optional child timeline owned by LampSystem. Played when the plate finishes
+ * revealing, reversed when the plate leaves, snapped on jumps and rebuilds.
+ */
+let lampSystem: gsap.core.Timeline | null = null;
+
+/**
  * True once the blend has fully revealed the lamp. The beams play on true and
  * reset on false, which only happens after the reverse blend has hidden them.
  */
@@ -27,6 +33,37 @@ export function setLampShown(next: boolean) {
 
   lampShown = next;
   listeners.forEach((listener) => listener(next));
+}
+
+/** Register or clear the lamp-system timeline. One owner at a time. */
+export function registerLampSystem(timeline: gsap.core.Timeline | null) {
+  lampSystem = timeline;
+}
+
+function playLampSystem(immediate: boolean) {
+  if (!lampSystem) return;
+
+  if (immediate) {
+    lampSystem.pause();
+    lampSystem.progress(1, true);
+    return;
+  }
+
+  if (lampSystem.progress() >= 1) return;
+  lampSystem.play();
+}
+
+function reverseLampSystem(immediate: boolean) {
+  if (!lampSystem) return;
+
+  if (immediate) {
+    lampSystem.pause();
+    lampSystem.progress(0, true);
+    return;
+  }
+
+  if (lampSystem.progress() <= 0) return;
+  lampSystem.reverse();
 }
 
 export type Handoff = {
@@ -55,18 +92,27 @@ export function createHandoff(plate: HTMLElement): Handoff {
 
   // Settled states write their opacity too, so a cleared inline style
   // (e.g. after the static layout) can never leave a hidden plate visible.
+  // will-change is only for the blend; a settled plate must not stay rasterized.
+  const releasePlateLayer = () => {
+    delete plate.dataset.promote;
+  };
+
   const settleShown = () => {
     setState("shown");
     plate.style.opacity = "1";
     plate.style.pointerEvents = "auto";
+    releasePlateLayer();
     setLampShown(true);
+    playLampSystem(false);
   };
 
   const settleHidden = () => {
     setState("hidden");
     plate.style.opacity = "0";
     plate.style.pointerEvents = "none";
+    releasePlateLayer();
     setLampShown(false);
+    reverseLampSystem(true);
   };
 
   const timeline = gsap.timeline({
@@ -95,8 +141,16 @@ export function createHandoff(plate: HTMLElement): Handoff {
       timeline.pause();
       timeline.progress(next, true);
 
-      if (next) settleShown();
-      else settleHidden();
+      if (next) {
+        setState("shown");
+        plate.style.opacity = "1";
+        plate.style.pointerEvents = "auto";
+        releasePlateLayer();
+        setLampShown(true);
+        playLampSystem(true);
+      } else {
+        settleHidden();
+      }
 
       return;
     }
@@ -114,6 +168,8 @@ export function createHandoff(plate: HTMLElement): Handoff {
 
     // Input on a fading plate would land on a section that is leaving.
     plate.style.pointerEvents = "none";
+    // Reverse the system with the plate so content does not linger over the mouth.
+    reverseLampSystem(false);
 
     if (timeline.progress() <= 0) {
       settleHidden();
@@ -130,6 +186,9 @@ export function createHandoff(plate: HTMLElement): Handoff {
     target: () => target,
     state: () => state,
     // The next build syncs the lamp from scroll, so a rebuild does not replay the beams.
-    kill: () => timeline.kill(),
+    kill: () => {
+      reverseLampSystem(true);
+      timeline.kill();
+    },
   };
-}
+};

@@ -29,7 +29,7 @@ export function bucketFor(portrait: boolean, landscape: boolean): AspectBucket {
 
 /** Scroll-scrubbed ranges, in screen heights from the pin start. */
 export const STAGES = {
-  /** Copy, menu, caption and ribbons clear; the head turns to face the viewer. */
+  /** Copy, menu and caption clear; the head turns to face the viewer. */
   intent: { start: 0, end: 0.352 },
   /** Rest framing to the centered framing (field of view and view offset). */
   centering: { start: 0, end: 0.44 },
@@ -37,8 +37,11 @@ export const STAGES = {
   mouth: { start: 0.264, end: 0.924 },
   /** Haze, shaft, traces and the light sweep clear before the lips. */
   atmosphere: { start: 0.517, end: 1.146 },
-  /** Glyph field fades in once the opening is visible. */
-  glyphIn: { start: 0.4, end: 0.6 },
+  /**
+   * Ribbons contract toward the mouth after the chrome is gone and before the
+   * camera starts. They stay visible while the face becomes readable.
+   */
+  ribbons: { start: 0.517, end: 0.792 },
   /** Camera dolly: reaches the lips at `lips`, then pushes in at the same speed. */
   camera: { start: 0.792, lips: 1.328 },
 } as const;
@@ -66,8 +69,8 @@ export const POST_BLACK_MIN = 0.12;
 
 /**
  * First frame fully covered by the mouth interior. The 3D scene measures it
- * for the actual layout (64 px readback, glyphs off) and overrides these.
- * They are the first-paint values and the poster fallback.
+ * for the actual layout (64 px readback) and overrides these. They are the
+ * first-paint values and the poster fallback.
  * Measured: phones 1.379–1.400, square 1.327–1.349, desktops 1.319–1.351,
  * 1440p 1.440, 21:9 1.418–1.497.
  */
@@ -82,9 +85,6 @@ export const BLACK_COVERAGE = 0.995;
 
 /** Extra distance after the measured frame, against rounding at the edges. */
 export const BLACK_MARGIN = 0.005;
-
-/** The glyphs dim out over this share of the post-black stretch, from its start. */
-export const GLYPH_OUT_SHARE = 0.85;
 
 /** The plate veil fades in over this share of the post-black stretch, at its end. */
 export const VEIL_SHARE = 0.3;
@@ -161,8 +161,6 @@ export const PERF = {
   ribbonFps: { fine: 60, coarse: 30, low: 30 },
   /** Desktop canvas DPR cap. Phones stay at 1. */
   desktopDpr: 1.5,
-  /** Glyph canvas longest edge, in CSS pixels. */
-  glyphMaxEdge: { full: 960, lean: 960, low: 640 } as Record<PerfTier, number>,
   /** Wait for the page load to settle before judging idle frames, in seconds. */
   monitorDelay: 2,
   /** Idle frame-rate check window, in seconds. Judged on the median frame time. */

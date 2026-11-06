@@ -18,7 +18,6 @@ import {
   BLACK_DEFAULT,
   BUCKET_QUERIES,
   EXPLORE,
-  GLYPH_OUT_SHARE,
   HANDOFF,
   SETTLE,
   STAGES,
@@ -63,8 +62,6 @@ type DiveRefs = {
 type DiveHooks = {
   /** Ribbon idle loop on or off. */
   ribbons: (running: boolean) => void;
-  /** Glyph mutation loop on or off. */
-  glyph: (running: boolean) => void;
   /** The dive left the rest pose, so the pointer tilt should drop. */
   leaveRest: () => void;
 };
@@ -141,7 +138,6 @@ const REST_CHANNELS: DiveChannels = {
   mouth: 0,
   camera: 0,
   atmosphere: 1,
-  glyph: 0,
 };
 
 const clamp01 = (value: number) => Math.min(1, Math.max(0, value));
@@ -213,9 +209,9 @@ export function useDiveController({
       const channels = control.current.channels;
       const debug = readDebugMode();
 
-      const gates = { ribbons: false, glyph: false };
+      const gates = { ribbons: false };
 
-      const setGate = (name: "ribbons" | "glyph", on: boolean) => {
+      const setGate = (name: "ribbons", on: boolean) => {
         if (gates[name] === on) return;
         gates[name] = on;
         hooksRef.current[name](on);
@@ -261,6 +257,9 @@ export function useDiveController({
       // Reduced motion, or a controller error: no pin, lamp visible, rest pose.
       const buildStatic = (failed: boolean) => {
         resetChannels();
+        // No pin in this layout, so the canvas must stay a live layer.
+        control.current.covered = false;
+        delete track.dataset.covered;
         applyLayout();
         if (failed) track.dataset.dive = "static";
 
@@ -274,7 +273,6 @@ export function useDiveController({
 
         runtime.current.updateGates = () => {
           setGate("ribbons", false);
-          setGate("glyph", false);
         };
         runtime.current.updateGates();
         control.current.kick();
@@ -295,7 +293,6 @@ export function useDiveController({
         const black = measured ?? BLACK_DEFAULT[bucket];
         const pin = pinFor(black);
         const postBlack = pin - black;
-        const glyphOffAt = black + postBlack * GLYPH_OUT_SHARE;
         const veilStart = pin - postBlack * VEIL_SHARE;
         const cameraAtPin = cameraAt(pin);
         const marks = checkpoints(black);
@@ -325,6 +322,8 @@ export function useDiveController({
           { autoAlpha: 0, duration: STAGES.intent.end - STAGES.intent.start },
           STAGES.intent.start,
         );
+        // Opacity only. The headline entrance owns its own transforms and
+        // must stay at the revealed pose when this fade reverses.
 
         timeline.fromTo(
           channels,
@@ -378,19 +377,42 @@ export function useDiveController({
           STAGES.camera.start,
         );
 
-        timeline.fromTo(
-          channels,
-          { glyph: 0 },
-          { glyph: 1, duration: STAGES.glyphIn.end - STAGES.glyphIn.start },
-          STAGES.glyphIn.start,
+        // Ribbons stay after the chrome clears, then contract into the mouth.
+        // Opacity lives on the wrapper; scale lives on the contract layer so
+        // applyLayout can keep writing the wrapper's centering transform.
+        // Query from the sticky frame so a late ribbon mount still matches.
+        const ribbonWrap =
+          refs.ribbons.current ??
+          sticky.querySelector<HTMLElement>(".sh-orbits");
+        const ribbonContract = ribbonWrap?.querySelector<HTMLElement>(
+          "[data-ribbon-contract]",
         );
 
-        timeline.fromTo(
-          channels,
-          { glyph: 1 },
-          { glyph: 0, duration: glyphOffAt - black, immediateRender: false },
-          black,
-        );
+        if (ribbonWrap) {
+          timeline.fromTo(
+            ribbonWrap,
+            { autoAlpha: 1 },
+            {
+              autoAlpha: 0,
+              duration: STAGES.ribbons.end - STAGES.ribbons.start,
+              ease: smoothstepEase,
+            },
+            STAGES.ribbons.start,
+          );
+        }
+
+        if (ribbonContract) {
+          timeline.fromTo(
+            ribbonContract,
+            { scale: 1, transformOrigin: "50% 52%" },
+            {
+              scale: 0.28,
+              duration: STAGES.ribbons.end - STAGES.ribbons.start,
+              ease: smoothstepEase,
+            },
+            STAGES.ribbons.start,
+          );
+        }
 
         if (refs.veil.current) {
           timeline.fromTo(
@@ -415,7 +437,6 @@ export function useDiveController({
         let lastStart = 0;
         let lastEnd = 0;
         let atRest = true;
-        let promoted = false;
 
         // A crossing arms one landing. Any new gesture disarms it.
         let gesture = 0;
@@ -439,14 +460,8 @@ export function useDiveController({
           const f = flags.current;
           const live = f.active && !f.paused && !f.reduced;
 
-          setGate("ribbons", live && channels.vh < STAGES.intent.end);
-          setGate(
-            "glyph",
-            live &&
-              f.mode === "3d" &&
-              channels.vh >= STAGES.glyphIn.start &&
-              channels.vh < glyphOffAt,
-          );
+          // Drift stops when the ribbons begin to contract.
+          setGate("ribbons", live && channels.vh < STAGES.ribbons.start);
         };
 
         runtime.current.updateGates = updateGates;
@@ -458,8 +473,28 @@ export function useDiveController({
           channels.progress = self.progress;
           channels.vh = self.progress * pin;
 
+          // Retire the WebGL layer once the mouth covers the frame. The veil
+          // is the same black, so this is invisible, and the canvas cannot
+          // leave a compositor still on the lamp section.
+          const wasCovered = control.current.covered;
+          const covered = channels.vh >= black;
+          if (wasCovered !== covered) {
+            control.current.covered = covered;
+            if (covered) track.dataset.covered = "true";
+          }
+
           applyLayout();
-          control.current.kick();
+          // While covered, skip so the hidden canvas does not refresh the
+          // snapshot it would leak. On the way back, paint the live pose
+          // before the canvas is shown, or the frozen cavity still flashes.
+          if (!covered) {
+            control.current.kick();
+            if (wasCovered) {
+              requestAnimationFrame(() => {
+                if (!control.current.covered) delete track.dataset.covered;
+              });
+            }
+          }
           updateGates();
 
           if (atRest && channels.vh > 0.001) {
@@ -469,11 +504,12 @@ export function useDiveController({
             atRest = true;
           }
 
-          // Rasterize the lamp layer while the frame is still black.
-          const promote = channels.vh >= black - 0.05;
-          if (plate && promote !== promoted) {
-            promoted = promote;
-            plate.dataset.promote = promote ? "true" : "false";
+          // Rasterize the lamp only after the canvas is hidden, and drop the
+          // layer once the plate has settled so it does not stay promoted.
+          const promote = covered && handoff?.state() !== "shown";
+          if (plate && (plate.dataset.promote === "true") !== promote) {
+            if (promote) plate.dataset.promote = "true";
+            else delete plate.dataset.promote;
           }
 
           if (!handoff) return;
@@ -715,12 +751,19 @@ export function useDiveController({
           }
 
           track.style.removeProperty("--sh-pin");
+          delete track.dataset.covered;
+          control.current.covered = false;
           runtime.current.dive = null;
           runtime.current.updateGates = () => {};
           setGate("ribbons", false);
-          setGate("glyph", false);
           resetChannels();
           clearLayout();
+          if (ribbonContract) {
+            gsap.set(ribbonContract, { clearProps: "transform" });
+          }
+          if (ribbonWrap) {
+            gsap.set(ribbonWrap, { clearProps: "opacity,visibility" });
+          }
           if (window.__shDive?.trigger === dive) delete window.__shDive;
         };
       };

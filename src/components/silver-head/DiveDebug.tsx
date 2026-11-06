@@ -100,6 +100,14 @@ export default function DiveDebug({ control }: Props) {
   }, [control]);
 
   const measureNow = () => {
+    if (
+      control.current.channels.progress > 0.0001 ||
+      control.current.covered
+    ) {
+      setResult("skipped: coverage probe waits until the dive is at rest");
+      return;
+    }
+
     const coverage = control.current.measureCoverage?.();
     setResult(
       coverage == null
@@ -110,10 +118,18 @@ export default function DiveDebug({ control }: Props) {
 
   const findBlack = () => {
     const handle = window.__shDive;
-    const black = control.current.calibrateBlack?.();
 
-    if (black == null || !handle) {
+    if (!handle || !control.current.calibrateBlack) {
       setResult("no 3D scene (poster mode)");
+      return;
+    }
+
+    // The probe paints a flat head into the live buffer. It waits for rest
+    // so a measurement cannot stamp that frame onto the page.
+    const black = control.current.calibrateBlack();
+
+    if (black == null) {
+      setResult("skipped: coverage probe waits until the dive is at rest");
       return;
     }
 
