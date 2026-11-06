@@ -1,7 +1,8 @@
 "use client";
 
+import { useRef } from "react";
 import { cn } from "@/lib/utils";
-import { motion, MotionStyle, Transition } from "motion/react";
+import { m, MotionStyle, Transition, useInView } from "motion/react";
 
 interface BorderBeamProps {
   /**
@@ -58,9 +59,16 @@ export const BorderBeam = ({
   reverse = false,
   initialOffset = 0,
 }: BorderBeamProps) => {
+  // The loop only runs near the viewport; off screen it would still tick every frame.
+  const ref = useRef<HTMLDivElement>(null);
+  const inView = useInView(ref, { margin: "200px" });
+
   return (
-    <div className="pointer-events-none absolute inset-0 rounded-[inherit] border border-transparent [mask-clip:padding-box,border-box] [mask-composite:intersect] [mask-image:linear-gradient(transparent,transparent),linear-gradient(#000,#000)]">
-      <motion.div
+    <div
+      ref={ref}
+      className="pointer-events-none absolute inset-0 rounded-[inherit] border border-transparent [mask-clip:padding-box,border-box] [mask-composite:intersect] [mask-image:linear-gradient(transparent,transparent),linear-gradient(#000,#000)]"
+    >
+      <m.div
         className={cn(
           "absolute aspect-square",
           "bg-gradient-to-l from-[var(--color-from)] via-[var(--color-to)] to-transparent",
@@ -76,18 +84,26 @@ export const BorderBeam = ({
           } as MotionStyle
         }
         initial={{ offsetDistance: `${initialOffset}%` }}
-        animate={{
-          offsetDistance: reverse
-            ? [`${100 - initialOffset}%`, `${-initialOffset}%`]
-            : [`${initialOffset}%`, `${100 + initialOffset}%`],
-        }}
-        transition={{
-          repeat: Infinity,
-          ease: "linear",
-          duration,
-          delay: -delay,
-          ...transition,
-        }}
+        animate={
+          inView
+            ? {
+                offsetDistance: reverse
+                  ? [`${100 - initialOffset}%`, `${-initialOffset}%`]
+                  : [`${initialOffset}%`, `${100 + initialOffset}%`],
+              }
+            : { offsetDistance: `${initialOffset}%` }
+        }
+        transition={
+          inView
+            ? {
+                repeat: Infinity,
+                ease: "linear",
+                duration,
+                delay: -delay,
+                ...transition,
+              }
+            : { duration: 0 }
+        }
       />
     </div>
   );

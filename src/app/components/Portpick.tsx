@@ -1,10 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { AnimatePresence, LazyMotion, m } from "motion/react";
 import Image from "next/image";
 import Link from "next/link";
 import { SquareArrowOutUpRight } from "lucide-react";
+
+/** Layout filtering needs the larger motion feature set, loaded only on this page. */
+const loadLayoutFeatures = () =>
+  import("@/lib/motion-features").then((mod) => mod.default);
 
 /* Portfolio cards — social stubs removed; query suffixes stripped for next/image */
 const projects = [
@@ -61,10 +65,11 @@ export default function PortfolioGrid() {
       : projects.filter((project) => project.category === filter);
 
   return (
+    <LazyMotion features={loadLayoutFeatures} strict>
     <section className="py-12 sm:py-16 md:py-20 bg-gradient-to-b from-background to-background/70">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section header with animation */}
-        <motion.div
+        <m.div
           className="text-center mb-8 sm:mb-12"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -76,7 +81,7 @@ export default function PortfolioGrid() {
           <p className="mt-3 font-geist font-extralight sm:mt-4 text-base sm:text-lg text-black max-w-2xl mx-auto">
             De la idee la executie, de la concept la implementare.
           </p>
-        </motion.div>
+        </m.div>
 
         {/* Category filter buttons - scrollable on mobile */}
         <div className="flex justify-start sm:justify-center overflow-x-auto pb-2 sm:pb-0 mb-6 sm:mb-8 -mx-4 sm:mx-0 px-4 sm:px-0">
@@ -98,13 +103,13 @@ export default function PortfolioGrid() {
         </div>
 
         {/* Project grid with responsive columns */}
-        <motion.div
+        <m.div
           layout
           className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8 w-full"
         >
           <AnimatePresence>
             {filteredProjects.map((project) => (
-              <motion.div
+              <m.div
                 key={project.id}
                 layout
                 initial={{ opacity: 0 }}
@@ -119,6 +124,7 @@ export default function PortfolioGrid() {
                     src={project.imageUrl || "/placeholder.svg"}
                     alt={project.title}
                     fill
+                    sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
                     style={{ objectFit: "cover", objectPosition: "center" }}
                     className="w-full transition-transform duration-500 ease-in-out group-hover:scale-105"
                   />
@@ -141,11 +147,12 @@ export default function PortfolioGrid() {
                     <SquareArrowOutUpRight className="w-3 h-3 sm:w-4 sm:h-4 lg:w-5 lg:h-5 ml-1 sm:ml-2 transition-transform duration-300 group-hover:translate-x-1" />
                   </Link>
                 </div>
-              </motion.div>
+              </m.div>
             ))}
           </AnimatePresence>
-        </motion.div>
+        </m.div>
       </div>
     </section>
+    </LazyMotion>
   );
 }

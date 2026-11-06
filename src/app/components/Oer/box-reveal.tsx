@@ -1,9 +1,9 @@
 "use client";
-import { motion, useAnimation, useInView } from "motion/react";
-import { useEffect, useRef } from "react";
+import { m, useAnimation, useInView } from "motion/react";
+import { useCallback, useEffect, useRef } from "react";
 
 interface BoxRevealProps {
-  children: JSX.Element;
+  children: React.JSX.Element;
   width?: "fit-content" | "100%";
   boxColor?: string;
   duration?: number;
@@ -20,33 +20,29 @@ export const BoxReveal = ({
   const ref = useRef(null);
   const isInView = useInView(ref, { once: false });
 
-  const startAnimation = async () => {
-    // Reset positions
+  const startAnimation = useCallback(async () => {
+    // Reset positions, then play the reveal again.
     await slideControls.start("hidden");
     await mainControls.start("hidden");
-
-    // Start animations
     slideControls.start("visible");
     mainControls.start("visible");
-  };
+  }, [mainControls, slideControls]);
 
   useEffect(() => {
-    if (isInView) {
-      // Start the initial animation
+    if (!isInView) return;
+
+    startAnimation();
+    // Replay on a long interval so the reveal does not run every scroll frame.
+    const interval = setInterval(() => {
       startAnimation();
+    }, 72000);
 
-      // Create interval for infinite loop
-      const interval = setInterval(() => {
-        startAnimation();
-      }, 72000); // 3.5 seconds
-
-      return () => clearInterval(interval);
-    }
-  }, [isInView]);
+    return () => clearInterval(interval);
+  }, [isInView, startAnimation]);
 
   return (
     <div ref={ref} style={{ position: "relative", width, overflow: "hidden" }}>
-      <motion.div
+      <m.div
         variants={{
           hidden: { opacity: 0, y: 75 },
           visible: { opacity: 1, y: 0 },
@@ -56,8 +52,8 @@ export const BoxReveal = ({
         transition={{ duration: duration ? duration : 0.75, delay: 0.5 }}
       >
         {children}
-      </motion.div>
-      <motion.div
+      </m.div>
+      <m.div
         variants={{
           hidden: { left: 0 },
           visible: { left: "100%" },

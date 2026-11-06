@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { m } from "motion/react";
 
 const letterVariants = {
   initial: {
@@ -16,7 +16,7 @@ const letterVariants = {
     rotateY: 0,
     transition: {
       duration: 0.65,
-      ease: [0.34, 1.56, 0.64, 1], // Spring-like easing
+      ease: [0.34, 1.56, 0.64, 1] as const, // Spring-like easing
       delay: index * 0.03, // Faster stagger between letters
     },
   }),
@@ -29,7 +29,7 @@ const letterVariants = {
  */
 export default function HailMary() {
   return (
-    <motion.div
+    <m.div
       className="flex min-h-[100svh] items-center justify-center p-6 sm:p-8"
       initial="initial"
       whileInView="animate"
@@ -39,7 +39,7 @@ export default function HailMary() {
       }}
     >
       <div className="max-w-4xl">
-        <motion.h2
+        <m.h2
           className="mb-8 bg-clip-text text-4xl font-semibold font-geist text-transparent md:text-6xl"
           style={{
             backgroundImage:
@@ -48,18 +48,18 @@ export default function HailMary() {
         >
           {/* Split text into letters for individual animation */}
           {"De la A la Z".split("").map((letter, index) => (
-            <motion.span key={index} custom={index} variants={letterVariants}>
+            <m.span key={index} custom={index} variants={letterVariants}>
               {letter}
-            </motion.span>
+            </m.span>
           ))}
-        </motion.h2>
-        <motion.div
+        </m.h2>
+        <m.div
           className="overflow-hidden text-lg font-light leading-relaxed font-geist text-[#1f2937] md:text-xl"
           initial="initial"
           whileInView="animate"
           viewport={{ once: true, amount: 0.2 }}
         >
-          <motion.p
+          <m.p
             variants={{
               initial: { x: -100, opacity: 0 },
               animate: {
@@ -71,9 +71,9 @@ export default function HailMary() {
           >
             Fie ca ai nevoie de imagini atractive pentru social media, texte care
             ies în evidență
-          </motion.p>
+          </m.p>
 
-          <motion.p
+          <m.p
             variants={{
               initial: { x: 100, opacity: 0 },
               animate: {
@@ -85,9 +85,9 @@ export default function HailMary() {
           >
             identitate vizuală pentru brandul tău sau un website modern, sunt aici
             să te ajut.
-          </motion.p>
+          </m.p>
 
-          <motion.p
+          <m.p
             variants={{
               initial: { y: 50, opacity: 0, rotateX: 45 },
               animate: {
@@ -104,9 +104,9 @@ export default function HailMary() {
           >
             Lucrez fie sub micro-management (adică, tu decizi tot), fie cu minim
             de supervizare, depinde cum îți place.
-          </motion.p>
+          </m.p>
 
-          <motion.p
+          <m.p
             variants={{
               initial: { scale: 0.8, opacity: 0 },
               animate: {
@@ -122,9 +122,9 @@ export default function HailMary() {
           >
             Adaptabilitatea este cheia mea, astfel încât tu să ai controlul pe
             care îl dorești.
-          </motion.p>
-        </motion.div>
+          </m.p>
+        </m.div>
       </div>
-    </motion.div>
+    </m.div>
   );
 }

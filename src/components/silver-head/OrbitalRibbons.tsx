@@ -1,30 +1,29 @@
 "use client";
 
 import {
-  animate,
-  m,
-  useMotionValue,
-  useTransform,
-  type MotionValue,
-} from "framer-motion";
-
-import {
+  useCallback,
   useEffect,
   useId,
+  useImperativeHandle,
   useLayoutEffect,
   useRef,
-  type ReactNode,
+  type Ref,
+  type RefObject,
 } from "react";
+import { EASES, gsap } from "./gsapClient";
+
+/** Start or stop the idle loop. The dive controller calls it; no React render. */
+export type RibbonsHandle = {
+  setRunning: (running: boolean) => void;
+};
 
 type Props = {
-  opacity: MotionValue<number>;
-  x: MotionValue<number>;
-  y: MotionValue<number>;
-  scale: MotionValue<number>;
-  active: boolean;
-  paused: boolean;
+  /** Wrapper element. The dive timeline fades it and moves it with the head. */
+  wrapperRef?: Ref<HTMLDivElement>;
+  handleRef?: Ref<RibbonsHandle>;
   reducedMotion: boolean;
-  hidden: boolean;
+  /** Attribute writes per second while the loop runs. */
+  fps: number;
 };
 
 type Point = {
@@ -45,6 +44,20 @@ const SERVICES = "WEBSITES  •  GOOGLE ADS  •  E-COMMERCE  •  ";
 
 const COPIES = [-1, 0, 1, 2] as const;
 const SAMPLES = 96;
+
+/** Loop lengths in seconds, as before. */
+const CYAN_SECONDS = 32;
+const VIOLET_SECONDS = 38;
+const DRIFT_SECONDS = 22;
+const REFLECTION_SECONDS = 12.5;
+
+/** Drift keyframes, eased per segment like the old Motion keyframes. */
+const DRIFT_KEYS = [0, 1, 0, -1, 0] as const;
+
+/** Initial text cycle before the ruler is measured. */
+const DEFAULT_CYCLE = 620;
+
+const fract = (value: number) => value - Math.floor(value);
 
 const line = (points: Point[]) =>
   points
@@ -120,6 +133,38 @@ const CYAN = makeOrbit(17, -110);
 const VIOLET = makeOrbit(-17, 20);
 
 type Orbit = typeof CYAN;
+type Tone = "cyan" | "violet";
+
+/** Every animated value at a given loop time. Pure, so SSR and the loop agree. */
+function ribbonState(time: number, driftEase: (t: number) => number) {
+  const segment = DRIFT_SECONDS / (DRIFT_KEYS.length - 1);
+  const local = time % DRIFT_SECONDS;
+  const index = Math.min(DRIFT_KEYS.length - 2, Math.floor(local / segment));
+  const u = (local - index * segment) / segment;
+  const drift =
+    DRIFT_KEYS[index] + (DRIFT_KEYS[index + 1] - DRIFT_KEYS[index]) * driftEase(u);
+  const reflection = fract(time / REFLECTION_SECONDS);
+
+  return {
+    phase: {
+      cyan: 0.07 - fract(time / CYAN_SECONDS),
+      violet: -0.22 + fract(time / VIOLET_SECONDS),
+    },
+    drift: {
+      cyan: `translate(0 ${(drift * 0.45).toFixed(3)}) rotate(${(drift * 0.55).toFixed(3)})`,
+      violet: `translate(0 ${(-drift * 0.55).toFixed(3)}) rotate(${(-drift * 0.7).toFixed(3)})`,
+    },
+    light: {
+      cyan: `translate(${(-650 + reflection * 1300).toFixed(3)} 0) rotate(-18)`,
+      violet: `translate(${(-650 + ((reflection + 0.45) % 1) * 1300).toFixed(3)} 0) rotate(18)`,
+    },
+  };
+}
+
+const INITIAL = ribbonState(0, (t) => t);
+
+const systemTransform = (scale: number, anchorY: number) =>
+  `translate(${HEAD_X} ${anchorY}) scale(${scale})`;
 
 const CSS = `
 .sh-orbits{
@@ -175,84 +220,52 @@ const CSS = `
 }
 `;
 
-/** Native SVG transforms preserve the existing scene alignment. */
-function SvgMotionGroup({
-  transform,
-  className,
-  children,
-}: {
-  transform: MotionValue<string>;
-  className?: string;
-  children: ReactNode;
-}) {
-  const ref = useRef<SVGGElement>(null);
+/** Collects the nodes the loop writes to. */
+type Registry = {
+  text: Record<Tone, (SVGTextPathElement | null)[]>;
+  drift: Record<Tone, SVGGElement[]>;
+  light: Record<Tone, SVGGElement | null>;
+};
 
-  useLayoutEffect(() => {
-    const node = ref.current;
-    if (!node) return;
-
-    const apply = (value: string) => {
-      node.setAttribute("transform", value);
-    };
-
-    apply(transform.get());
-
-    return transform.on("change", apply);
-  }, [transform]);
-
-  return (
-    <g ref={ref} transform={transform.get()} className={className}>
-      {children}
-    </g>
-  );
+/** Ref callback that adds a drift group once. Groups never unmount on their own. */
+function driftRef(registry: RefObject<Registry>, tone: Tone) {
+  return (node: SVGGElement | null) => {
+    const list = registry.current.drift[tone];
+    if (node && !list.includes(node)) list.push(node);
+  };
 }
 
-function TextCopy({
-  pathId,
-  phase,
-  cycle,
-  copy,
-}: {
-  pathId: string;
-  phase: MotionValue<number>;
-  cycle: MotionValue<number>;
-  copy: number;
-}) {
-  const offset = useTransform(
-    [phase, cycle],
-    ([p, length]: number[]) => (p + copy) * length,
-  );
+function lightRef(registry: RefObject<Registry>, tone: Tone) {
+  return (node: SVGGElement | null) => {
+    registry.current.light[tone] = node;
+  };
+}
 
-  return (
-    <text className="sh-orbit-label" dy=".34em" xmlSpace="preserve">
-      <m.textPath href={`#${pathId}`} startOffset={offset}>
-        {SERVICES}
-      </m.textPath>
-    </text>
-  );
+function textRef(registry: RefObject<Registry>, tone: Tone, index: number) {
+  return (node: SVGTextPathElement | null) => {
+    registry.current.text[tone][index] = node;
+  };
 }
 
 function GlassRibbon({
   orbit,
   tone,
   id,
-  transform,
-  light,
-  phase,
-  cycle,
+  registry,
 }: {
   orbit: Orbit;
-  tone: "cyan" | "violet";
+  tone: Tone;
   id: string;
-  transform: MotionValue<string>;
-  light: MotionValue<string>;
-  phase: MotionValue<number>;
-  cycle: MotionValue<number>;
+  registry: RefObject<Registry>;
 }) {
   const front = orbit.front;
 
   return (
-    <SvgMotionGroup className="sh-orbit-front" transform={transform}>
+    <g
+      className="sh-orbit-front"
+      transform={INITIAL.drift[tone]}
+      ref={driftRef(registry, tone)}
+    >
       <g mask={`url(#${id}-surface-mask)`}>
         <path
           className="sh-orbit-glass"
@@ -293,7 +306,11 @@ function GlassRibbon({
 
         {/* Broad reflection, clipped inside the glass. */}
         <g clipPath={`url(#${id}-${tone}-clip)`}>
-          <SvgMotionGroup className="sh-orbit-reflection" transform={light}>
+          <g
+            className="sh-orbit-reflection"
+            transform={INITIAL.light[tone]}
+            ref={lightRef(registry, tone)}
+          >
             <rect
               x="-80"
               y="-440"
@@ -301,138 +318,180 @@ function GlassRibbon({
               height="880"
               fill={`url(#${id}-light)`}
             />
-          </SvgMotionGroup>
+          </g>
         </g>
       </g>
 
       <g className="sh-orbit-readout" mask={`url(#${id}-text-mask)`}>
-        {COPIES.map((copy) => (
-          <TextCopy
+        {COPIES.map((copy, index) => (
+          <text
             key={copy}
-            copy={copy}
-            pathId={`${id}-${tone}-path`}
-            phase={phase}
-            cycle={cycle}
-          />
+            className="sh-orbit-label"
+            dy=".34em"
+            xmlSpace="preserve"
+          >
+            <textPath
+              ref={textRef(registry, tone, index)}
+              href={`#${id}-${tone}-path`}
+              startOffset={(INITIAL.phase[tone] + copy) * DEFAULT_CYCLE}
+            >
+              {SERVICES}
+            </textPath>
+          </text>
         ))}
       </g>
-    </SvgMotionGroup>
+    </g>
+  );
+}
+
+function RearRibbon({
+  orbit,
+  tone,
+  id,
+  registry,
+}: {
+  orbit: Orbit;
+  tone: Tone;
+  id: string;
+  registry: RefObject<Registry>;
+}) {
+  return (
+    <g
+      className="sh-orbit-rear"
+      transform={INITIAL.drift[tone]}
+      ref={driftRef(registry, tone)}
+    >
+      <path
+        d={orbit.rear.surface}
+        fill={`url(#${id}-${tone}-film)`}
+        opacity=".62"
+      />
+
+      <path
+        d={orbit.rear.sheen}
+        fill={`url(#${id}-reflection)`}
+        opacity=".32"
+      />
+    </g>
   );
 }
 
 export default function OrbitalRibbons({
-  opacity,
-  x,
-  y,
-  scale,
-  active,
-  paused,
+  wrapperRef,
+  handleRef,
   reducedMotion,
-  hidden,
+  fps,
 }: Props) {
   const id = `orb-${useId().replace(/[^a-zA-Z0-9_-]/g, "")}`;
 
   const svgRef = useRef<SVGSVGElement>(null);
   const rulerRef = useRef<SVGTextElement>(null);
+  const systemRef = useRef<SVGGElement>(null);
 
-  const controls = useRef<ReturnType<typeof animate>[]>([]);
+  const registry = useRef<Registry>({
+    text: { cyan: [], violet: [] },
+    drift: { cyan: [], violet: [] },
+    light: { cyan: null, violet: null },
+  });
 
-  const shouldRun = active && !paused && !hidden && !reducedMotion;
+  // Loop state lives in refs: the controller toggles it during scroll.
+  const loop = useRef({
+    time: 0,
+    lastWrite: -Infinity,
+    cycle: DEFAULT_CYCLE,
+    running: false,
+    listening: false,
+    fps,
+    reduced: reducedMotion,
+    ease: (t: number) => t,
+  });
 
-  const runRef = useRef(shouldRun);
+  const write = useCallback(() => {
+    const state = loop.current;
+    const values = ribbonState(state.time, state.ease);
+    const nodes = registry.current;
 
-  const cyanPhase = useMotionValue(0.07);
-  const violetPhase = useMotionValue(-0.22);
+    (["cyan", "violet"] as const).forEach((tone) => {
+      nodes.text[tone].forEach((node, index) => {
+        node?.setAttribute(
+          "startOffset",
+          ((values.phase[tone] + COPIES[index]) * state.cycle).toFixed(2),
+        );
+      });
 
-  const cycle = useMotionValue(620);
-  const layoutScale = useMotionValue(1);
-  const anchorY = useMotionValue(HEAD_Y);
+      nodes.drift[tone].forEach((node) => {
+        node.setAttribute("transform", values.drift[tone]);
+      });
 
-  const drift = useMotionValue(0);
-  const reflection = useMotionValue(0);
+      nodes.light[tone]?.setAttribute("transform", values.light[tone]);
+    });
+  }, []);
 
-  const systemTransform = useTransform(
-    [layoutScale, anchorY],
-    ([s, cy]: number[]) => `translate(${HEAD_X} ${cy}) scale(${s})`,
+  const tick = useCallback(
+    (_time: number, deltaTime: number) => {
+      const state = loop.current;
+
+      state.time += Math.min(deltaTime / 1000, 0.1);
+
+      if (state.time - state.lastWrite < 1 / state.fps - 0.004) return;
+
+      state.lastWrite = state.time;
+      write();
+    },
+    [write],
   );
 
-  const cyanTransform = useTransform(
-    drift,
-    (v) =>
-      `translate(0 ${(v * 0.45).toFixed(3)}) rotate(${(v * 0.55).toFixed(3)})`,
-  );
+  const sync = useCallback(() => {
+    const state = loop.current;
+    const listen = state.running && !state.reduced;
 
-  const violetTransform = useTransform(
-    drift,
-    (v) =>
-      `translate(0 ${(-v * 0.55).toFixed(3)}) rotate(${(-v * 0.7).toFixed(3)})`,
-  );
+    if (listen === state.listening) return;
 
-  const cyanLight = useTransform(
-    reflection,
-    (v) => `translate(${(-650 + v * 1300).toFixed(3)} 0) rotate(-18)`,
-  );
+    state.listening = listen;
 
-  const violetLight = useTransform(
-    reflection,
-    (v) =>
-      `translate(${(-650 + ((v + 0.45) % 1) * 1300).toFixed(3)} 0) rotate(18)`,
+    if (listen) gsap.ticker.add(tick);
+    else gsap.ticker.remove(tick);
+  }, [tick]);
+
+  useImperativeHandle(
+    handleRef,
+    () => ({
+      setRunning: (running: boolean) => {
+        loop.current.running = running;
+        sync();
+      },
+    }),
+    [sync],
   );
 
   useEffect(() => {
-    runRef.current = shouldRun;
+    loop.current.fps = fps;
+  }, [fps]);
 
-    controls.current.forEach((animation) =>
-      shouldRun ? animation.play() : animation.pause(),
-    );
-  }, [shouldRun]);
-
+  // Reduced motion holds the first frame; otherwise the loop resumes where it paused.
   useEffect(() => {
-    cyanPhase.set(0.07);
-    violetPhase.set(-0.22);
-    drift.set(0);
-    reflection.set(0);
+    const state = loop.current;
 
-    if (reducedMotion) return;
+    state.ease = gsap.parseEase(EASES.cssInOut) ?? ((t: number) => t);
+    state.reduced = reducedMotion;
 
-    const animations = [
-      animate(cyanPhase, -0.93, {
-        duration: 32,
-        ease: "linear",
-        repeat: Infinity,
-      }),
-
-      animate(violetPhase, 0.78, {
-        duration: 38,
-        ease: "linear",
-        repeat: Infinity,
-      }),
-
-      animate(drift, [0, 1, 0, -1, 0], {
-        duration: 22,
-        ease: "easeInOut",
-        repeat: Infinity,
-      }),
-
-      animate(reflection, 1, {
-        duration: 12.5,
-        ease: "linear",
-        repeat: Infinity,
-      }),
-    ];
-
-    controls.current = animations;
-
-    if (!runRef.current) {
-      animations.forEach((animation) => animation.pause());
+    if (reducedMotion) {
+      state.time = 0;
+      state.lastWrite = -Infinity;
+      write();
     }
 
-    return () => {
-      animations.forEach((animation) => animation.stop());
+    sync();
+  }, [reducedMotion, sync, write]);
 
-      controls.current = [];
+  useEffect(() => {
+    const state = loop.current;
+
+    return () => {
+      gsap.ticker.remove(tick);
+      state.listening = false;
     };
-  }, [reducedMotion, cyanPhase, violetPhase, drift, reflection]);
+  }, [tick]);
 
   useLayoutEffect(() => {
     let disposed = false;
@@ -473,8 +532,10 @@ export default function OrbitalRibbons({
 
       const fitted = Math.max(0.001, Math.min(targetScale, viewportFit));
 
-      layoutScale.set(fitted);
-      anchorY.set(HEAD_Y + (mobile ? -18 : 0));
+      systemRef.current?.setAttribute(
+        "transform",
+        systemTransform(fitted, HEAD_Y + (mobile ? -18 : 0)),
+      );
 
       const effective = pixelsPerUnit * fitted;
 
@@ -492,8 +553,10 @@ export default function OrbitalRibbons({
       const length = rulerRef.current?.getComputedTextLength();
 
       if (length && Number.isFinite(length)) {
-        cycle.set(length);
+        loop.current.cycle = length;
       }
+
+      write();
     };
 
     const schedule = () => {
@@ -534,12 +597,13 @@ export default function OrbitalRibbons({
 
       document.fonts?.removeEventListener("loadingdone", schedule);
     };
-  }, [cycle, layoutScale, anchorY]);
+  }, [write]);
 
   return (
-    <m.div
+    <div
+      ref={wrapperRef}
       className="sh-orbits"
-      style={{ opacity, x, y, scale }}
+      data-sh-chrome
       aria-hidden="true"
     >
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
@@ -725,68 +789,36 @@ export default function OrbitalRibbons({
           </mask>
         </defs>
 
-        <SvgMotionGroup className="sh-orbit-system" transform={systemTransform}>
+        <g
+          ref={systemRef}
+          className="sh-orbit-system"
+          transform={systemTransform(1, HEAD_Y)}
+        >
           {/* Filled rear surfaces, softly hidden behind the head. */}
           <g mask={`url(#${id}-rear-mask)`}>
-            {(
-              [
-                {
-                  orbit: CYAN,
-                  tone: "cyan",
-                  transform: cyanTransform,
-                },
-                {
-                  orbit: VIOLET,
-                  tone: "violet",
-                  transform: violetTransform,
-                },
-              ] as const
-            ).map(({ orbit, tone, transform }) => (
-              <SvgMotionGroup
-                key={tone}
-                className="sh-orbit-rear"
-                transform={transform}
-              >
-                <path
-                  d={orbit.rear.surface}
-                  fill={`url(#${id}-${tone}-film)`}
-                  opacity=".62"
-                />
-
-                <path
-                  d={orbit.rear.sheen}
-                  fill={`url(#${id}-reflection)`}
-                  opacity=".32"
-                />
-              </SvgMotionGroup>
-            ))}
+            <RearRibbon orbit={CYAN} tone="cyan" id={id} registry={registry} />
+            <RearRibbon
+              orbit={VIOLET}
+              tone="violet"
+              id={id}
+              registry={registry}
+            />
           </g>
 
           <GlassRibbon
             orbit={VIOLET}
             tone="violet"
             id={id}
-            transform={violetTransform}
-            light={violetLight}
-            phase={violetPhase}
-            cycle={cycle}
+            registry={registry}
           />
 
-          <GlassRibbon
-            orbit={CYAN}
-            tone="cyan"
-            id={id}
-            transform={cyanTransform}
-            light={cyanLight}
-            phase={cyanPhase}
-            cycle={cycle}
-          />
-        </SvgMotionGroup>
+          <GlassRibbon orbit={CYAN} tone="cyan" id={id} registry={registry} />
+        </g>
 
         <text ref={rulerRef} className="sh-orbit-ruler" xmlSpace="preserve">
           {SERVICES}
         </text>
       </svg>
-    </m.div>
+    </div>
   );
 }

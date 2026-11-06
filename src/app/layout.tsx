@@ -1,5 +1,6 @@
 import localFont from "next/font/local";
 import "./globals.css";
+import MotionProvider from "./components/MotionProvider";
 import PreLogo from "./components/PreLogo";
 
 const oggD = localFont({
@@ -21,8 +22,10 @@ export default function RootLayout({
   return (
     <html lang="ro">
       <body className={`${oggD.variable} ${geistSans.variable}`}>
-        <PreLogo />
-        {children}
+        <MotionProvider>
+          <PreLogo />
+          {children}
+        </MotionProvider>
       </body>
     </html>
   );

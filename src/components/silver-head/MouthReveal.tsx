@@ -1,13 +1,5 @@
-'use client';
-
-import type { ReactNode } from 'react';
-import {
-  LazyMotion,
-  domAnimation,
-  m,
-  useTransform,
-} from 'framer-motion';
-import { handoff } from './handoff';
+import type { ReactNode } from "react";
+import { LAMP_HEADING_ID, LAMP_PLATE } from "./lampSection";
 
 type Props = {
   children: ReactNode;
@@ -21,12 +13,21 @@ const CSS = `
      and the white section below cannot show through the fade. */
   height:var(--sh-sticky, 100svh);
   overflow:hidden;
-  background:rgb(15, 15, 25);
+  background:${LAMP_PLATE};
   /* The section top sits on the viewport at the end of the pin.
      The sticky height is published as --sh-sticky. This is alignment,
      not an extra black scroll range. */
   margin-top:calc(var(--sh-sticky, 100svh) * -1);
 }
+
+/* Programmatic focus target after Explorează. Not in the tab order. */
+.mouth-reveal:focus{outline:none}
+
+/* Rasterized during the black stretch, so the blend is a compositor fade. */
+.mouth-reveal[data-promote="true"]{will-change:opacity}
+
+/* No spinning border while nobody can see it. */
+.mouth-reveal:not([data-state="shown"]) .lamp-spin{animation-play-state:paused}
 
 @media(prefers-reduced-motion:reduce){
   .mouth-reveal{
@@ -39,25 +40,23 @@ const CSS = `
 `;
 
 /**
- * The lamp fades in over the black mouth. Opacity reads `handoff` only,
- * which is a 150ms tween started when the pin ends. The plate itself
- * does not move, so the section under it stays below the fold.
+ * The lamp plate that comes out of the mouth. The dive controller fades it
+ * with a 200 ms blend at the pin end and reverses it on the way back up.
+ * The plate itself does not move, so the section under it stays below the fold.
  */
 export default function MouthReveal({ children }: Props) {
-  const pointerEvents = useTransform(handoff, (value) =>
-    value > 0.92 ? 'auto' : 'none',
-  );
-
   return (
-    <LazyMotion features={domAnimation} strict>
-      <m.div
-        data-mouth-reveal
-        className="mouth-reveal"
-        style={{ opacity: handoff, pointerEvents }}
-      >
-        <style dangerouslySetInnerHTML={{ __html: CSS }} />
-        {children}
-      </m.div>
-    </LazyMotion>
+    <div
+      data-mouth-reveal
+      data-state="hidden"
+      className="mouth-reveal"
+      role="region"
+      aria-labelledby={LAMP_HEADING_ID}
+      tabIndex={-1}
+      style={{ opacity: 0, pointerEvents: "none" }}
+    >
+      <style dangerouslySetInnerHTML={{ __html: CSS }} />
+      {children}
+    </div>
   );
 }

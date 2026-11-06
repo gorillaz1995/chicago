@@ -271,72 +271,90 @@ export function tuneHeadMaterials(
   });
 }
 
+/** Screen-space glyph field mixed into the mouth interior. */
+export type MouthGlyphUniforms = {
+  uGlyphMap: { value: THREE.CanvasTexture };
+  uResolution: { value: THREE.Vector2 };
+  /** 0 = plain plate, 1 = full glyph field. Driven by the dive's glyph channel. */
+  uGlyphMix: { value: number };
+};
+
 /**
- * Optional localized haze card.
+ * Patches MouthDark to sample the glyph canvas in screen space.
  *
- * The canvas must add and position this mesh. Fade its opacity
- * to zero before the camera enters the mouth, and dispose it
- * when the scene unmounts.
+ * Three reuses a material's compiled program without calling
+ * `onBeforeCompile` again, so the uniforms and the texture live on the
+ * material and survive remounts. The patch is applied before the first
+ * compile, which keeps the glyph variant out of the scroll path.
  */
-export function createChamberHaze() {
-  const geometry = new THREE.PlaneGeometry(1, 1);
+export function mouthGlyphUniforms(root: THREE.Object3D) {
+  let uniforms: MouthGlyphUniforms | null = null;
 
-  const material = new THREE.ShaderMaterial({
-    transparent: true,
-    depthWrite: false,
-    depthTest: true,
-    toneMapped: false,
+  root.traverse((obj) => {
+    const mesh = obj as THREE.Mesh;
+    if (!mesh.isMesh) return;
 
-    uniforms: {
-      uOpacity: { value: 0.28 },
-      uColor: { value: new THREE.Color("#07110e") },
-    },
+    const materials = Array.isArray(mesh.material)
+      ? mesh.material
+      : [mesh.material];
 
-    vertexShader: VERTEX,
+    for (const entry of materials) {
+      const mat = entry as THREE.MeshStandardMaterial;
+      if (!mat?.isMeshStandardMaterial || mat.name !== "MouthDark") continue;
 
-    fragmentShader: /* glsl */ `
-      varying vec2 vUv;
+      const existing = mat.userData.glyphUniforms as MouthGlyphUniforms | undefined;
 
-      uniform float uOpacity;
-      uniform vec3 uColor;
-
-      void main() {
-        vec2 p = (vUv - 0.5) * 2.0;
-
-        float cloud = exp(
-          -3.3 * p.x * p.x -
-          5.0 * p.y * p.y
-        );
-
-        float softShape =
-          0.78 + 0.22 * sin(
-            p.x * 3.0 + p.y * 2.0
-          );
-
-        gl_FragColor = vec4(
-          uColor,
-          cloud * softShape * uOpacity
-        );
+      if (existing) {
+        uniforms = existing;
+        continue;
       }
-    `,
+
+      // 1×1 transparent placeholder until the glyph canvas exists.
+      const placeholder = document.createElement("canvas");
+      placeholder.width = 1;
+      placeholder.height = 1;
+
+      const texture = new THREE.CanvasTexture(placeholder);
+      // Mixed in after the color transform, so the canvas white stays white.
+      texture.colorSpace = THREE.NoColorSpace;
+      texture.generateMipmaps = false;
+      texture.minFilter = THREE.LinearFilter;
+      texture.magFilter = THREE.LinearFilter;
+      texture.wrapS = THREE.ClampToEdgeWrapping;
+      texture.wrapT = THREE.ClampToEdgeWrapping;
+
+      const created: MouthGlyphUniforms = {
+        uGlyphMap: { value: texture },
+        uResolution: { value: new THREE.Vector2(1, 1) },
+        uGlyphMix: { value: 0 },
+      };
+
+      mat.userData.glyphUniforms = created;
+
+      mat.onBeforeCompile = (shader) => {
+        shader.uniforms.uGlyphMap = created.uGlyphMap;
+        shader.uniforms.uResolution = created.uResolution;
+        shader.uniforms.uGlyphMix = created.uGlyphMix;
+
+        shader.fragmentShader = shader.fragmentShader
+          .replace(
+            "#include <common>",
+            "#include <common>\nuniform sampler2D uGlyphMap;\nuniform vec2 uResolution;\nuniform float uGlyphMix;",
+          )
+          .replace(
+            "#include <colorspace_fragment>",
+            `#include <colorspace_fragment>
+vec2 glyphUv = clamp(gl_FragCoord.xy / uResolution, 0.0, 1.0);
+vec4 glyph = texture2D(uGlyphMap, glyphUv);
+gl_FragColor.rgb = mix(gl_FragColor.rgb, glyph.rgb, glyph.a * uGlyphMix);`,
+          );
+      };
+
+      mat.customProgramCacheKey = () => "mouth-glyph-v7";
+      mat.needsUpdate = true;
+      uniforms = created;
+    }
   });
 
-  const mesh = new THREE.Mesh(geometry, material);
-  mesh.name = "ChamberHaze";
-  mesh.renderOrder = 5;
-  mesh.frustumCulled = false;
-
-  return {
-    mesh,
-
-    setOpacity(value: number) {
-      material.uniforms.uOpacity.value = THREE.MathUtils.clamp(value, 0, 1);
-    },
-
-    dispose() {
-      mesh.removeFromParent();
-      geometry.dispose();
-      material.dispose();
-    },
-  };
+  return uniforms as MouthGlyphUniforms | null;
 }

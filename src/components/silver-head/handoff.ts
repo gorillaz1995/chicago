@@ -1,42 +1,135 @@
-'use client';
+import { EASES, gsap } from "./gsapClient";
+import { HANDOFF } from "./diveStages";
 
-import {
-  animate,
-  motionValue,
-  type AnimationPlaybackControls,
-} from 'framer-motion';
-import { HANDOFF_EASE, HANDOFF_MS } from './dive';
+/** Lamp states. Mirrored on the plate as `data-state` for CSS and tests. */
+export type HandoffState = "hidden" | "blending" | "shown" | "reversing";
 
-/** 0 = mouth only, 1 = next section. Owned by the time blend, not by scroll. */
-export const handoff = motionValue(0);
+type LampListener = (shown: boolean) => void;
 
-let target: 0 | 1 | null = null;
-let running: AnimationPlaybackControls | null = null;
+const listeners = new Set<LampListener>();
+let lampShown = false;
 
 /**
- * Tween toward 0 or 1 from the current value.
- * Calling it again with the same target does nothing, so a wobble at the
- * threshold cannot restart the blend.
+ * True once the blend has fully revealed the lamp. The beams play on true and
+ * reset on false, which only happens after the reverse blend has hidden them.
  */
-export function setHandoffTarget(next: 0 | 1, immediate = false) {
-  if (
-    target === next &&
-    (!immediate || Math.abs(handoff.get() - next) < 0.001)
-  ) {
-    return;
-  }
+export function subscribeLampShown(listener: LampListener) {
+  listeners.add(listener);
+  listener(lampShown);
 
-  target = next;
-  running?.stop();
-  running = null;
+  return () => {
+    listeners.delete(listener);
+  };
+}
 
-  if (immediate || Math.abs(handoff.get() - next) < 0.001) {
-    handoff.set(next);
-    return;
-  }
+export function setLampShown(next: boolean) {
+  if (next === lampShown) return;
 
-  running = animate(handoff, next, {
-    duration: HANDOFF_MS / 1000,
-    ease: HANDOFF_EASE,
+  lampShown = next;
+  listeners.forEach((listener) => listener(next));
+}
+
+export type Handoff = {
+  /** Move toward hidden (0) or shown (1). Same target twice does nothing. */
+  to: (next: 0 | 1, immediate?: boolean) => void;
+  /** Settle on the current target without a blend (tab return, refresh). */
+  snap: () => void;
+  target: () => 0 | 1;
+  state: () => HandoffState;
+  kill: () => void;
+};
+
+/**
+ * One persistent timeline for the mouth-to-lamp blend. `play()` and
+ * `reverse()` continue from the current value, so a crossing during the blend
+ * turns it around instead of stacking a second tween.
+ */
+export function createHandoff(plate: HTMLElement): Handoff {
+  let target: 0 | 1 = 0;
+  let state: HandoffState = "hidden";
+
+  const setState = (next: HandoffState) => {
+    state = next;
+    plate.dataset.state = next;
+  };
+
+  // Settled states write their opacity too, so a cleared inline style
+  // (e.g. after the static layout) can never leave a hidden plate visible.
+  const settleShown = () => {
+    setState("shown");
+    plate.style.opacity = "1";
+    plate.style.pointerEvents = "auto";
+    setLampShown(true);
+  };
+
+  const settleHidden = () => {
+    setState("hidden");
+    plate.style.opacity = "0";
+    plate.style.pointerEvents = "none";
+    setLampShown(false);
+  };
+
+  const timeline = gsap.timeline({
+    paused: true,
+    onComplete: settleShown,
+    onReverseComplete: settleHidden,
   });
+
+  // Starts hidden as soon as it exists, whatever the plate's inline style was.
+  timeline.fromTo(
+    plate,
+    { opacity: 0 },
+    {
+      opacity: 1,
+      duration: HANDOFF.ms / 1000,
+      ease: EASES.handoff,
+    },
+  );
+
+  const to = (next: 0 | 1, immediate = false) => {
+    if (next === target && !immediate) return;
+
+    target = next;
+
+    if (immediate) {
+      timeline.pause();
+      timeline.progress(next, true);
+
+      if (next) settleShown();
+      else settleHidden();
+
+      return;
+    }
+
+    if (next) {
+      if (timeline.progress() >= 1) {
+        settleShown();
+        return;
+      }
+
+      setState("blending");
+      timeline.play();
+      return;
+    }
+
+    // Input on a fading plate would land on a section that is leaving.
+    plate.style.pointerEvents = "none";
+
+    if (timeline.progress() <= 0) {
+      settleHidden();
+      return;
+    }
+
+    setState("reversing");
+    timeline.reverse();
+  };
+
+  return {
+    to,
+    snap: () => to(target, true),
+    target: () => target,
+    state: () => state,
+    // The next build syncs the lamp from scroll, so a rebuild does not replay the beams.
+    kill: () => timeline.kill(),
+  };
 }

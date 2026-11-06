@@ -1,33 +1,13 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { m } from "motion/react";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { heroChromeOpacity } from "@/components/silver-head/chrome";
 
 const PreLogo = () => {
   // State to control drawer visibility and menu state
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [chromeOff, setChromeOff] = useState(false);
-
-  // The hero hides this control while the mouth sequence has the screen.
-  useEffect(() => {
-    const root = document.documentElement;
-
-    const sync = () => {
-      setChromeOff(root.dataset.headChrome === "off");
-    };
-
-    const observer = new MutationObserver(sync);
-    observer.observe(root, {
-      attributes: true,
-      attributeFilter: ["data-head-chrome"],
-    });
-    sync();
-
-    return () => observer.disconnect();
-  }, []);
 
   // Effect to handle body scroll lock when drawer is open
   useEffect(() => {
@@ -59,24 +39,25 @@ const PreLogo = () => {
 
   return (
     <>
-      {/* The outer layer reads the hero's scroll MotionValue without React renders. */}
-      <motion.div
+      {/* The silver-head dive fades this wrapper with the hero copy. At zero it is
+          hidden, so it cannot be clicked or focused while the mouth has the screen. */}
+      <div
         className="prelogo-mark fixed left-1/2 top-0 z-50 -translate-x-1/2"
-        style={{ opacity: heroChromeOpacity }}
+        data-hero-chrome
       >
-        <motion.button
+        <m.button
           type="button"
           className="inline-flex min-h-11 cursor-pointer items-center justify-center border-0 bg-transparent px-3 pt-[max(6px,env(safe-area-inset-top))] focus-visible:outline-none focus-visible:[box-shadow:0_0_0_2px_#070B09,0_0_0_4px_#F2F0E8]"
           onClick={() => setIsDrawerOpen(true)}
           animate={{ opacity: isDrawerOpen ? 0 : 1 }}
           transition={{ duration: 0.3 }}
-          inert={chromeOff || isDrawerOpen ? true : undefined}
-          aria-hidden={chromeOff || isDrawerOpen || undefined}
+          inert={isDrawerOpen ? true : undefined}
+          aria-hidden={isDrawerOpen || undefined}
           aria-expanded={isDrawerOpen}
           aria-controls="site-menu"
           aria-label="Deschide meniul"
-          disabled={chromeOff || isDrawerOpen}
-          tabIndex={chromeOff || isDrawerOpen ? -1 : 0}
+          disabled={isDrawerOpen}
+          tabIndex={isDrawerOpen ? -1 : 0}
         >
           {/* Red banner stays: it is the site menu, not a hero accent. */}
           <div className="relative aspect-[5/1] w-[clamp(128px,25vw,240px)] lg:w-[clamp(160px,18vw,280px)]">
@@ -90,7 +71,7 @@ const PreLogo = () => {
                 height: "100%",
                 objectFit: "contain",
               }}
-              priority
+              loading="eager"
             />
 
             {/* Hamburger menu lines overlay - 40% thinner lines */}
@@ -100,8 +81,8 @@ const PreLogo = () => {
               <div className="gradient h-[1px] w-[32%] rounded-full bg-white lg:h-[2px] lg:w-[25%]"></div>
             </div>
           </div>
-        </motion.button>
-      </motion.div>
+        </m.button>
+      </div>
 
       {/* Overlay */}
       {isDrawerOpen && (
@@ -112,7 +93,7 @@ const PreLogo = () => {
       )}
 
       {/* Navigation Drawer - Using menu-bar.svg */}
-      <motion.div
+      <m.div
         id="site-menu"
         className="fixed left-[10%] bottom-[27%] lg:bottom-[20%] md:left-[20%] lg:left-[calc(50%-15%)] w-[80%] md:w-[60%] lg:w-[30%] h-[95%] md:h-[80%] lg:h-[90%] z-50 overflow-hidden"
         style={{
@@ -162,7 +143,6 @@ const PreLogo = () => {
               objectFit: "contain",
               transform: "translateZ(0)",
             }}
-            priority
           />
         </div>
 
@@ -175,7 +155,7 @@ const PreLogo = () => {
               { href: "/servicii", text: "SERVICII" },
               { href: "/contact", text: "CONTACT" },
             ].map((item, index) => (
-              <motion.div
+              <m.div
                 key={item.href}
                 custom={index}
                 initial="hidden"
@@ -196,7 +176,7 @@ const PreLogo = () => {
                 >
                   {item.text}
                 </Link>
-              </motion.div>
+              </m.div>
             ))}
           </div>
 
@@ -223,7 +203,7 @@ const PreLogo = () => {
             </svg>
           </button>
         </div>
-      </motion.div>
+      </m.div>
     </>
   );
 };

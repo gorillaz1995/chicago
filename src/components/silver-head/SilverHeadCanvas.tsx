@@ -6,16 +6,35 @@ import {
   useLayoutEffect,
   useMemo,
   useRef,
-  type MutableRefObject,
+  type RefObject,
 } from "react";
-import { Canvas, useFrame, useLoader, useThree } from "@react-three/fiber";
+import {
+  advance,
+  Canvas,
+  useFrame,
+  useLoader,
+  useThree,
+} from "@react-three/fiber";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
-import { DIVE, STAGE_FOV } from "./dive";
+import {
+  BLACK_COVERAGE,
+  BLACK_MARGIN,
+  CAMERA_LIPS_T,
+  OLD_PIN,
+  PERF,
+  STAGE_FOV,
+  STAGES,
+  cameraAt,
+  type PerfTier,
+} from "./diveStages";
+import { gsap } from "./gsapClient";
 import {
   CHAMBER,
   createChamberEnvironment,
+  mouthGlyphUniforms,
   tuneHeadMaterials,
+  type MouthGlyphUniforms,
   type SceneDetail,
 } from "./chamberEnvironment";
 import SceneAtmosphere from "./sceneAtmosphere";
@@ -27,16 +46,45 @@ export type HeadFraming = {
   fovCenter: number;
 };
 
+/**
+ * Values the dive timeline writes during scroll, already eased.
+ * The canvas only reads them.
+ */
+export type DiveChannels = {
+  /** Raw pin progress, 0 to 1. */
+  progress: number;
+  /** Scroll distance from the pin start, in screen heights. */
+  vh: number;
+  /** Idle yaw to the nearest front angle. */
+  yaw: number;
+  /** Rest framing to the centered framing. */
+  center: number;
+  /** MouthOpen shape key. */
+  mouth: number;
+  /** Camera path: 0 at rest, CAMERA_LIPS_T at the lips, 1 deep in the cavity. */
+  camera: number;
+  /** Haze, shaft, traces and the light sweep. 1 at rest. */
+  atmosphere: number;
+  /** Glyph field strength inside the mouth. */
+  glyph: number;
+};
+
 export type HeadControl = {
-  dive: number;
+  channels: DiveChannels;
   paused: boolean;
   reducedMotion: boolean;
+  /** Work budget. `low` is set at runtime when idle frames fall behind. */
+  tier: PerfTier;
   framing: HeadFraming;
   tiltX: number;
   tiltY: number;
   kick: () => void;
   /** Uploads the mouth glyph canvas. No-op until that plane exists. */
   syncGlyph: () => void;
+  /** Debug: share of the current frame covered by the mouth interior. */
+  measureCoverage?: () => number;
+  /** First fully covered frame for this layout, in screen heights. */
+  calibrateBlack?: () => number | null;
 };
 
 export const TURN_SECONDS = 20;
@@ -61,25 +109,12 @@ const CAM_NEAR_DIVE = 0.01;
 const _pos = new THREE.Vector3();
 const _aim = new THREE.Vector3();
 
-const PUSH = 0.42;
-
 const FALLBACK_APPROACH = new THREE.Vector3(0, -0.0714, 0.1266);
 const FALLBACK_END = new THREE.Vector3(0, -0.0875, 0.086);
 const FALLBACK_LOOK = new THREE.Vector3(0, -0.0875, 0.04);
 
 const easeInOutCubic = (t: number) =>
   t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
-
-const smoothstep = (t: number) => {
-  const x = Math.min(1, Math.max(0, t));
-  return x * x * (3 - 2 * x);
-};
-
-const seg = (t: number, a: number, b: number) =>
-  easeInOutCubic(Math.min(1, Math.max(0, (t - a) / (b - a))));
-
-const span = (t: number, a: number, b: number) =>
-  Math.min(1, Math.max(0, (t - a) / (b - a)));
 
 type Cavity = {
   approach: THREE.Vector3;
@@ -203,12 +238,15 @@ function getRestFov(
 }
 
 type Props = {
-  control: MutableRefObject<HeadControl>;
+  control: RefObject<HeadControl>;
   glbUrl: string;
-  envUrl: string;
   detail: SceneDetail;
   onReady: () => void;
   onPoorPerformance: () => void;
+  /** Called once if idle frames fall behind and the scene steps down to `low`. */
+  onTierChange: (tier: PerfTier) => void;
+  /** First fully covered frame for this layout, measured at start and after resizes. */
+  onCalibrate: (black: number) => void;
   /** Hidden glyph canvas. Null keeps the cavity empty. */
   glyphCanvas: HTMLCanvasElement | null;
 };
@@ -288,19 +326,32 @@ function Head({
   glbUrl,
   onReady,
   onPoorPerformance,
+  onTierChange,
+  onCalibrate,
   glyphCanvas,
   detail,
-}: Omit<Props, "envUrl">) {
+  active,
+}: Props & { active: boolean }) {
   const gltf = useLoader(GLTFLoader, glbUrl);
 
-  const invalidate = useThree((s) => s.invalidate);
+  const get = useThree((s) => s.get);
   const size = useThree((s) => s.size);
+  const scene = useThree((s) => s.scene);
+  const setDpr = useThree((s) => s.setDpr);
 
   const camera = useThree((s) => s.camera) as THREE.PerspectiveCamera;
 
   const gl = useThree((s) => s.gl);
 
   const tilt = useRef<THREE.Group>(null);
+
+  // The GSAP ticker is the only render clock. `dirty` asks for one frame;
+  // the idle turn adds frames at the tier cap.
+  const frame = useRef({ dirty: true, lastIdle: -Infinity });
+
+  const markDirty = useRef(() => {
+    frame.current.dirty = true;
+  });
 
   const { spin, morphMeshes, morphIndex } = useMemo(() => {
     const spin = gltf.scene.getObjectByName("SpinRoot") ?? gltf.scene;
@@ -326,11 +377,7 @@ function Head({
 
   const cavity = useRef<Cavity | null>(null);
 
-  const glyphResolution = useRef<THREE.Vector2 | null>(null);
-
-  // One texture for the life of the head. Three caches the mouth shader and
-  // will not bind a replacement texture on the next visit.
-  const glyphTextureRef = useRef<THREE.CanvasTexture | null>(null);
+  const glyph = useRef<MouthGlyphUniforms | null>(null);
 
   const restEnvelope = useRef<THREE.Box3 | null>(null);
 
@@ -345,9 +392,17 @@ function Head({
     oy: Number.NaN,
     width: 0,
     height: 0,
-    perfT: 0,
-    perfFrames: 0,
-    perfDone: false,
+  });
+
+  // Idle frame-rate check after the scene is ready. Median frame time per window,
+  // so page-load stalls do not count; two slow windows in a row step down once.
+  const monitor = useRef({
+    on: false,
+    skip: 0,
+    t: 0,
+    samples: [] as number[],
+    good: 0,
+    slow: 0,
   });
 
   useLayoutEffect(() => {
@@ -389,15 +444,41 @@ function Head({
     const chamber = createChamberEnvironment(gl, detail);
     try {
       tuneHeadMaterials(gltf.scene, chamber);
+      // The glyph variant compiles now, not when the mouth first opens.
+      glyph.current = mouthGlyphUniforms(gltf.scene);
     } catch (error) {
       chamber.dispose();
       throw error;
     }
-    control.current.kick = () => invalidate();
-    invalidate();
-    onReady();
+
+    const shared = control.current;
+    const kick = markDirty.current;
+    shared.kick = kick;
+
+    // Compile every program off the scroll path, then reveal the canvas.
+    let cancelled = false;
+
+    gl.compileAsync(scene, camera)
+      .catch(() => undefined)
+      .then(() => {
+        if (cancelled) return;
+        // Measure this layout's black point while the poster is still in front.
+        reportBlack.current();
+        kick();
+        monitor.current = {
+          on: true,
+          skip: PERF.monitorDelay,
+          t: 0,
+          samples: [],
+          good: 0,
+          slow: 0,
+        };
+        onReady();
+      });
+
     return () => {
-      control.current.kick = () => {};
+      cancelled = true;
+      shared.kick = () => {};
       // The GLTF loader can cache this scene; detach the released texture.
       gltf.scene.traverse((object) => {
         const mesh = object as THREE.Mesh;
@@ -415,278 +496,460 @@ function Head({
       });
       chamber.dispose();
     };
-  }, [onReady, invalidate, control, gltf, spin, morphMeshes, gl, detail]);
+  }, [onReady, control, gltf, spin, morphMeshes, gl, detail, scene, camera]);
 
-  // The cavity is a curved shell, so a card behind it only peeks through a gap.
-  // Sampling the glyph canvas in screen space keeps every character sharp and
-  // lets the opening reveal the grid as the camera moves in.
+  // Point the mouth texture at the hidden glyph canvas. Uploads follow each painted tick.
   useEffect(() => {
-    const source = glyphCanvas;
+    const uniforms = glyph.current;
+    if (!glyphCanvas || !uniforms) return;
 
-    if (!source) return;
+    const texture = uniforms.uGlyphMap.value;
+    texture.image = glyphCanvas;
+    texture.needsUpdate = true;
 
-    let texture = glyphTextureRef.current;
+    const shared = control.current;
+    const kick = markDirty.current;
 
-    if (!texture) {
-      texture = new THREE.CanvasTexture(source);
-      // Mixed in after the color transform, so the canvas white stays white.
-      texture.colorSpace = THREE.NoColorSpace;
-      texture.generateMipmaps = false;
-      texture.minFilter = THREE.LinearFilter;
-      texture.magFilter = THREE.LinearFilter;
-      texture.wrapS = THREE.ClampToEdgeWrapping;
-      texture.wrapT = THREE.ClampToEdgeWrapping;
+    shared.syncGlyph = () => {
       texture.needsUpdate = true;
-      glyphTextureRef.current = texture;
-
-      // Drawing-buffer pixels, so one glyph canvas covers the frame exactly once.
-      const resolution = new THREE.Vector2(1, 1);
-      const pixelRatio = gl.getPixelRatio();
-      resolution.set(
-        Math.max(1, size.width * pixelRatio),
-        Math.max(1, size.height * pixelRatio),
-      );
-      glyphResolution.current = resolution;
-
-      const bound = texture;
-
-      gltf.scene.traverse((obj) => {
-        const mesh = obj as THREE.Mesh;
-
-        if (!mesh.isMesh) return;
-
-        const list = Array.isArray(mesh.material)
-          ? mesh.material
-          : [mesh.material];
-
-        for (const entry of list) {
-          const mat = entry as THREE.MeshStandardMaterial;
-
-          if (!mat?.isMeshStandardMaterial || mat.name !== "MouthDark")
-            continue;
-
-          mat.onBeforeCompile = (shader) => {
-            shader.uniforms.uGlyphMap = { value: bound };
-            shader.uniforms.uResolution = { value: resolution };
-
-            shader.fragmentShader = shader.fragmentShader
-              .replace(
-                "#include <common>",
-                "#include <common>\nuniform sampler2D uGlyphMap;\nuniform vec2 uResolution;",
-              )
-              .replace(
-                "#include <colorspace_fragment>",
-                `#include <colorspace_fragment>
-vec2 glyphUv = clamp(gl_FragCoord.xy / uResolution, 0.0, 1.0);
-vec4 glyph = texture2D(uGlyphMap, glyphUv);
-gl_FragColor.rgb = mix(gl_FragColor.rgb, glyph.rgb, glyph.a);`,
-              );
-          };
-
-          mat.customProgramCacheKey = () => "mouth-glyph-v6";
-          mat.needsUpdate = true;
-        }
-      });
-    } else {
-      // The cached shader already samples this texture. Point it at the new canvas.
-      texture.image = source;
-      texture.needsUpdate = true;
-    }
-
-    const live = texture;
-
-    control.current.syncGlyph = () => {
-      live.needsUpdate = true;
-      invalidate();
+      kick();
     };
 
-    invalidate();
+    kick();
 
     return () => {
-      control.current.syncGlyph = () => {};
+      shared.syncGlyph = () => {};
     };
-  }, [glyphCanvas, gl, gltf, size, control, invalidate]);
+  }, [glyphCanvas, control]);
+
+  // A resized drawing buffer is blank until the next frame.
+  useEffect(() => {
+    markDirty.current();
+  }, [size]);
+
+  // One clock for every frame. Scroll marks the frame dirty inside the scroll
+  // event, and this tick renders it in the same animation frame. The idle turn
+  // renders at the tier cap. Nothing runs while the hero is off screen.
+  useEffect(() => {
+    if (!active) return;
+
+    const f = frame.current;
+    f.dirty = true;
+
+    const tick = (time: number) => {
+      const c = control.current;
+      const idle =
+        !c.paused && !c.reducedMotion && c.channels.progress <= 0.0001;
+      const due =
+        idle && time - f.lastIdle >= 1 / PERF.idleFps[c.tier] - 0.004;
+
+      if (!f.dirty && !due) return;
+
+      f.dirty = false;
+      if (due) f.lastIdle = time;
+
+      advance(time, true, get());
+    };
+
+    gsap.ticker.add(tick);
+
+    return () => {
+      gsap.ticker.remove(tick);
+    };
+  }, [active, control, get]);
+
+  // Camera, framing, yaw and mouth from the channels. Shared by the frame loop
+  // and the coverage probe; refreshed after each render so it sees the latest size.
+  // A probe poses the head front-facing without touching the idle turn.
+  const applyScene = useRef<
+    (dt: number, channels?: DiveChannels, probe?: boolean) => boolean
+  >(() => true);
+
+  useLayoutEffect(() => {
+    applyScene.current = (dt, channels, probe = false) => {
+      const c = control.current;
+      const ch = channels ?? c.channels;
+      const s = state.current;
+
+      const resting = c.reducedMotion || ch.progress <= 0.0001;
+
+      if (probe) {
+        // The yaw below is set to the nearest front angle instead.
+      } else if (!resting) {
+        if (!s.captured) {
+          s.captured = true;
+          s.fromYaw = s.yaw;
+
+          s.toYaw = Math.round(s.yaw / TWO_PI) * TWO_PI;
+        }
+
+        s.yaw = s.fromYaw + (s.toYaw - s.fromYaw) * ch.yaw;
+      } else {
+        s.captured = false;
+
+        if (!c.paused && !c.reducedMotion) {
+          s.yaw = (s.yaw + (dt * TWO_PI) / TURN_SECONDS) % TWO_PI;
+        }
+      }
+
+      const centerT = c.reducedMotion ? 0 : ch.center;
+
+      const framing = c.framing;
+      const width = size.width;
+      const height = size.height;
+
+      const restFov = getRestFov(
+        framing.fovRest || STAGE_FOV,
+        width,
+        height,
+        framing.offsetX,
+        framing.offsetY,
+        restEnvelope.current,
+      );
+
+      // Mobile pullback blends into the original centered framing.
+      const fov = THREE.MathUtils.lerp(
+        restFov,
+        framing.fovCenter || STAGE_FOV,
+        centerT,
+      );
+
+      const ox = framing.offsetX * (1 - centerT);
+
+      const oy = framing.offsetY * (1 - centerT);
+
+      if (
+        width > 0 &&
+        height > 0 &&
+        (fov !== s.fov ||
+          ox !== s.ox ||
+          oy !== s.oy ||
+          width !== s.width ||
+          height !== s.height)
+      ) {
+        camera.fov = fov;
+        camera.aspect = width / Math.max(height, 1);
+
+        if (Math.abs(ox) < 0.5 && Math.abs(oy) < 0.5) {
+          if (camera.view?.enabled) {
+            camera.clearViewOffset();
+          }
+        } else {
+          camera.setViewOffset(width, height, -ox, -oy, width, height);
+        }
+
+        camera.updateProjectionMatrix();
+
+        s.fov = fov;
+        s.ox = ox;
+        s.oy = oy;
+        s.width = width;
+        s.height = height;
+      }
+
+      if (tilt.current) {
+        tilt.current.rotation.x = THREE.MathUtils.degToRad(c.tiltX);
+
+        tilt.current.rotation.y = THREE.MathUtils.degToRad(c.tiltY);
+      }
+
+      const mouth = resting ? 0 : ch.mouth;
+
+      const camT = resting ? 0 : ch.camera;
+
+      if (camT > 0) {
+        const target = cavity.current;
+
+        const approach = target?.approach ?? FALLBACK_APPROACH;
+
+        const end = target?.end ?? FALLBACK_END;
+
+        const look = target?.look ?? FALLBACK_LOOK;
+
+        if (camT <= CAMERA_LIPS_T) {
+          _pos.lerpVectors(CAM_FROM, approach, camT / CAMERA_LIPS_T);
+        } else {
+          _pos.lerpVectors(
+            approach,
+            end,
+            (camT - CAMERA_LIPS_T) / (1 - CAMERA_LIPS_T),
+          );
+        }
+
+        camera.position.copy(_pos);
+
+        const aimT = easeInOutCubic(Math.min(1, camT / CAMERA_LIPS_T));
+
+        camera.lookAt(_aim.lerpVectors(ORIGIN, look, aimT));
+
+        const near = THREE.MathUtils.lerp(CAM_NEAR, CAM_NEAR_DIVE, camT);
+
+        if (Math.abs(camera.near - near) > 1e-4) {
+          camera.near = near;
+          camera.updateProjectionMatrix();
+        }
+
+        s.cameraMoved = true;
+      } else if (s.cameraMoved) {
+        camera.position.copy(CAM_FROM);
+        camera.lookAt(0, 0, 0);
+
+        if (camera.near !== CAM_NEAR) {
+          camera.near = CAM_NEAR;
+          camera.updateProjectionMatrix();
+        }
+
+        s.cameraMoved = false;
+      }
+
+      spin.rotation.y = probe ? Math.round(s.yaw / TWO_PI) * TWO_PI : s.yaw;
+
+      for (const mesh of morphMeshes) {
+        if (mesh.morphTargetInfluences) {
+          mesh.morphTargetInfluences[morphIndex] = mouth;
+        }
+      }
+
+      const uniforms = glyph.current;
+
+      if (uniforms && !probe) {
+        // Drawing-buffer pixels, so one glyph canvas covers the frame exactly once.
+        const pixelRatio = gl.getPixelRatio();
+        uniforms.uResolution.value.set(
+          Math.max(1, width * pixelRatio),
+          Math.max(1, height * pixelRatio),
+        );
+        // Pause only stops the mutation loop; the field stays, frozen.
+        uniforms.uGlyphMix.value = c.reducedMotion ? 0 : ch.glyph;
+      }
+
+      return resting;
+    };
+  });
+
+  // Coverage session: the head alone, mouth white and silver black, rendered
+  // into 64 px and read back. One setup for a whole search, then restored.
+  const withCoverage = useRef<
+    <T>(run: (probe: (channels?: DiveChannels) => number) => T) => T | null
+  >(() => null);
+
+  useLayoutEffect(() => {
+    withCoverage.current = (run) => {
+      const root = tilt.current;
+      if (!root) return null;
+
+      const width = 64;
+      const height = Math.max(
+        8,
+        Math.round((64 * size.height) / Math.max(size.width, 1)),
+      );
+      const targetRT = new THREE.WebGLRenderTarget(width, height);
+      // Double-sided like the GLB materials, so the probe sees the same surfaces.
+      const white = new THREE.MeshBasicMaterial({
+        color: 0xffffff,
+        side: THREE.DoubleSide,
+      });
+      const black = new THREE.MeshBasicMaterial({
+        color: 0x000000,
+        side: THREE.DoubleSide,
+      });
+      const swapped: [THREE.Mesh, THREE.Material | THREE.Material[]][] = [];
+
+      root.traverse((object) => {
+        const mesh = object as THREE.Mesh;
+        if (!mesh.isMesh) return;
+
+        const materials = Array.isArray(mesh.material)
+          ? mesh.material
+          : [mesh.material];
+        const dark = materials.some((entry) => entry?.name === "MouthDark");
+
+        swapped.push([mesh, mesh.material]);
+        mesh.material = dark ? white : black;
+      });
+
+      const previousTarget = gl.getRenderTarget();
+      const previousColor = gl.getClearColor(new THREE.Color());
+      const previousAlpha = gl.getClearAlpha();
+      const pixels = new Uint8Array(width * height * 4);
+
+      const probe = (channels?: DiveChannels) => {
+        applyScene.current(0, channels, Boolean(channels));
+
+        gl.setRenderTarget(targetRT);
+        gl.setClearColor(0x000000, 0);
+        gl.clear();
+        gl.render(root, camera);
+        gl.readRenderTargetPixels(targetRT, 0, 0, width, height, pixels);
+
+        let covered = 0;
+        for (let i = 0; i < pixels.length; i += 4) {
+          if (pixels[i] > 200 && pixels[i + 3] > 200) covered += 1;
+        }
+
+        return covered / (width * height);
+      };
+
+      try {
+        return run(probe);
+      } finally {
+        gl.setRenderTarget(previousTarget);
+        gl.setClearColor(previousColor, previousAlpha);
+        swapped.forEach(([mesh, material]) => {
+          mesh.material = material;
+        });
+        targetRT.dispose();
+        white.dispose();
+        black.dispose();
+
+        // Back to the live pose before the next visible frame.
+        applyScene.current(0);
+        markDirty.current();
+      }
+    };
+  });
+
+  // First fully covered frame for this layout: bisection over the camera path,
+  // with the mouth open and the head centered and facing front, as in the dive.
+  const calibrate = useRef(() =>
+    withCoverage.current((probe) => {
+      const at = (vh: number) =>
+        probe({
+          progress: 0.5,
+          vh,
+          yaw: 1,
+          center: 1,
+          mouth: 1,
+          camera: cameraAt(vh),
+          atmosphere: 0,
+          glyph: 0,
+        });
+
+      const deepest =
+        STAGES.camera.start +
+        (STAGES.camera.lips - STAGES.camera.start) / CAMERA_LIPS_T;
+
+      let lo = STAGES.camera.lips - 0.35;
+      let hi = Math.min(OLD_PIN, deepest);
+
+      // Never fully covered: the plate veil finishes the frame before the lamp.
+      if (at(hi) < BLACK_COVERAGE) return hi;
+
+      for (let i = 0; i < 14; i++) {
+        const mid = (lo + hi) / 2;
+        if (at(mid) >= BLACK_COVERAGE) hi = mid;
+        else lo = mid;
+      }
+
+      return hi;
+    }),
+  );
+
+  useEffect(() => {
+    const c = control.current;
+
+    c.measureCoverage = () => withCoverage.current((probe) => probe()) ?? 0;
+    c.calibrateBlack = () => calibrate.current();
+
+    return () => {
+      delete c.measureCoverage;
+      delete c.calibrateBlack;
+    };
+  }, [control]);
+
+  // The framing changes with the layout, so the black point does too.
+  const lastBlack = useRef<number | null>(null);
+
+  const reportBlack = useRef(() => {
+    const black = calibrate.current();
+    if (black == null) return;
+
+    const next = black + BLACK_MARGIN;
+    if (lastBlack.current != null && Math.abs(lastBlack.current - next) < 0.002) {
+      return;
+    }
+
+    lastBlack.current = next;
+    onCalibrateRef.current(next);
+  });
+
+  const onCalibrateRef = useRef(onCalibrate);
+  useLayoutEffect(() => {
+    onCalibrateRef.current = onCalibrate;
+  });
+
+  useEffect(() => {
+    if (lastBlack.current == null) return;
+
+    // Debounced: a drag-resize or a rotation settles before measuring again.
+    // The second pass confirms it once the hero's framing has caught up too.
+    const first = window.setTimeout(() => reportBlack.current(), 300);
+    const confirm = window.setTimeout(() => reportBlack.current(), 900);
+
+    return () => {
+      window.clearTimeout(first);
+      window.clearTimeout(confirm);
+    };
+  }, [size]);
 
   useFrame((_, rawDelta) => {
     const c = control.current;
-    const s = state.current;
-
     const dt = Math.min(rawDelta, 0.1);
 
-    const resolution = glyphResolution.current;
+    const resting = applyScene.current(dt);
 
-    if (resolution) {
-      const pixelRatio = gl.getPixelRatio();
-      const width = Math.max(1, size.width * pixelRatio);
-      const height = Math.max(1, size.height * pixelRatio);
-
-      if (resolution.x !== width || resolution.y !== height) {
-        resolution.set(width, height);
-      }
-    }
-
-    const dive = c.reducedMotion ? 0 : THREE.MathUtils.clamp(c.dive, 0, 1);
-
-    const resting = dive <= 0.0001;
-
-    let moving = false;
-
-    if (!resting) {
-      if (!s.captured) {
-        s.captured = true;
-        s.fromYaw = s.yaw;
-
-        s.toYaw = Math.round(s.yaw / TWO_PI) * TWO_PI;
-      }
-
-      const yawT = easeInOutCubic(Math.min(1, dive / DIVE.yawEnd));
-
-      s.yaw = s.fromYaw + (s.toYaw - s.fromYaw) * yawT;
-    } else {
-      s.captured = false;
-
-      if (!c.paused && !c.reducedMotion) {
-        s.yaw = (s.yaw + (dt * TWO_PI) / TURN_SECONDS) % TWO_PI;
-
-        moving = true;
-      }
-    }
-
-    const centerSpan = DIVE.center[1] - DIVE.center[0];
-
-    const centerT = smoothstep(
-      centerSpan <= 0 ? 1 : (dive - DIVE.center[0]) / centerSpan,
-    );
-
-    const framing = c.framing;
-    const width = size.width;
-    const height = size.height;
-
-    const restFov = getRestFov(
-      framing.fovRest || STAGE_FOV,
-      width,
-      height,
-      framing.offsetX,
-      framing.offsetY,
-      restEnvelope.current,
-    );
-
-    // Mobile pullback blends into the original centered framing.
-    const fov = THREE.MathUtils.lerp(
-      restFov,
-      framing.fovCenter || STAGE_FOV,
-      centerT,
-    );
-
-    const ox = framing.offsetX * (1 - centerT);
-
-    const oy = framing.offsetY * (1 - centerT);
+    // Idle frames must keep up with the cap. Steps down DPR, then the tier, then the poster.
+    const m = monitor.current;
 
     if (
-      width > 0 &&
-      height > 0 &&
-      (fov !== s.fov ||
-        ox !== s.ox ||
-        oy !== s.oy ||
-        width !== s.width ||
-        height !== s.height)
+      m.on &&
+      resting &&
+      !c.paused &&
+      !c.reducedMotion &&
+      document.visibilityState === "visible"
     ) {
-      camera.fov = fov;
-      camera.aspect = width / Math.max(height, 1);
+      if (m.skip > 0) {
+        // Clamped: the first manual frame can report the whole load as one delta.
+        m.skip -= Math.min(rawDelta, 0.1);
+        return;
+      }
 
-      if (Math.abs(ox) < 0.5 && Math.abs(oy) < 0.5) {
-        if (camera.view?.enabled) {
-          camera.clearViewOffset();
+      m.t += rawDelta;
+      if (m.samples.length < 400) m.samples.push(rawDelta);
+
+      if (m.t >= PERF.monitorWindow) {
+        const sorted = m.samples.sort((a, b) => a - b);
+        const median = sorted[Math.floor(sorted.length / 2)] || 1;
+        const fps = 1 / median;
+        const cap = PERF.idleFps[c.tier];
+
+        m.t = 0;
+        m.samples = [];
+
+        if (fps >= cap * PERF.downgradeBelow) {
+          m.slow = 0;
+          m.good += 1;
+          if (m.good >= PERF.monitorWindows) m.on = false;
+          return;
         }
-      } else {
-        camera.setViewOffset(width, height, -ox, -oy, width, height);
-      }
 
-      camera.updateProjectionMatrix();
+        m.good = 0;
+        m.slow += 1;
+        if (m.slow < PERF.slowWindows) return;
 
-      s.fov = fov;
-      s.ox = ox;
-      s.oy = oy;
-      s.width = width;
-      s.height = height;
-    }
+        m.slow = 0;
+        m.skip = 0.5;
 
-    if (tilt.current) {
-      tilt.current.rotation.x = THREE.MathUtils.degToRad(c.tiltX);
-
-      tilt.current.rotation.y = THREE.MathUtils.degToRad(c.tiltY);
-    }
-
-    const mouth = resting ? 0 : seg(dive, DIVE.mouth[0], DIVE.mouth[1]);
-
-    const camT = resting ? 0 : span(dive, DIVE.camera[0], DIVE.camera[1]);
-
-    if (camT > 0) {
-      const target = cavity.current;
-
-      const approach = target?.approach ?? FALLBACK_APPROACH;
-
-      const end = target?.end ?? FALLBACK_END;
-
-      const look = target?.look ?? FALLBACK_LOOK;
-
-      const approachEnd = 1 - PUSH;
-
-      if (camT <= approachEnd) {
-        _pos.lerpVectors(CAM_FROM, approach, camT / approachEnd);
-      } else {
-        _pos.lerpVectors(approach, end, (camT - approachEnd) / PUSH);
-      }
-
-      camera.position.copy(_pos);
-
-      const aimT = easeInOutCubic(Math.min(1, camT / approachEnd));
-
-      camera.lookAt(_aim.lerpVectors(ORIGIN, look, aimT));
-
-      const near = THREE.MathUtils.lerp(CAM_NEAR, CAM_NEAR_DIVE, camT);
-
-      if (Math.abs(camera.near - near) > 1e-4) {
-        camera.near = near;
-        camera.updateProjectionMatrix();
-      }
-
-      s.cameraMoved = true;
-    } else if (s.cameraMoved) {
-      camera.position.copy(CAM_FROM);
-      camera.lookAt(0, 0, 0);
-
-      if (camera.near !== CAM_NEAR) {
-        camera.near = CAM_NEAR;
-        camera.updateProjectionMatrix();
-      }
-
-      s.cameraMoved = false;
-    }
-
-    spin.rotation.y = s.yaw;
-
-    for (const mesh of morphMeshes) {
-      if (mesh.morphTargetInfluences) {
-        mesh.morphTargetInfluences[morphIndex] = mouth;
-      }
-    }
-
-    if (!s.perfDone && resting && !c.paused && !c.reducedMotion) {
-      s.perfT += rawDelta;
-      s.perfFrames += 1;
-
-      if (s.perfT > 4) {
-        s.perfDone = true;
-
-        if (s.perfFrames / s.perfT < 20) {
+        if (gl.getPixelRatio() > 1) {
+          setDpr(1);
+        } else if (c.tier !== "low") {
+          c.tier = "low";
+          onTierChange("low");
+        } else if (fps < PERF.posterBelowFps) {
+          m.on = false;
           onPoorPerformance();
         }
       }
-    }
-
-    if (moving) {
-      invalidate();
     }
   });
 
@@ -698,9 +961,7 @@ gl_FragColor.rgb = mix(gl_FragColor.rgb, glyph.rgb, glyph.a);`,
 }
 
 export default function SilverHeadCanvas(props: Props & { active: boolean }) {
-  const { active, detail, envUrl, ...rest } = props;
-  // Retained for existing callers; reflections are generated procedurally.
-  void envUrl;
+  const { active, detail, ...rest } = props;
 
   const dpr = useMemo<[number, number]>(() => {
     if (detail === "lean") {
@@ -708,15 +969,16 @@ export default function SilverHeadCanvas(props: Props & { active: boolean }) {
     }
 
     if (typeof window === "undefined") {
-      return [1, 1.5];
+      return [1, PERF.desktopDpr];
     }
 
-    return [1, Math.min(1.5, window.devicePixelRatio || 1)];
+    return [1, Math.min(PERF.desktopDpr, window.devicePixelRatio || 1)];
   }, [detail]);
 
   return (
     <Canvas
-      frameloop={active ? "demand" : "never"}
+      // Frames are driven from the GSAP ticker with `advance`, see Head.
+      frameloop="never"
       dpr={dpr}
       camera={{
         fov: 24,
@@ -745,7 +1007,7 @@ export default function SilverHeadCanvas(props: Props & { active: boolean }) {
       aria-hidden
     >
       <Suspense fallback={null}>
-        <Head {...rest} detail={detail} />
+        <Head {...rest} detail={detail} active={active} />
         <SceneAtmosphere control={rest.control} detail={detail} />
       </Suspense>
     </Canvas>

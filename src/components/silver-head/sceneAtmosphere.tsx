@@ -1,14 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useRef, type MutableRefObject } from "react";
+import { useEffect, useMemo, useRef, type RefObject } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 
 import type { HeadControl } from "./SilverHeadCanvas";
 import type { SceneDetail } from "./chamberEnvironment";
-
-const PRESENCE_START = 0.28;
-const PRESENCE_END = 0.62;
 
 const SWEEP_INTRO = 1.15;
 const SWEEP_DURATION = 1.4;
@@ -63,13 +60,6 @@ const HAZE: readonly LayerSpec[] = [
 function smoothstep(value: number) {
   const t = THREE.MathUtils.clamp(value, 0, 1);
   return t * t * (3 - 2 * t);
-}
-
-/** Visible at rest and cleared before the camera enters the mouth. */
-export function atmospherePresence(dive: number) {
-  const progress = (dive - PRESENCE_START) / (PRESENCE_END - PRESENCE_START);
-
-  return 1 - smoothstep(progress);
 }
 
 function sweepEnvelope(time: number) {
@@ -141,7 +131,7 @@ function softTexture(width: number, height: number, column: boolean) {
 }
 
 type Props = {
-  control: MutableRefObject<HeadControl>;
+  control: RefObject<HeadControl>;
   detail: SceneDetail;
 };
 
@@ -183,17 +173,40 @@ export default function SceneAtmosphere({ control, detail }: Props) {
       clock.current += Math.min(rawDelta, 0.1);
     }
 
-    const presence = state.reducedMotion ? 0 : atmospherePresence(state.dive);
+    // Already eased by the dive timeline: visible at rest, gone before the lips.
+    const presence = state.reducedMotion ? 0 : state.channels.atmosphere;
 
-    const show = presence > 0.004;
+    // The low tier keeps the head and the light sweep, and drops the haze cards.
+    const show = presence > 0.004 && state.tier !== "low";
 
     if (group.current) {
       group.current.visible = show;
     }
 
-    if (!show) return;
-
+    const light = sweep.current;
+    const target = sweepTarget.current;
     const time = clock.current;
+
+    if (light && target) {
+      if (light.target !== target) {
+        light.target = target;
+        light.layers.set(0);
+      }
+
+      const pass = sweepEnvelope(time);
+      const lit = pass.strength * presence;
+
+      // The light stays in the scene at zero intensity. Toggling `visible` would
+      // change the light count and switch the head to another shader program.
+      light.intensity = lit > 0.02 ? lit * SWEEP_STRENGTH : 0;
+
+      const x = THREE.MathUtils.lerp(-0.3, 0.3, pass.across);
+
+      light.position.set(x, 0.15, 0.5);
+      target.position.set(x * 0.55, -0.015, 0.03);
+    }
+
+    if (!show) return;
 
     layers.forEach((layer, index) => {
       const mesh = haze.current[index];
@@ -228,98 +241,26 @@ export default function SceneAtmosphere({ control, detail }: Props) {
 
       material.opacity = 0.038 * pulse * presence;
     });
-
-    const light = sweep.current;
-    const target = sweepTarget.current;
-
-    if (!light || !target) return;
-
-    if (light.target !== target) {
-      light.target = target;
-
-      // MouthDark stays on layer 1.
-      light.layers.set(0);
-    }
-
-    const pass = sweepEnvelope(time);
-    const lit = pass.strength * presence;
-
-    light.intensity = lit * SWEEP_STRENGTH;
-    light.visible = lit > 0.02;
-
-    const x = THREE.MathUtils.lerp(-0.3, 0.3, pass.across);
-
-    light.position.set(x, 0.15, 0.5);
-    target.position.set(x * 0.55, -0.015, 0.03);
   });
 
   return (
-    <group ref={group}>
-      {layers.map((layer, index) => (
-        <mesh
-          key={layer.phase}
-          ref={(node) => {
-            haze.current[index] = node;
-          }}
-          position={layer.position}
-          scale={layer.scale}
-          renderOrder={1}
-        >
-          <planeGeometry args={[1, 1]} />
-
-          <meshBasicMaterial
-            map={maps.radial}
-            color={layer.color}
-            opacity={0}
-            transparent
-            depthWrite={false}
-            toneMapped
-          />
-        </mesh>
-      ))}
-
-      {full && (
-        <mesh
-          ref={shaft}
-          position={[0.22, 0.12, -0.98]}
-          scale={[0.36, 1.9, 1]}
-          renderOrder={1}
-        >
-          <planeGeometry args={[1, 1]} />
-
-          <meshBasicMaterial
-            map={maps.radial}
-            color="#7ccca3"
-            opacity={0}
-            transparent
-            depthWrite={false}
-            blending={THREE.AdditiveBlending}
-            toneMapped
-          />
-        </mesh>
-      )}
-
-      {full &&
-        (
-          [
-            [-0.58, 0.05, -1.4],
-            [0.66, -0.02, -1.5],
-          ] as [number, number, number][]
-        ).map((position, index) => (
+    <>
+      <group ref={group}>
+        {layers.map((layer, index) => (
           <mesh
-            key={position.join(":")}
+            key={layer.phase}
             ref={(node) => {
-              traces.current[index] = node;
+              haze.current[index] = node;
             }}
-            position={position}
-            scale={[0.022, 1.5, 1]}
+            position={layer.position}
+            scale={layer.scale}
             renderOrder={1}
           >
             <planeGeometry args={[1, 1]} />
 
             <meshBasicMaterial
-              map={maps.column}
-              color="#6fc99c"
+              map={maps.radial}
+              color={layer.color}
               opacity={0}
               transparent
               depthWrite={false}
@@ -328,6 +269,58 @@ export default function SceneAtmosphere({ control, detail }: Props) {
           </mesh>
         ))}
 
+        {full && (
+          <mesh
+            ref={shaft}
+            position={[0.22, 0.12, -0.98]}
+            scale={[0.36, 1.9, 1]}
+            renderOrder={1}
+          >
+            <planeGeometry args={[1, 1]} />
+
+            <meshBasicMaterial
+              map={maps.radial}
+              color="#7ccca3"
+              opacity={0}
+              transparent
+              depthWrite={false}
+              blending={THREE.AdditiveBlending}
+              toneMapped
+            />
+          </mesh>
+        )}
+
+        {full &&
+          (
+            [
+              [-0.58, 0.05, -1.4],
+              [0.66, -0.02, -1.5],
+            ] as [number, number, number][]
+          ).map((position, index) => (
+            <mesh
+              key={position.join(":")}
+              ref={(node) => {
+                traces.current[index] = node;
+              }}
+              position={position}
+              scale={[0.022, 1.5, 1]}
+              renderOrder={1}
+            >
+              <planeGeometry args={[1, 1]} />
+
+              <meshBasicMaterial
+                map={maps.column}
+                color="#6fc99c"
+                opacity={0}
+                transparent
+                depthWrite={false}
+                toneMapped
+              />
+            </mesh>
+          ))}
+      </group>
+
+      {/* Outside the haze group, so hiding the haze never removes the light. */}
       <spotLight
         ref={sweep}
         color="#c9e9db"
@@ -340,6 +333,6 @@ export default function SceneAtmosphere({ control, detail }: Props) {
       />
 
       <object3D ref={sweepTarget} position={[0, -0.015, 0.03]} />
-    </group>
+    </>
   );
 }

@@ -1,17 +1,46 @@
 "use client";
 import { cn } from "@/lib/utils";
 import { BentoGrid, BentoGridItem } from "./bento-grid";
-import { motion } from "framer-motion";
-import { useState, useEffect } from "react";
+import { m } from "motion/react";
+import { useEffect, useState, useSyncExternalStore } from "react";
+
+/** Touch capability does not change during a session, so there is nothing to subscribe to. */
+function subscribeTouch() {
+  return () => {};
+}
+
+function readTouchDevice() {
+  return "ontouchstart" in window || navigator.maxTouchPoints > 0;
+}
+
+/** Touch capability. The server snapshot stays false so hydration matches. */
+function useTouchDevice() {
+  return useSyncExternalStore(subscribeTouch, readTouchDevice, () => false);
+}
+
+/**
+ * On touch devices, pulse `isAnimating` because there is no hover to drive it.
+ */
+function useTouchPulse(onMs: number) {
+  const isTouchDevice = useTouchDevice();
+  const [isAnimating, setIsAnimating] = useState(false);
+
+  useEffect(() => {
+    if (!isTouchDevice) return;
+
+    const animationInterval = setInterval(() => {
+      setIsAnimating(true);
+      setTimeout(() => setIsAnimating(false), onMs);
+    }, 2000);
+
+    return () => clearInterval(animationInterval);
+  }, [isTouchDevice, onMs]);
+
+  return { isTouchDevice, isAnimating, setIsAnimating };
+}
 
 export default function BentoGridThirdDemo() {
-  // State to track if the device has touch capability
-  const [isTouchDevice, setIsTouchDevice] = useState(false);
-
-  // Detect touch capability on component mount
-  useEffect(() => {
-    setIsTouchDevice("ontouchstart" in window || navigator.maxTouchPoints > 0);
-  }, []);
+  const isTouchDevice = useTouchDevice();
 
   return (
     <BentoGrid className="max-w-5xl mx-auto md:auto-rows-[25rem] py-10">
@@ -31,30 +60,7 @@ export default function BentoGridThirdDemo() {
 }
 
 const SkeletonOne = () => {
-  // State to track if animation should play
-  const [isAnimating, setIsAnimating] = useState(false);
-  // State to track if device has touch capability
-  const [isTouchDevice, setIsTouchDevice] = useState(false);
-
-  // Detect touch capability and set up animation loop for touch devices
-  useEffect(() => {
-    const touchDevice =
-      "ontouchstart" in window || navigator.maxTouchPoints > 0;
-    setIsTouchDevice(touchDevice);
-    // Set up animation loop for touch devices
-    let animationInterval: NodeJS.Timeout | undefined;
-    if (touchDevice) {
-      animationInterval = setInterval(() => {
-        setIsAnimating(true);
-        setTimeout(() => setIsAnimating(false), 500);
-      }, 2000);
-    }
-
-    // Clean up interval on component unmount
-    return () => {
-      if (animationInterval) clearInterval(animationInterval);
-    };
-  }, []);
+  const { isTouchDevice, isAnimating, setIsAnimating } = useTouchPulse(500);
 
   const variants = {
     initial: {
@@ -91,62 +97,39 @@ const SkeletonOne = () => {
   };
 
   return (
-    <motion.div
+    <m.div
       initial="initial"
       animate={isAnimating ? "animate" : "initial"}
       whileHover="animate"
       onClick={handleInteraction}
       className="flex flex-1 w-full h-full min-h-[6rem] dark:bg-dot-white/[0.2] bg-dot-black/[0.2] flex-col space-y-2 cursor-pointer"
     >
-      <motion.div
+      <m.div
         variants={variants}
         className="flex flex-row rounded-full border border-neutral-100 dark:border-white/[0.2] p-2 items-center space-x-2 bg-white dark:bg-black"
       >
         <div className="h-6 w-6 rounded-full bg-gradient-to-r from-pink-500 to-violet-500 shrink-0" />
         <div className="w-full bg-gray-100 h-4 rounded-full dark:bg-neutral-900" />
-      </motion.div>
-      <motion.div
+      </m.div>
+      <m.div
         variants={variantsSecond}
         className="flex flex-row rounded-full border border-neutral-100 dark:border-white/[0.2] p-2 items-center space-x-2 w-3/4 ml-auto bg-white dark:bg-black"
       >
         <div className="w-full bg-gray-100 h-4 rounded-full dark:bg-neutral-900" />
         <div className="h-6 w-6 rounded-full bg-gradient-to-r from-pink-500 to-violet-500 shrink-0" />
-      </motion.div>
-      <motion.div
+      </m.div>
+      <m.div
         variants={variants}
         className="flex flex-row rounded-full border border-neutral-100 dark:border-white/[0.2] p-2 items-center space-x-2 bg-white dark:bg-black"
       >
         <div className="h-6 w-6 rounded-full bg-gradient-to-r from-pink-500 to-violet-500 shrink-0" />
         <div className="w-full bg-gray-100 h-4 rounded-full dark:bg-neutral-900" />
-      </motion.div>
-    </motion.div>
+      </m.div>
+    </m.div>
   );
 };
 const SkeletonTwo = () => {
-  // State to track if animation should play
-  const [isAnimating, setIsAnimating] = useState(false);
-  // State to track if device has touch capability
-  const [isTouchDevice, setIsTouchDevice] = useState(false);
-
-  // Detect touch capability and set up animation loop for touch devices
-  useEffect(() => {
-    const touchDevice =
-      "ontouchstart" in window || navigator.maxTouchPoints > 0;
-    setIsTouchDevice(touchDevice);
-    // Set up animation loop for touch devices
-    let animationInterval: NodeJS.Timeout | undefined;
-    if (touchDevice) {
-      animationInterval = setInterval(() => {
-        setIsAnimating(true);
-        setTimeout(() => setIsAnimating(false), 2500);
-      }, 2000);
-    }
-
-    // Clean up interval on component unmount
-    return () => {
-      if (animationInterval) clearInterval(animationInterval);
-    };
-  }, []);
+  const { isTouchDevice, isAnimating, setIsAnimating } = useTouchPulse(2500);
 
   const variants = {
     initial: {
@@ -179,7 +162,7 @@ const SkeletonTwo = () => {
   };
 
   return (
-    <motion.div
+    <m.div
       initial="initial"
       animate={isAnimating ? "hover" : "animate"}
       whileHover="hover"
@@ -187,16 +170,16 @@ const SkeletonTwo = () => {
       className="flex flex-1 w-full h-full min-h-[6rem] dark:bg-dot-white/[0.2] bg-dot-black/[0.2] flex-col space-y-2 cursor-pointer"
     >
       {widths.map((width, i) => (
-        <motion.div
+        <m.div
           key={"skelenton-two" + i}
           variants={variants}
           style={{
             maxWidth: width,
           }}
           className="flex flex-row rounded-full border border-neutral-100 dark:border-white/[0.2] p-2 items-center space-x-2 bg-neutral-100 dark:bg-black w-full h-4"
-        ></motion.div>
+        ></m.div>
       ))}
-    </motion.div>
+    </m.div>
   );
 };
 const SkeletonThree = () => {
@@ -209,7 +192,7 @@ const SkeletonThree = () => {
     },
   };
   return (
-    <motion.div
+    <m.div
       initial="initial"
       animate="animate"
       variants={variants}
@@ -225,8 +208,8 @@ const SkeletonThree = () => {
         backgroundSize: "400% 400%",
       }}
     >
-      <motion.div className="h-full w-full rounded-lg"></motion.div>
-    </motion.div>
+      <m.div className="h-full w-full rounded-lg"></m.div>
+    </m.div>
   );
 };
 const SkeletonFour = () => {
@@ -251,13 +234,13 @@ const SkeletonFour = () => {
     },
   };
   return (
-    <motion.div
+    <m.div
       initial="initial"
       animate="animate"
       whileHover="hover"
       className="flex flex-1 w-full h-full min-h-[6rem] dark:bg-dot-white/[0.2] bg-dot-black/[0.2] flex-row space-x-2"
     >
-      <motion.div
+      <m.div
         variants={first}
         className="h-full w-1/3 rounded-2xl bg-white p-4 dark:bg-black dark:border-white/[0.1] border border-neutral-200 flex flex-col items-center justify-center"
       >
@@ -268,8 +251,8 @@ const SkeletonFour = () => {
         <p className="border border-red-500 bg-red-100 dark:bg-red-900/20 text-red-600 text-xs rounded-full px-2 py-0.5 mt-4">
           Nervos
         </p>
-      </motion.div>
-      <motion.div className="h-full relative z-20 w-1/3 rounded-2xl bg-white p-4 dark:bg-black dark:border-white/[0.1] border border-neutral-200 flex flex-col items-center justify-center">
+      </m.div>
+      <m.div className="h-full relative z-20 w-1/3 rounded-2xl bg-white p-4 dark:bg-black dark:border-white/[0.1] border border-neutral-200 flex flex-col items-center justify-center">
         <div className="rounded-full h-10 w-10 bg-gradient-to-r from-green-400 to-teal-500" />
         <p className="sm:text-sm text-xs text-center font-semibold text-neutral-500 mt-4">
           Chiar am sa mai comand..
@@ -277,8 +260,8 @@ const SkeletonFour = () => {
         <p className="border border-green-500 bg-green-100 dark:bg-green-900/20 text-green-600 text-xs rounded-full px-2 py-0.5 mt-4">
           Multumit
         </p>
-      </motion.div>
-      <motion.div
+      </m.div>
+      <m.div
         variants={second}
         className="h-full w-1/3 rounded-2xl bg-white p-4 dark:bg-black dark:border-white/[0.1] border border-neutral-200 flex flex-col items-center justify-center"
       >
@@ -289,35 +272,12 @@ const SkeletonFour = () => {
         <p className="border border-orange-500 bg-orange-100 dark:bg-orange-900/20 text-orange-600 text-xs rounded-full px-2 py-0.5 mt-4">
           Nehotarat
         </p>
-      </motion.div>
-    </motion.div>
+      </m.div>
+    </m.div>
   );
 };
 const SkeletonFive = () => {
-  // State to track if device has touch capability
-  const [isTouchDevice, setIsTouchDevice] = useState(false);
-  // State to track if animation should play
-  const [isAnimating, setIsAnimating] = useState(false);
-
-  // Detect touch capability and set up animation loop for touch devices
-  useEffect(() => {
-    const touchDevice =
-      "ontouchstart" in window || navigator.maxTouchPoints > 0;
-    setIsTouchDevice(touchDevice);
-    // Set up animation loop for touch devices
-    let animationInterval: NodeJS.Timeout | undefined;
-    if (touchDevice) {
-      animationInterval = setInterval(() => {
-        setIsAnimating(true);
-        setTimeout(() => setIsAnimating(false), 500);
-      }, 2000);
-    }
-
-    // Clean up interval on component unmount
-    return () => {
-      if (animationInterval !== undefined) clearInterval(animationInterval);
-    };
-  }, []);
+  const { isTouchDevice, isAnimating, setIsAnimating } = useTouchPulse(500);
 
   const variants = {
     initial: {
@@ -354,14 +314,14 @@ const SkeletonFive = () => {
   };
 
   return (
-    <motion.div
+    <m.div
       initial="initial"
       animate={isAnimating ? "animate" : "initial"}
       whileHover="animate"
       onClick={handleInteraction}
       className="flex flex-1 w-full h-full min-h-[6rem] dark:bg-dot-white/[0.2] bg-dot-black/[0.2] flex-col space-y-2"
     >
-      <motion.div
+      <m.div
         variants={variants}
         className="flex flex-row rounded-2xl border border-neutral-100 dark:border-white/[0.2] p-2  items-start space-x-2 bg-white dark:bg-black"
       >
@@ -370,8 +330,8 @@ const SkeletonFive = () => {
           Postez zilnic pe Instagram si TikTok, dar nu am rezultate. Ce fac
           gresit?
         </p>
-      </motion.div>
-      <motion.div
+      </m.div>
+      <m.div
         variants={variantsSecond}
         className="flex flex-row rounded-full border-2 border-neutral-100 dark:border-white/[0.2] p-4 items-center justify-end space-x-3 w-3/4 ml-auto bg-white dark:bg-black"
       >
@@ -386,8 +346,8 @@ const SkeletonFive = () => {
               "linear-gradient(to left, #d84040, #b2393a, #8e3134, #6a2a2c, #482223, #391e1f, #2b1a1a, #1d1616, #1d1616, #1d1616, #1d1616, #1d1616)",
           }}
         />
-      </motion.div>
-    </motion.div>
+      </m.div>
+    </m.div>
   );
 };
 const items = [

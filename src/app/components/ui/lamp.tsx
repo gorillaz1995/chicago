@@ -1,8 +1,11 @@
 "use client";
 import React from "react";
-import { m, useReducedMotion } from "framer-motion";
+import { m, useReducedMotion } from "motion/react";
 import { cn } from "@/lib/utils";
-import { LAMP_NEXT_SECTION_ID } from "@/components/silver-head/lampSection";
+import {
+  LAMP_HEADING_ID,
+  LAMP_NEXT_SECTION_ID,
+} from "@/components/silver-head/lampSection";
 
 /** Same ease and timing the beams used when they were tied to whileInView. */
 const EXPAND = {
@@ -40,6 +43,7 @@ export function LampDemo({ play = false }: LampMotion) {
     <LampContainer play={play}>
       {/* Headline rises with the beams, using the same delay and ease. */}
       <m.div
+        id={LAMP_HEADING_ID}
         initial={false}
         animate={open ? { opacity: 1, y: 0 } : { opacity: 0.5, y: 100 }}
         transition={transition}
@@ -175,7 +179,7 @@ export const LampContainer = ({
         onClick={scrollToContent}
         className="absolute top-[85%] left-1/2 transform -translate-x-1/2 -translate-y-1/2 inline-flex h-12 overflow-hidden rounded-full p-[1px] focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 focus:ring-offset-slate-50"
       >
-        <span className="absolute inset-[-1000%] animate-[spin_2s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,#333333_0%,#979797_50%,#f7f7f7_75%,#333333_100%)]" />
+        <span className="lamp-spin absolute inset-[-1000%] animate-[spin_2s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,#333333_0%,#979797_50%,#f7f7f7_75%,#333333_100%)]" />
         <span className="inline-flex h-full w-full cursor-pointer items-center justify-center rounded-full px-3 py-1 text-sm font-medium font-geist text-black backdrop-blur-3xl">
           Alege viitorul
         </span>

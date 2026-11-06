@@ -120,13 +120,12 @@
   }
 }
 
-@theme inline {
-  @keyframes grid {
+/* Plain keyframes: Tailwind 3 does not understand the v4 @theme block this used to live in. */
+@keyframes grid {
   0% {
     transform: translateY(-50%);
-    }
+  }
   100% {
     transform: translateY(0);
-    }
   }
 }

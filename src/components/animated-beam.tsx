@@ -2,8 +2,8 @@
 
 import type React from "react";
 
-import { motion } from "motion/react";
-import { type RefObject, useEffect, useId, useState } from "react";
+import { m, useInView } from "motion/react";
+import { type RefObject, useEffect, useId, useRef, useState } from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -34,7 +34,7 @@ export const AnimatedBeam: React.FC<AnimatedBeamProps> = ({
   toRef,
   curvature = 0,
   reverse = false, // Include the reverse prop
-  duration = Math.random() * 3 + 4,
+  duration: durationProp,
   delay = 0,
   pathColor = "black",
   pathWidth = 2,
@@ -47,8 +47,14 @@ export const AnimatedBeam: React.FC<AnimatedBeamProps> = ({
   endYOffset = 0,
 }) => {
   const id = useId();
+  // One random duration per mount when the caller does not pass one.
+  const [randomDuration] = useState(() => Math.random() * 3 + 4);
+  const duration = durationProp ?? randomDuration;
   const [pathD, setPathD] = useState("");
   const [svgDimensions, setSvgDimensions] = useState({ width: 0, height: 0 });
+  // The loop only runs near the viewport; off screen it would still tick every frame.
+  const svgRef = useRef<SVGSVGElement>(null);
+  const inView = useInView(svgRef, { margin: "200px" });
 
   // Calculate the gradient coordinates based on the reverse prop
   const gradientCoordinates = reverse
@@ -123,6 +129,7 @@ export const AnimatedBeam: React.FC<AnimatedBeamProps> = ({
 
   return (
     <svg
+      ref={svgRef}
       fill="none"
       width={svgDimensions.width}
       height={svgDimensions.height}
@@ -148,7 +155,7 @@ export const AnimatedBeam: React.FC<AnimatedBeamProps> = ({
         strokeLinecap="round"
       />
       <defs>
-        <motion.linearGradient
+        <m.linearGradient
           className="transform-gpu"
           id={id}
           gradientUnits={"userSpaceOnUse"}
@@ -158,19 +165,27 @@ export const AnimatedBeam: React.FC<AnimatedBeamProps> = ({
             y1: "0%",
             y2: "0%",
           }}
-          animate={{
-            x1: gradientCoordinates.x1,
-            x2: gradientCoordinates.x2,
-            y1: gradientCoordinates.y1,
-            y2: gradientCoordinates.y2,
-          }}
-          transition={{
-            delay,
-            duration,
-            ease: [0.16, 1, 0.3, 1], // https://easings.net/#easeOutExpo
-            repeat: Number.POSITIVE_INFINITY,
-            repeatDelay: 0,
-          }}
+          animate={
+            inView
+              ? {
+                  x1: gradientCoordinates.x1,
+                  x2: gradientCoordinates.x2,
+                  y1: gradientCoordinates.y1,
+                  y2: gradientCoordinates.y2,
+                }
+              : { x1: "0%", x2: "0%", y1: "0%", y2: "0%" }
+          }
+          transition={
+            inView
+              ? {
+                  delay,
+                  duration,
+                  ease: [0.16, 1, 0.3, 1], // https://easings.net/#easeOutExpo
+                  repeat: Number.POSITIVE_INFINITY,
+                  repeatDelay: 0,
+                }
+              : { duration: 0 }
+          }
         >
           <stop stopColor={gradientStartColor} stopOpacity="0"></stop>
           <stop stopColor={gradientStartColor}></stop>
@@ -180,7 +195,7 @@ export const AnimatedBeam: React.FC<AnimatedBeamProps> = ({
             stopColor={gradientStopColor}
             stopOpacity="0"
           ></stop>
-        </motion.linearGradient>
+        </m.linearGradient>
       </defs>
     </svg>
   );

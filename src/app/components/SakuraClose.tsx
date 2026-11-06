@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { m } from "motion/react";
 import { useId } from "react";
 
 /**
@@ -43,7 +43,7 @@ export default function SakuraClose() {
         <p className="mt-6 font-geist text-sm font-semibold text-[#111111] sm:text-base">
           Fara termeni tehnici, doar rezultate.
         </p>
-        <motion.p
+        <m.p
           className="mt-3 font-geist text-sm font-thin text-[#6e6e6e] sm:text-base"
           initial="initial"
           whileInView="animate"
@@ -52,15 +52,15 @@ export default function SakuraClose() {
           {"Transparenta totala, tu detii controlul asupra proiectului."
             .split("")
             .map((letter, index) => (
-              <motion.span
+              <m.span
                 key={`${componentId}-letter-${index}`}
                 custom={index}
                 variants={letterVariants}
               >
                 {letter}
-              </motion.span>
+              </m.span>
             ))}
-        </motion.p>
+        </m.p>
       </div>
     </section>
   );

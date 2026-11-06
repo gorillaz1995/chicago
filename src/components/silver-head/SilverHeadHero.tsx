@@ -8,38 +8,35 @@ import {
   useLayoutEffect,
   useRef,
   useState,
+  useSyncExternalStore,
   type PointerEvent as ReactPointerEvent,
   type ReactNode,
 } from "react";
-import {
-  animate,
-  LazyMotion,
-  domAnimation,
-  m,
-  useMotionValue,
-  useScroll,
-  useSpring,
-  useTransform,
-  type AnimationPlaybackControls,
-} from "framer-motion";
+import { m } from "motion/react";
 import type { HeadControl } from "./SilverHeadCanvas";
 import type { SceneDetail } from "./chamberEnvironment";
-import { heroChromeOpacity } from "./chrome";
-import {
-  DIVE,
-  EXPLORE_SCROLL_EASE,
-  EXPLORE_SCROLL_SCALE,
-  nativeSmoothSeconds,
-  STAGE_FOV,
-  TRACK_IN_VIEWPORTS,
-} from "./dive";
-import { setHandoffTarget } from "./handoff";
-import { latchOnLamp, noteLampVisit, releaseLampLatch, resetLampVisit } from "./lampSnap";
+import { PERF, STAGE_FOV, trackCss, type PerfTier } from "./diveStages";
+import { gsap, useGSAP } from "./gsapClient";
 import { LAMP_PLATE } from "./lampSection";
-import OrbitalRibbons from "./OrbitalRibbons";
-import { GlyphMatrix } from "@/components/ui/glyph-matrix";
+import OrbitalRibbons, { type RibbonsHandle } from "./OrbitalRibbons";
+import {
+  readDebugMode,
+  useDiveController,
+  type DiveDebugMode,
+  type PosterMetrics,
+} from "./useDiveController";
+import {
+  GlyphMatrix,
+  type GlyphMatrixHandle,
+} from "@/components/ui/glyph-matrix";
 
 const SilverHeadCanvas = dynamic(() => import("./SilverHeadCanvas"), {
+  ssr: false,
+  loading: () => null,
+});
+
+// Tuning overlay, only fetched with `?shDebug`.
+const DiveDebug = dynamic(() => import("./DiveDebug"), {
   ssr: false,
   loading: () => null,
 });
@@ -47,7 +44,6 @@ const SilverHeadCanvas = dynamic(() => import("./SilverHeadCanvas"), {
 export const SILVER_HEAD_ASSETS = {
   // v=v4 drops a cached copy of the previous head.
   glb: "/silver-head/silver-head_v4.glb?v=v4",
-  env: "/silver-head/studio-env.hdr",
   poster: "/silver-head/silver-head-poster_v4.webp",
 };
 
@@ -66,32 +62,18 @@ type HeroProps = {
 
 const EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
 
-const SPRING = {
-  stiffness: 85,
-  damping: 23,
-  mass: 0.7,
-};
-
 const clamp = (value: number, min = 0, max = 1) =>
   Math.min(max, Math.max(min, value));
 
-/** Keys that move the page. A press during Explorează hands scroll back to the user. */
-const SCROLL_KEYS = new Set([
-  "ArrowUp",
-  "ArrowDown",
-  "ArrowLeft",
-  "ArrowRight",
-  "PageUp",
-  "PageDown",
-  "Home",
-  "End",
-  " ",
-]);
+/** Pointer tilt follow. Close to the old spring (stiffness 85, damping 23). */
+const TILT_FOLLOW = { duration: 0.55, ease: "power3.out" } as const;
 
-const smoothstep = (value: number) => {
-  const t = clamp(value);
-  return t * t * (3 - 2 * t);
-};
+// The query string does not change while the page is open.
+const subscribeNever = () => () => {};
+const serverDebugMode = (): DiveDebugMode => "off";
+
+/** Without JS there is no pin: the hero, the lamp and the content stack normally. */
+const NOSCRIPT_CSS = `<style>.sh-track{height:100svh!important}.sh-veil{display:none!important}.mouth-reveal{margin-top:0!important;opacity:1!important;pointer-events:auto!important}.mouth-reveal .lamp-spin{animation-play-state:running!important}</style>`;
 
 const CSS = `
 .sh-hero,.sh-hero *{box-sizing:border-box}
@@ -99,9 +81,21 @@ const CSS = `
 .sh-track{
   position:relative;
   background:#070B09;
-  height:calc(100svh * ${TRACK_IN_VIEWPORTS});
+  height:calc(100svh * (1 + var(--sh-pin)));
+  /* The controller restores the dive position after layout changes;
+     the browser's own scroll anchoring would move it first. */
+  overflow-anchor:none;
 }
-.sh-track[data-reduced="true"]{height:100svh}
+${trackCss()}
+.sh-track[data-reduced="true"],
+.sh-track[data-dive="static"]{height:100svh}
+
+/* A controller error leaves a normal page: no pin, lamp visible. */
+.sh-track[data-dive="static"] + .mouth-reveal{
+  margin-top:0!important;
+  opacity:1!important;
+  pointer-events:auto!important;
+}
 
 .sh-sticky{
   position:sticky;
@@ -139,6 +133,8 @@ const CSS = `
   -webkit-user-drag:none;
 }
 
+.sh-view-poster[data-visible="false"]{display:none}
+
 /* One grid for the whole frame. Opacity hides it; the bitmap still paints. */
 .sh-glyph-source{
   position:absolute;
@@ -147,17 +143,16 @@ const CSS = `
   overflow:hidden;
   pointer-events:none;
 }
-  opacity:0!important;
-  pointer-events:none!important;
-}
 
+/* Same plate as the lamp. Covers the last stretch of the mouth before the blend. */
 .sh-veil{
   position:absolute;
   inset:0;
   z-index:6;
-  /* Same plate as the lamp, so entering the mouth does not pass through black. */
   background:${LAMP_PLATE};
   pointer-events:none;
+  opacity:0;
+  visibility:hidden;
 }
 
 .sh-hero{
@@ -182,8 +177,8 @@ const CSS = `
   font-family:ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif;
 }
 
-.sh-hero::after{
-  content:'';
+/* Bottom fade. A real element so it clears with the chrome and the black frame stays flat. */
+.sh-hero-fade{
   position:absolute;
   inset:auto 0 0;
   height:110px;
@@ -586,6 +581,13 @@ const CSS = `
   flex:none;
 }
 
+/* Phones fade the blurred scrim and the outline word on their own layers,
+   so the clearing stage does not repaint the blur every frame. */
+@media(pointer:coarse){
+  .sh-copy,
+  .sh-atmosphere{will-change:opacity}
+}
+
 @media(min-width:1600px){
   .sh-layout{gap:70px}
   .sh-title{font-size:116px}
@@ -799,11 +801,30 @@ export default function SilverHeadHero({
   const stage = useRef<HTMLDivElement>(null);
   const diveTarget = useRef<HTMLDivElement>(null);
   const canvasWrap = useRef<HTMLDivElement>(null);
+  const posterFrame = useRef<HTMLDivElement>(null);
+  const tiltFrame = useRef<HTMLDivElement>(null);
+  const viewPoster = useRef<HTMLImageElement>(null);
+  const ribbonsWrap = useRef<HTMLDivElement>(null);
+  const veil = useRef<HTMLDivElement>(null);
 
+  const ribbons = useRef<RibbonsHandle | null>(null);
+  const glyph = useRef<GlyphMatrixHandle | null>(null);
+
+  // Shared with the canvas. The dive timeline writes `channels` during scroll.
   const control = useRef<HeadControl>({
-    dive: 0,
+    channels: {
+      progress: 0,
+      vh: 0,
+      yaw: 0,
+      center: 0,
+      mouth: 0,
+      camera: 0,
+      atmosphere: 1,
+      glyph: 0,
+    },
     paused: false,
     reducedMotion: false,
+    tier: "full",
     framing: {
       offsetX: 0,
       offsetY: 0,
@@ -816,127 +837,113 @@ export default function SilverHeadHero({
     syncGlyph: () => {},
   });
 
+  const metrics = useRef<PosterMetrics>({
+    shiftX: 0,
+    shiftY: 0,
+    centerScale: 1,
+    cover: 1,
+  });
+
   const mounted = useRef(false);
   const failed = useRef(false);
   const finePointer = useRef(false);
   const readyRef = useRef(false);
   const pausedRef = useRef(false);
-  const chromeHidden = useRef(false);
-
-  const handoffBoot = useRef(true);
-  const handoffTarget = useRef<0 | 1>(0);
-
-  // Button scroll is time-based. These let a second click, a user gesture, or
-  // unmount stop the same tween and drop its listeners.
-  const exploreScroll = useRef<AnimationPlaybackControls | null>(null);
-  const exploreCancel = useRef<(() => void) | null>(null);
-  const exploreGeneration = useRef(0);
-
   const modeRef = useRef<"poster" | "3d">("poster");
+
+  // Pointer tilt, eased with quickTo and read by the canvas.
+  const tilt = useRef({ px: 0, py: 0 });
+  const tiltTo = useRef<{
+    x: gsap.QuickToFunc;
+    y: gsap.QuickToFunc;
+  } | null>(null);
+  const applyTilt = useRef<() => void>(() => {});
 
   const [mode, setMode] = useState<"poster" | "3d">("poster");
   const [detail, setDetail] = useState<SceneDetail>("full");
+  const [tier, setTier] = useState<PerfTier>("full");
   const [ready, setReady] = useState(false);
   const [active, setActive] = useState(true);
   const [paused, setPaused] = useState(false);
   const [reduced, setReduced] = useState(false);
-  const [hiddenChrome, setHiddenChrome] = useState(false);
   const [fullPoster, setFullPoster] = useState(false);
-  const [glyphOn, setGlyphOn] = useState(false);
   const [glyphCanvas, setGlyphCanvas] = useState<HTMLCanvasElement | null>(
     null,
   );
 
-  // Scroll progress stays off the React render path.
-  const { scrollYProgress } = useScroll({
-    target: trackRef,
-    offset: ["start start", "end end"],
-  });
-
-  const dive = useMotionValue(0);
-  const posterLeft = useMotionValue(0);
-  const posterTop = useMotionValue(0);
-  const posterSize = useMotionValue(0);
-  const posterShiftX = useMotionValue(0);
-  const posterShiftY = useMotionValue(0);
-  const posterCenterScale = useMotionValue(1);
-  const posterCover = useMotionValue(1);
-
-  const pointerX = useSpring(0, SPRING);
-  const pointerY = useSpring(0, SPRING);
-
-  const centerT = useTransform(dive, [...DIVE.center], [0, 1]);
-  const posterT = useTransform(dive, [...DIVE.camera], [0, 1]);
-
-  // Poster only. The 3D view is framed by the camera, not by a CSS scale.
-  const posterX = useTransform(
-    [centerT, posterShiftX],
-    ([t, shift]) => smoothstep(Number(t)) * Number(shift),
-  );
-  const posterY = useTransform(
-    [centerT, posterShiftY],
-    ([t, shift]) => smoothstep(Number(t)) * Number(shift),
-  );
-  const posterScale = useTransform(
-    [centerT, posterT, posterCenterScale, posterCover],
-    ([c, p, centerScale, cover]) => {
-      const centered = 1 + (Number(centerScale) - 1) * smoothstep(Number(c));
-
-      return centered + (Number(cover) - centered) * smoothstep(Number(p));
-    },
-  );
-  const ribbonScale = useTransform(
-    [centerT, posterCenterScale],
-    ([c, centerScale]) => 1 + (Number(centerScale) - 1) * smoothstep(Number(c)),
+  // `?shDebug` opens the tuning overlay. Hydrates as "off", then reads the URL.
+  const debugMode = useSyncExternalStore(
+    subscribeNever,
+    readDebugMode,
+    serverDebugMode,
   );
 
-  const chromeOpacity = useTransform(dive, [...DIVE.clear], [1, 0]);
-  const veilOpacity = useTransform(dive, [...DIVE.veil], [0, 1]);
-  const chromePointer = useTransform(dive, (value) =>
-    value > DIVE.chrome ? "none" : "auto",
-  );
-
-  const rotateY = useTransform(pointerX, [-1, 1], [-3, 3]);
-  const rotateX = useTransform(pointerY, [-1, 1], [2.5, -2.5]);
-  const headX = useTransform(pointerX, [-1, 1], [-7, 7]);
-  const headY = useTransform(pointerY, [-1, 1], [-5, 5]);
-
-  // Drops the Explorează tween without jumping to its target.
-  // Bumping the generation makes a late onComplete ignore the tween that replaced it.
-  const stopExploreScroll = useCallback(() => {
-    exploreGeneration.current += 1;
-
-    const running = exploreScroll.current;
-
-    exploreScroll.current = null;
-    exploreCancel.current?.();
-    exploreCancel.current = null;
-    running?.stop();
+  // Back to the neutral pose without easing, e.g. when the dive starts.
+  const dropTilt = useCallback(() => {
+    gsap.killTweensOf(tilt.current);
+    tilt.current.px = 0;
+    tilt.current.py = 0;
+    applyTilt.current();
   }, []);
+
+  const dive = useDiveController({
+    refs: {
+      track: trackRef,
+      sticky: stickyRef,
+      veil,
+      posterFrame,
+      viewPoster,
+      ribbons: ribbonsWrap,
+    },
+    control,
+    metrics,
+    hooks: {
+      ribbons: (running) => ribbons.current?.setRunning(running),
+      glyph: (running) => {
+        if (running) glyph.current?.start();
+        else glyph.current?.stop();
+      },
+      leaveRest: dropTilt,
+    },
+  });
 
   useEffect(() => {
     mounted.current = true;
 
     return () => {
       mounted.current = false;
-      stopExploreScroll();
-      delete document.documentElement.dataset.headChrome;
-      document.documentElement.style.removeProperty("--sh-sticky");
     };
-  }, [stopExploreScroll]);
+  }, []);
 
-  // The fixed site menu lives outside this subtree but follows the same scroll clock.
-  useEffect(() => {
-    heroChromeOpacity.set(chromeOpacity.get());
-    const stop = chromeOpacity.on("change", (value) => {
-      heroChromeOpacity.set(value);
-    });
+  // Tilt writes the canvas tilt and the loading poster in one place.
+  useGSAP(() => {
+    const proxy = tilt.current;
+
+    applyTilt.current = () => {
+      const rotateX = proxy.py * -2.5;
+      const rotateY = proxy.px * 3;
+
+      control.current.tiltX = rotateX;
+      control.current.tiltY = rotateY;
+
+      const frame = tiltFrame.current;
+      if (frame) {
+        frame.style.transform = `translate3d(${(proxy.px * 7).toFixed(2)}px, ${(proxy.py * 5).toFixed(2)}px, 0) rotateX(${rotateX.toFixed(3)}deg) rotateY(${rotateY.toFixed(3)}deg)`;
+      }
+
+      control.current.kick();
+    };
+
+    tiltTo.current = {
+      x: gsap.quickTo(proxy, "px", { ...TILT_FOLLOW, onUpdate: applyTilt.current }),
+      y: gsap.quickTo(proxy, "py", { ...TILT_FOLLOW, onUpdate: applyTilt.current }),
+    };
 
     return () => {
-      stop();
-      heroChromeOpacity.set(1);
+      tiltTo.current = null;
+      applyTilt.current = () => {};
     };
-  }, [chromeOpacity]);
+  }, []);
 
   const toPoster = useCallback(() => {
     if (!mounted.current) return;
@@ -955,7 +962,9 @@ export default function SilverHeadHero({
     const mq = window.matchMedia("(pointer: coarse), (max-width: 760px)");
 
     const apply = () => {
-      setDetail(mq.matches ? "lean" : "full");
+      const next: SceneDetail = mq.matches ? "lean" : "full";
+      setDetail(next);
+      setTier((current) => (current === "low" ? current : next));
     };
 
     apply();
@@ -963,6 +972,10 @@ export default function SilverHeadHero({
 
     return () => mq.removeEventListener("change", apply);
   }, []);
+
+  useEffect(() => {
+    control.current.tier = tier;
+  }, [tier]);
 
   // Reduced motion uses the poster instead of mounting the 3D scene.
   useEffect(() => {
@@ -981,28 +994,7 @@ export default function SilverHeadHero({
       finePointer.current = pointerQuery.matches;
       setReduced(mq.matches);
 
-      if (mq.matches || !pointerQuery.matches) {
-        pointerX.jump(0);
-        pointerY.jump(0);
-      }
-
-      if (mq.matches) {
-        c.dive = 0;
-        dive.set(0);
-        handoffTarget.current = 0;
-        handoffBoot.current = false;
-        setHandoffTarget(0, true);
-        delete document.documentElement.dataset.headChrome;
-      } else {
-        const next = clamp(scrollYProgress.get());
-        c.dive = next;
-        dive.set(next);
-        const opened = next >= DIVE.exit ? 1 : 0;
-        handoffTarget.current = opened;
-        handoffBoot.current = false;
-        setHandoffTarget(opened, true);
-        if (opened === 1) noteLampVisit();
-      }
+      if (mq.matches || !pointerQuery.matches) dropTilt();
 
       const next =
         supported && !mq.matches && !failed.current ? "3d" : "poster";
@@ -1027,7 +1019,12 @@ export default function SilverHeadHero({
       mq.removeEventListener("change", apply);
       pointerQuery.removeEventListener("change", apply);
     };
-  }, [dive, pointerX, pointerY, scrollYProgress]);
+  }, [dropTilt]);
+
+  // The loops read these through the controller, without re-rendering anything.
+  useEffect(() => {
+    dive.setFlags({ active, paused, reduced, mode });
+  }, [active, paused, reduced, mode, dive]);
 
   // Suspend the scene when offscreen or when the tab is hidden.
   useEffect(() => {
@@ -1086,7 +1083,7 @@ export default function SilverHeadHero({
     };
   }, [mode, ready, toPoster]);
 
-  // Stage rectangle → fullscreen framing. The stage is not transformed, so this
+  // Stage rectangle to fullscreen framing. The stage is not transformed, so this
   // stays valid while the dive runs. Resize does not touch the handoff.
   useLayoutEffect(() => {
     const frame = stickyRef.current;
@@ -1125,20 +1122,29 @@ export default function SilverHeadHero({
         fovCenter: fovFor(frameBox.height, centeredSubjectH),
       };
 
-      posterLeft.set(stageBox.left - frameBox.left);
-      posterTop.set(stageBox.top - frameBox.top);
-      posterSize.set(stageH);
-      posterShiftX.set(-offsetX);
-      posterShiftY.set(-offsetY);
-      posterCenterScale.set(stageH > 1 ? centeredSubjectH / stageH : 1);
-      posterCover.set(
-        stageH > 1
-          ? Math.max(
-              frameBox.width / stageBox.width,
-              frameBox.height / stageH,
-            ) * 1.2
-          : 1,
-      );
+      metrics.current = {
+        shiftX: -offsetX,
+        shiftY: -offsetY,
+        centerScale: stageH > 1 ? centeredSubjectH / stageH : 1,
+        cover:
+          stageH > 1
+            ? Math.max(
+                frameBox.width / stageBox.width,
+                frameBox.height / stageH,
+              ) * 1.2
+            : 1,
+      };
+
+      // The fallback poster sits on the stage rectangle, outside the stage.
+      const poster = viewPoster.current;
+      if (poster) {
+        poster.style.left = `${stageBox.left - frameBox.left}px`;
+        poster.style.top = `${stageBox.top - frameBox.top}px`;
+        poster.style.width = `${stageH}px`;
+        poster.style.height = `${stageH}px`;
+      }
+
+      dive.relayout();
       control.current.kick();
     };
 
@@ -1150,29 +1156,17 @@ export default function SilverHeadHero({
     observer.observe(targetEl);
 
     return () => observer.disconnect();
-  }, [
-    posterCover,
-    posterCenterScale,
-    posterLeft,
-    posterShiftX,
-    posterShiftY,
-    posterSize,
-    posterTop,
-  ]);
+  }, [dive]);
 
   // The track and the lamp plate stay on the small viewport (100svh).
   // visualViewport.height changes when Chrome hides the URL bar, and rewriting
   // the track from that value rewinds the dive into the glyphs.
   useLayoutEffect(() => {
     const frame = stickyRef.current;
-    const track = trackRef.current;
-    if (!frame || !track) return;
+    if (!frame) return;
 
     const applySize = () => {
       const root = document.documentElement;
-
-      frame.style.height = "";
-      track.style.height = "";
 
       if (control.current.reducedMotion) {
         root.style.removeProperty("--sh-sticky");
@@ -1191,79 +1185,11 @@ export default function SilverHeadHero({
 
     return () => {
       window.removeEventListener("resize", applySize);
+      document.documentElement.style.removeProperty("--sh-sticky");
     };
   }, [reduced]);
 
-  // Native scroll scrubs the dive. Reduced motion holds the pose at rest.
-  useEffect(() => {
-    const apply = (value: number) => {
-      const next = control.current.reducedMotion ? 0 : clamp(value);
-
-      dive.set(next);
-
-      if (control.current.dive !== next) {
-        control.current.dive = next;
-        control.current.kick();
-      }
-
-      // First sample snaps. Later crossings tween, and the band between
-      // exit and black keeps the current target so the blend is not retriggered.
-      if (control.current.reducedMotion) {
-        handoffTarget.current = 0;
-        handoffBoot.current = false;
-        setHandoffTarget(0, true);
-      } else if (handoffBoot.current) {
-        const opened = next >= DIVE.exit ? 1 : 0;
-        handoffTarget.current = opened;
-        handoffBoot.current = false;
-        setHandoffTarget(opened, true);
-        if (opened === 1) noteLampVisit();
-      } else {
-        let desired = handoffTarget.current;
-        if (next >= DIVE.black - 0.001) desired = 1;
-        else if (next < DIVE.exit) desired = 0;
-
-        if (desired !== handoffTarget.current) {
-          handoffTarget.current = desired;
-          setHandoffTarget(desired);
-
-          if (desired === 0) {
-            releaseLampLatch();
-            resetLampVisit();
-          }
-        }
-
-        // Retry until the plate is actually flush. A single crossing can
-        // happen while the glyphs are still the frame on screen.
-        if (desired === 1) latchOnLamp();
-      }
-
-      const hide = next > DIVE.chrome;
-
-      if (hide !== chromeHidden.current) {
-        chromeHidden.current = hide;
-        setHiddenChrome(hide);
-
-        if (hide) {
-          document.documentElement.dataset.headChrome = "off";
-        } else {
-          delete document.documentElement.dataset.headChrome;
-        }
-      }
-
-      if (next > 0.001) {
-        if (Math.abs(pointerX.get()) > 0.001) pointerX.jump(0);
-        if (Math.abs(pointerY.get()) > 0.001) pointerY.jump(0);
-      }
-    };
-
-    apply(scrollYProgress.get());
-
-    return scrollYProgress.on("change", apply);
-  }, [dive, pointerX, pointerY, scrollYProgress]);
-
-  // White glyphs only while the head is the only thing on screen.
-  // The loop stays down at rest, in the poster, and once the veil is shut.
+  // The glyph canvas uploads to the mouth texture after each painted tick.
   const syncGlyphDraw = useCallback(() => {
     control.current.syncGlyph();
   }, []);
@@ -1271,24 +1197,6 @@ export default function SilverHeadHero({
   const bindGlyphCanvas = useCallback((node: HTMLCanvasElement | null) => {
     setGlyphCanvas(node);
   }, []);
-
-  useEffect(() => {
-    const sync = (value: number) => {
-      const next =
-        mode === "3d" &&
-        active &&
-        !reduced &&
-        !paused &&
-        value >= DIVE.chrome &&
-        value < DIVE.veil[1];
-
-      setGlyphOn((current) => (current === next ? current : next));
-    };
-
-    sync(dive.get());
-
-    return dive.on("change", sync);
-  }, [active, dive, mode, paused, reduced]);
 
   const onReady = useCallback(() => {
     if (!mounted.current || failed.current) return;
@@ -1299,26 +1207,14 @@ export default function SilverHeadHero({
     control.current.kick();
   }, []);
 
-  useEffect(() => {
-    const sync = () => {
-      control.current.tiltX = rotateX.get();
-      control.current.tiltY = rotateY.get();
-      control.current.kick();
-    };
-
-    const stopX = rotateX.on("change", sync);
-    const stopY = rotateY.on("change", sync);
-
-    return () => {
-      stopX();
-      stopY();
-    };
-  }, [rotateX, rotateY]);
+  const onTierChange = useCallback((next: PerfTier) => {
+    setTier(next);
+  }, []);
 
   const resetPointer = useCallback(() => {
-    pointerX.set(0);
-    pointerY.set(0);
-  }, [pointerX, pointerY]);
+    tiltTo.current?.x(0);
+    tiltTo.current?.y(0);
+  }, []);
 
   const onPointerMove = (event: ReactPointerEvent<HTMLElement>) => {
     if (
@@ -1326,18 +1222,18 @@ export default function SilverHeadHero({
       event.pointerType !== "mouse" ||
       control.current.reducedMotion ||
       pausedRef.current ||
-      dive.get() > 0.001
+      control.current.channels.vh > 0.001
     ) {
       return;
     }
 
     const rect = event.currentTarget.getBoundingClientRect();
 
-    pointerX.set(
+    tiltTo.current?.x(
       clamp(((event.clientX - rect.left) / rect.width) * 2 - 1, -1, 1),
     );
 
-    pointerY.set(
+    tiltTo.current?.y(
       clamp(((event.clientY - rect.top) / rect.height) * 2 - 1, -1, 1),
     );
   };
@@ -1350,378 +1246,270 @@ export default function SilverHeadHero({
 
     control.current.paused = next;
 
-    if (next) {
-      pointerX.jump(0);
-      pointerY.jump(0);
-    }
+    if (next) dropTilt();
 
     control.current.kick();
   };
 
-  // Lands on the section start. Reaching the pin end plays the 150ms blend.
-  // The click plays the dive at twice Chrome's smooth-scroll time. A wheel,
-  // touch, or scroll key cancels it and leaves the page where the user took over.
-  const explore = () => {
-    const target = document.querySelector<HTMLElement>("[data-mouth-reveal]");
-
-    if (!target) return;
-
-    const top = target.getBoundingClientRect().top + window.scrollY;
-
-    stopExploreScroll();
-
-    if (control.current.reducedMotion) {
-      window.scrollTo({ top, behavior: "auto" });
-      return;
-    }
-
-    const from = window.scrollY;
-    const distance = top - from;
-
-    if (Math.abs(distance) < 1) return;
-
-    const generation = exploreGeneration.current;
-
-    const onWheel = () => stopExploreScroll();
-    const onTouchMove = () => stopExploreScroll();
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (SCROLL_KEYS.has(event.key)) stopExploreScroll();
-    };
-
-    // The tween writes scroll itself, so a scroll listener would cancel it immediately.
-    window.addEventListener("wheel", onWheel, { passive: true });
-    window.addEventListener("touchmove", onTouchMove, { passive: true });
-    window.addEventListener("keydown", onKeyDown);
-
-    exploreCancel.current = () => {
-      window.removeEventListener("wheel", onWheel);
-      window.removeEventListener("touchmove", onTouchMove);
-      window.removeEventListener("keydown", onKeyDown);
-    };
-
-    exploreScroll.current = animate(from, top, {
-      duration: nativeSmoothSeconds(distance) * EXPLORE_SCROLL_SCALE,
-      ease: EXPLORE_SCROLL_EASE,
-      onUpdate: (value) => {
-        window.scrollTo({ top: value, behavior: "auto" });
-      },
-      onComplete: () => {
-        if (exploreGeneration.current !== generation) return;
-
-        exploreScroll.current = null;
-        exploreCancel.current?.();
-        exploreCancel.current = null;
-      },
-    });
-  };
+  const ribbonFps =
+    tier === "low"
+      ? PERF.ribbonFps.low
+      : detail === "lean"
+        ? PERF.ribbonFps.coarse
+        : PERF.ribbonFps.fine;
 
   return (
-    <LazyMotion features={domAnimation} strict>
-      <div
-        ref={trackRef}
-        className="sh-track"
-        data-reduced={reduced ? "true" : "false"}
-      >
-        <div ref={stickyRef} className="sh-sticky">
-          <div className="sh-view" aria-hidden="true">
-            {glyphOn && (
-              <div className="sh-glyph-source">
-                <GlyphMatrix
-                  color="#ffffff"
-                  fadeBottom={0}
-                  cellSize={16}
-                  interval={140}
-                  mutationRate={0.03}
-                  maxDpr={1}
-                  maxEdge={960}
-                  minOpacity={0.55}
-                  maxOpacity={1}
-                  active={active}
-                  canvasRef={bindGlyphCanvas}
-                  onDraw={syncGlyphDraw}
-                />
-              </div>
-            )}
+    <div
+      ref={trackRef}
+      className="sh-track"
+      data-reduced={reduced ? "true" : "false"}
+    >
+      <noscript dangerouslySetInnerHTML={{ __html: NOSCRIPT_CSS }} />
 
-            {mode === "3d" && (
-              <div ref={canvasWrap} className="sh-view-canvas">
-                <CanvasBoundary onError={toPoster}>
-                  <SilverHeadCanvas
-                    active={active}
-                    control={control}
-                    glbUrl={assets.glb}
-                    envUrl={assets.env}
-                    detail={detail}
-                    glyphCanvas={glyphOn ? glyphCanvas : null}
-                    onReady={onReady}
-                    onPoorPerformance={toPoster}
-                  />
-                </CanvasBoundary>
-              </div>
-            )}
-
-            {fullPoster && (
-              <m.img
-                className="sh-view-poster"
-                src={assets.poster}
-                alt=""
-                width={1024}
-                height={1024}
-                draggable={false}
-                style={{
-                  left: posterLeft,
-                  top: posterTop,
-                  width: posterSize,
-                  height: posterSize,
-                  x: posterX,
-                  y: posterY,
-                  scale: posterScale,
-                }}
-              />
-            )}
-          </div>
-          <section
-            className={`sh-hero ${className}`}
-            aria-label="Introducere"
-            onPointerMove={onPointerMove}
-            onPointerLeave={resetPointer}
-          >
-            <style dangerouslySetInnerHTML={{ __html: CSS }} />
-
-            <m.div
-              className="sh-atmosphere"
-              style={{ opacity: chromeOpacity }}
-              aria-hidden="true"
-            >
-              <div className="sh-backword">FORMĂ</div>
-            </m.div>
-
-            <div
-              ref={diveTarget}
-              className="sh-dive-target"
-              aria-hidden="true"
-            />
-
-            <div
-              ref={stage}
-              className="sh-stage"
-              data-ready={mode === "3d" && ready ? "true" : "false"}
-              data-full-poster={fullPoster ? "true" : "false"}
-            >
-              <m.div
-                className="sh-frame-position"
-                style={{
-                  x: posterX,
-                  y: posterY,
-                  scale: posterScale,
-                }}
-              >
-                <m.div
-                  className="sh-frame"
-                  style={{
-                    rotateX,
-                    rotateY,
-                    x: headX,
-                    y: headY,
-                  }}
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    className="sh-poster"
-                    src={assets.poster}
-                    alt="Cap sculptural argintiu"
-                    width={1024}
-                    height={1024}
-                    fetchPriority="high"
-                    decoding="async"
-                    draggable={false}
-                  />
-                </m.div>
-              </m.div>
-
-              <OrbitalRibbons
-                opacity={chromeOpacity}
-                x={posterX}
-                y={posterY}
-                scale={ribbonScale}
+      <div ref={stickyRef} className="sh-sticky">
+        <div className="sh-view" aria-hidden="true">
+          {mode === "3d" && (
+            <div className="sh-glyph-source">
+              <GlyphMatrix
+                color="#ffffff"
+                fadeBottom={0}
+                cellSize={16}
+                interval={140}
+                mutationRate={0.03}
+                maxDpr={1}
+                maxEdge={PERF.glyphMaxEdge[tier]}
+                minOpacity={0.55}
+                maxOpacity={1}
                 active={active}
-                paused={paused}
-                reducedMotion={reduced}
-                hidden={hiddenChrome}
+                autoStart={false}
+                handleRef={glyph}
+                canvasRef={bindGlyphCanvas}
+                onDraw={syncGlyphDraw}
               />
-
-              <m.span
-                className="sh-caption"
-                style={{ opacity: chromeOpacity }}
-                aria-hidden="true"
-              >
-                Din idee, în experiență.
-              </m.span>
             </div>
+          )}
 
-            <m.header
-              className="sh-header"
-              style={{
-                opacity: chromeOpacity,
-                pointerEvents: chromePointer,
-              }}
-              inert={hiddenChrome ? true : undefined}
-              aria-hidden={hiddenChrome || undefined}
-            >
-              <div className="sh-brand">
-                <svg
-                  className="sh-mark"
-                  viewBox="0 0 28 28"
-                  fill="none"
-                  aria-hidden="true"
-                >
-                  <circle
-                    cx="14"
-                    cy="14"
-                    r="11"
-                    stroke="currentColor"
-                    strokeWidth=".75"
-                  />
-
-                  <path
-                    d="M14 3v22M3 14h22M6.2 6.2l15.6 15.6M6.2 21.8 21.8 6.2"
-                    stroke="currentColor"
-                    strokeWidth=".75"
-                  />
-                </svg>
-
-                <span>{studioLabel}</span>
-              </div>
-
-              <span className="sh-header-note">O perspectivă diferită.</span>
-            </m.header>
-
-            <div className="sh-layout">
-              <m.div
-                className="sh-copy"
-                style={{
-                  opacity: chromeOpacity,
-                  pointerEvents: chromePointer,
-                }}
-                inert={hiddenChrome ? true : undefined}
-                aria-hidden={hiddenChrome || undefined}
-              >
-                {children ?? (
-                  <>
-                    <p className="sh-eyebrow">{eyebrow}</p>
-
-                    <h1 className="sh-title">
-                      {title ?? (
-                        <>
-                          <m.span
-                            className="sh-title-line"
-                            initial={{ y: 16 }}
-                            animate={{ y: 0 }}
-                            transition={{
-                              duration: reduced ? 0 : 0.85,
-                              ease: EASE,
-                            }}
-                          >
-                            Idei care
-                          </m.span>
-
-                          <m.em
-                            initial={{ y: 22 }}
-                            animate={{ y: 0 }}
-                            transition={{
-                              duration: reduced ? 0 : 1,
-                              delay: reduced ? 0 : 0.08,
-                              ease: EASE,
-                            }}
-                          >
-                            prind formă.
-                          </m.em>
-                        </>
-                      )}
-                    </h1>
-
-                    <p className="sh-description">{description}</p>
-
-                    <div className="sh-actions">
-                      <m.button
-                        type="button"
-                        className="sh-primary"
-                        onClick={explore}
-                        whileTap={reduced ? undefined : { scale: 0.97 }}
-                      >
-                        {ctaLabel}
-                        <ArrowDown />
-                      </m.button>
-
-                      {secondaryHref && (
-                        <a className="sh-secondary" href={secondaryHref}>
-                          {secondaryLabel} ↗
-                        </a>
-                      )}
-                    </div>
-                  </>
-                )}
-              </m.div>
+          {mode === "3d" && (
+            <div ref={canvasWrap} className="sh-view-canvas">
+              <CanvasBoundary onError={toPoster}>
+                <SilverHeadCanvas
+                  active={active}
+                  control={control}
+                  glbUrl={assets.glb}
+                  detail={detail}
+                  glyphCanvas={glyphCanvas}
+                  onReady={onReady}
+                  onPoorPerformance={toPoster}
+                  onTierChange={onTierChange}
+                  onCalibrate={dive.setBlack}
+                />
+              </CanvasBoundary>
             </div>
+          )}
 
-            <m.footer
-              className="sh-footer"
-              style={{
-                opacity: chromeOpacity,
-                pointerEvents: chromePointer,
-              }}
-              inert={hiddenChrome ? true : undefined}
-              aria-hidden={hiddenChrome || undefined}
-            >
-              <span className="sh-footer-note">
-                Claritate în idee. Caracter în fiecare detaliu.
-              </span>
-
-              <div className="sh-footer-right">
-                {!reduced && !hiddenChrome && (
-                  <button
-                    type="button"
-                    className="sh-pause"
-                    onClick={togglePause}
-                    aria-pressed={paused}
-                    aria-label={
-                      paused ? "Pornește animația" : "Oprește animația"
-                    }
-                  >
-                    <svg
-                      viewBox="0 0 12 12"
-                      fill="currentColor"
-                      aria-hidden="true"
-                    >
-                      {paused ? (
-                        <path d="m3 1 8 5-8 5V1Z" />
-                      ) : (
-                        <>
-                          <rect x="2" y="1" width="2.5" height="10" rx=".5" />
-                          <rect x="7.5" y="1" width="2.5" height="10" rx=".5" />
-                        </>
-                      )}
-                    </svg>
-
-                    <span>{paused ? "Pornește" : "Pauză"}</span>
-                  </button>
-                )}
-
-                <span className="sh-scroll-cue">
-                  Derulează pentru a descoperi
-                  <span className="sh-scroll-line" aria-hidden="true" />
-                </span>
-              </div>
-            </m.footer>
-          </section>
-
-          <m.div
-            className="sh-veil"
-            style={{ opacity: veilOpacity }}
-            aria-hidden="true"
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            ref={viewPoster}
+            className="sh-view-poster"
+            data-visible={fullPoster ? "true" : "false"}
+            src={assets.poster}
+            alt=""
+            width={1024}
+            height={1024}
+            draggable={false}
           />
         </div>
+
+        <section
+          className={`sh-hero ${className}`}
+          aria-label="Introducere"
+          onPointerMove={onPointerMove}
+          onPointerLeave={resetPointer}
+        >
+          <style dangerouslySetInnerHTML={{ __html: CSS }} />
+
+          <div className="sh-atmosphere" data-sh-chrome aria-hidden="true">
+            <div className="sh-backword">FORMĂ</div>
+          </div>
+
+          <div
+            ref={diveTarget}
+            className="sh-dive-target"
+            aria-hidden="true"
+          />
+
+          <div
+            ref={stage}
+            className="sh-stage"
+            data-ready={mode === "3d" && ready ? "true" : "false"}
+            data-full-poster={fullPoster ? "true" : "false"}
+          >
+            <div ref={posterFrame} className="sh-frame-position">
+              <div ref={tiltFrame} className="sh-frame">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  className="sh-poster"
+                  src={assets.poster}
+                  alt="Cap sculptural argintiu"
+                  width={1024}
+                  height={1024}
+                  fetchPriority="high"
+                  decoding="async"
+                  draggable={false}
+                />
+              </div>
+            </div>
+
+            <OrbitalRibbons
+              wrapperRef={ribbonsWrap}
+              handleRef={ribbons}
+              reducedMotion={reduced}
+              fps={ribbonFps}
+            />
+
+            <span className="sh-caption" data-sh-chrome aria-hidden="true">
+              Din idee, în experiență.
+            </span>
+          </div>
+
+          <header className="sh-header" data-sh-chrome>
+            <div className="sh-brand">
+              <svg
+                className="sh-mark"
+                viewBox="0 0 28 28"
+                fill="none"
+                aria-hidden="true"
+              >
+                <circle
+                  cx="14"
+                  cy="14"
+                  r="11"
+                  stroke="currentColor"
+                  strokeWidth=".75"
+                />
+
+                <path
+                  d="M14 3v22M3 14h22M6.2 6.2l15.6 15.6M6.2 21.8 21.8 6.2"
+                  stroke="currentColor"
+                  strokeWidth=".75"
+                />
+              </svg>
+
+              <span>{studioLabel}</span>
+            </div>
+
+            <span className="sh-header-note">O perspectivă diferită.</span>
+          </header>
+
+          <div className="sh-layout">
+            <div className="sh-copy" data-sh-chrome>
+              {children ?? (
+                <>
+                  <p className="sh-eyebrow">{eyebrow}</p>
+
+                  <h1 className="sh-title">
+                    {title ?? (
+                      <>
+                        <m.span
+                          className="sh-title-line"
+                          initial={{ y: 16 }}
+                          animate={{ y: 0 }}
+                          transition={{
+                            duration: reduced ? 0 : 0.85,
+                            ease: EASE,
+                          }}
+                        >
+                          Idei care
+                        </m.span>
+
+                        <m.em
+                          initial={{ y: 22 }}
+                          animate={{ y: 0 }}
+                          transition={{
+                            duration: reduced ? 0 : 1,
+                            delay: reduced ? 0 : 0.08,
+                            ease: EASE,
+                          }}
+                        >
+                          prind formă.
+                        </m.em>
+                      </>
+                    )}
+                  </h1>
+
+                  <p className="sh-description">{description}</p>
+
+                  <div className="sh-actions">
+                    <m.button
+                      type="button"
+                      className="sh-primary"
+                      onClick={dive.explore}
+                      whileTap={reduced ? undefined : { scale: 0.97 }}
+                    >
+                      {ctaLabel}
+                      <ArrowDown />
+                    </m.button>
+
+                    {secondaryHref && (
+                      <a className="sh-secondary" href={secondaryHref}>
+                        {secondaryLabel} ↗
+                      </a>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+
+          <footer className="sh-footer" data-sh-chrome>
+            <span className="sh-footer-note">
+              Claritate în idee. Caracter în fiecare detaliu.
+            </span>
+
+            <div className="sh-footer-right">
+              {!reduced && (
+                <button
+                  type="button"
+                  className="sh-pause"
+                  onClick={togglePause}
+                  aria-pressed={paused}
+                  aria-label={
+                    paused ? "Pornește animația" : "Oprește animația"
+                  }
+                >
+                  <svg
+                    viewBox="0 0 12 12"
+                    fill="currentColor"
+                    aria-hidden="true"
+                  >
+                    {paused ? (
+                      <path d="m3 1 8 5-8 5V1Z" />
+                    ) : (
+                      <>
+                        <rect x="2" y="1" width="2.5" height="10" rx=".5" />
+                        <rect x="7.5" y="1" width="2.5" height="10" rx=".5" />
+                      </>
+                    )}
+                  </svg>
+
+                  <span>{paused ? "Pornește" : "Pauză"}</span>
+                </button>
+              )}
+
+              <span className="sh-scroll-cue">
+                Derulează pentru a descoperi
+                <span className="sh-scroll-line" aria-hidden="true" />
+              </span>
+            </div>
+          </footer>
+
+          <div className="sh-hero-fade" data-sh-chrome aria-hidden="true" />
+        </section>
+
+        <div ref={veil} className="sh-veil" aria-hidden="true" />
       </div>
-    </LazyMotion>
+
+      {debugMode === "overlay" && <DiveDebug control={control} />}
+    </div>
   );
 }

@@ -1,17 +1,14 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import HailMary from "../components/graces/HailMary";
 import BentoGridThirdDemo from "../components/ui/elBento/bento-grid-demo-3";
 import { FeaturesSectionDemo } from "../components/ui/Featurecards";
 
 function ServiciiPage() {
-  const [mounted, setMounted] = useState(false);
-
   useEffect(() => {
-    setMounted(true);
     return () => {
-      // Cleanup any WebGL contexts
+      // Drop a leftover WebGL context when leaving this route.
       const canvas = document.querySelector("canvas");
       if (canvas) {
         const gl = canvas.getContext("webgl") || canvas.getContext("webgl2");
@@ -21,8 +18,6 @@ function ServiciiPage() {
       }
     };
   }, []);
-
-  if (!mounted) return null;
 
   return (
     <div style={{ position: "relative", width: "100%", height: "100%" }}>
